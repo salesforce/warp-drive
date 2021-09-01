@@ -180,7 +180,7 @@ in a `bin` folder, and additionally, run some unit tests.
 
 ## Learn More
 
-For more information, please check out our [blog](blog.einstein.ai/warpdrive-fast-rl-on-a-gpu/), [white paper](https://arxiv.org/abs/2108.13976), and code [documentation](https://rl_warp_drive.pages.github.io).
+For more information, please check out our [blog](https://blog.einstein.ai/warpdrive-fast-rl-on-a-gpu/), [white paper](https://arxiv.org/abs/2108.13976), and code [documentation](http://opensource.salesforce.com/warp-drive/).
 
 If you're interested in extending this framework, or have questions, join the
 AI Economist Slack channel using this 

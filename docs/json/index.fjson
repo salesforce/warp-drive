@@ -1,0 +1,8 @@
+{
+    "body": "<div class=\"section\" id=\"welcome-to-maxrl-s-documentation\">\n<h1>Welcome to MAXRL\u2019s documentation!<a class=\"headerlink\" href=\"#welcome-to-maxrl-s-documentation\" title=\"Permalink to this headline\">\u00b6</a></h1>\n<div class=\"toctree-wrapper compound\">\n</div>\n</div>\n<div class=\"section\" id=\"indices-and-tables\">\n<h1>Indices and tables<a class=\"headerlink\" href=\"#indices-and-tables\" title=\"Permalink to this headline\">\u00b6</a></h1>\n<ul class=\"simple\">\n<li><p><a class=\"reference internal\" href=\"genindex.html\"><span class=\"std std-ref\">Index</span></a></p></li>\n<li><p><a class=\"reference internal\" href=\"py-modindex.html\"><span class=\"std std-ref\">Module Index</span></a></p></li>\n<li><p><a class=\"reference internal\" href=\"search.html\"><span class=\"std std-ref\">Search Page</span></a></p></li>\n</ul>\n</div>\n",
+    "title": "Welcome to MAXRL\u2019s documentation!",
+    "sourcename": "index.rst.txt",
+    "current_page_name": "index",
+    "toc": "<ul>\n<li><a class=\"reference internal\" href=\"#\">Welcome to MAXRL\u2019s documentation!</a></li>\n<li><a class=\"reference internal\" href=\"#indices-and-tables\">Indices and tables</a></li>\n</ul>\n",
+    "page_source_suffix": ".rst"
+}

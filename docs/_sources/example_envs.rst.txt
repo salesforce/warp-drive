@@ -1,0 +1,19 @@
+example\_envs package
+=====================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   example_envs.tag_continuous
+   example_envs.tag_gridworld
+
+Module contents
+---------------
+
+.. automodule:: example_envs
+   :members:
+   :undoc-members:
+   :show-inheritance:

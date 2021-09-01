@@ -1,0 +1,58 @@
+{
+    "types": {
+        "c:member": "member",
+        "c:var": "variable",
+        "c:function": "function",
+        "c:macro": "macro",
+        "c:struct": "struct",
+        "c:union": "union",
+        "c:enum": "enum",
+        "c:enumerator": "enumerator",
+        "c:type": "type",
+        "c:functionParam": "function parameter",
+        "cpp:class": "class",
+        "cpp:union": "union",
+        "cpp:function": "function",
+        "cpp:member": "member",
+        "cpp:type": "type",
+        "cpp:concept": "concept",
+        "cpp:enum": "enum",
+        "cpp:enumerator": "enumerator",
+        "cpp:functionParam": "function parameter",
+        "cpp:templateParam": "template parameter",
+        "js:function": "function",
+        "js:method": "method",
+        "js:class": "class",
+        "js:data": "data",
+        "js:attribute": "attribute",
+        "js:module": "module",
+        "py:function": "function",
+        "py:data": "data",
+        "py:class": "class",
+        "py:exception": "exception",
+        "py:method": "method",
+        "py:classmethod": "class method",
+        "py:staticmethod": "static method",
+        "py:attribute": "attribute",
+        "py:property": "property",
+        "py:module": "module",
+        "rst:directive": "directive",
+        "rst:directive:option": "directive-option",
+        "rst:role": "role",
+        "std:term": "glossary term",
+        "std:token": "grammar token",
+        "std:label": "reference label",
+        "std:envvar": "environment variable",
+        "std:cmdoption": "program option",
+        "std:doc": "document"
+    },
+    "titles": {
+        "index.html": "Welcome to MAXRL\u2019s documentation!"
+    },
+    "paths": {
+        "index.html": "index.rst"
+    },
+    "pages": {
+        "index.html": "index"
+    }
+}

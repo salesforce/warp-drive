@@ -1,0 +1,425 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>data_manager module &mdash; WarpDrive 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="https://assets.readthedocs.org/static/css/badge_only.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://assets.readthedocs.org/static/javascript/readthedocs-doc-embed.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+
+<!-- RTD Extra Head -->
+
+<link rel="stylesheet" href="https://assets.readthedocs.org/static/css/readthedocs-doc-embed.css" type="text/css" />
+
+<script type="application/json" id="READTHEDOCS_DATA">{"ad_free": "", "api_host": "", "build_date": "2021-08-31T22:53:13Z", "builder": "sphinx", "canonical_url": "", "commit": "", "docroot": "", "features": {"docsearch_disabled": false}, "global_analytics_code": null, "language": "", "page": "data_manager", "programming_language": "", "project": "", "source_suffix": ".rst", "subprojects": {}, "theme": "", "user_analytics_code": null, "version": ""}</script>
+
+<!--
+Using this variable directly instead of using `JSON.parse` is deprecated.
+The READTHEDOCS_DATA global variable will be removed in the future.
+-->
+<script type="text/javascript">
+READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerHTML);
+</script>
+
+<script type="text/javascript" src="https://assets.readthedocs.org/static/javascript/readthedocs-analytics.js" async="async"></script>
+
+<!-- end RTD <extrahead> -->
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> WarpDrive
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="warp_drive.html">warp_drive package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example_envs.html">example_envs package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">WarpDrive</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>data_manager module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/data_manager.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-data_manager">
+<span id="data-manager-module"></span><h1>data_manager module<a class="headerlink" href="#module-data_manager" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">data_manager.</span></span><span class="sig-name descname"><span class="pre">CUDADataManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_agents</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_length</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>CUDA Data Manager: manages the data initialization of GPU,
+and data transfer between CPU host and GPU device</p>
+<p class="rubric">Example</p>
+<p>cuda_data_manager = CUDADataManager(
+num_agents=10, num_envs=5, episode_length=100
+)</p>
+<p>data1 = DataFeed()
+data1.add_data(name=”X”, data=np.array([[1, 2, 3, 4, 5],</p>
+<blockquote>
+<div><blockquote>
+<div><p>[0, 0, 0, 0, 0],
+[0, 0, 0, 0, 0]])</p>
+</div></blockquote>
+<p>)</p>
+</div></blockquote>
+<p>data1.add_data(name=”a”, data=100)
+cuda_data_manager.push_data_to_device(data)</p>
+<p>data2 = DataFeed()
+data2.add_data(name=”Y”, data=[[0.1,0.2,0.3,0.4,0.5],</p>
+<blockquote>
+<div><blockquote>
+<div><p>[0.0,0.0,0.0,0.0,0.0],
+[0.0,0.0,0.0,0.0,0.0]]</p>
+</div></blockquote>
+<p>)</p>
+</div></blockquote>
+<p>cuda_data_manager.push_data_to_device(data2, torch_accessible=True)</p>
+<p>X_copy_at_host = cuda_data_manager.pull_data_from_device(name=”X”)
+Y_copy_at_host = cuda_data_manager.pull_data_from_device(name=”Y”)</p>
+<dl class="simple">
+<dt>if cuda_data_manager.is_data_on_device_via_torch(“Y”):</dt><dd><p>Y_tensor_accessible_by_torch =
+cuda_data_manager.data_on_device_via_torch(“Y”)</p>
+</dd>
+</dl>
+<p># cuda_function here assumes a compiled CUDA C function
+cuda_function(cuda_data_manager.device_data(“X”),</p>
+<blockquote>
+<div><p>cuda_data_manager.device_data(“Y”),
+block=(10,1,1), grid=(5,1))</p>
+</div></blockquote>
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.add_meta_info">
+<span class="sig-name descname"><span class="pre">add_meta_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.add_meta_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add meta information to the data manager, only accepts scalar integer or float</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>meta</strong> – for example, {“episode_length”: 100, “num_agents”: 10}</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.add_shared_constants">
+<span class="sig-name descname"><span class="pre">add_shared_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">constants</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.add_shared_constants" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add shared constants to the data manager</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>constants</strong> – e.g., {“action_mapping”: [[0,0], [1,1], [-1,-1]]}</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.data_on_device_via_torch">
+<span class="sig-name descname"><span class="pre">data_on_device_via_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#data_manager.CUDADataManager.data_on_device_via_torch" title="Permalink to this definition">¶</a></dt>
+<dd><p>The data on the device. This is used for Pytorch default access within GPU.
+To fetch the tensor back to the host,
+call pull_data_from_device()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – name of the device array</p>
+</dd>
+</dl>
+<p>returns: the tensor itself at the device.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.device_data">
+<span class="sig-name descname"><span class="pre">device_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.device_data" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – name of the device data</p>
+</dd>
+</dl>
+<p>returns: the data pointer in the device for CUDA to access</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.get_dtype">
+<span class="sig-name descname"><span class="pre">get_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.get_dtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.get_shape">
+<span class="sig-name descname"><span class="pre">get_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.get_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.host_data">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">host_data</span></span><a class="headerlink" href="#data_manager.CUDADataManager.host_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.is_data_on_device">
+<span class="sig-name descname"><span class="pre">is_data_on_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#data_manager.CUDADataManager.is_data_on_device" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.is_data_on_device_via_torch">
+<span class="sig-name descname"><span class="pre">is_data_on_device_via_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#data_manager.CUDADataManager.is_data_on_device_via_torch" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is used to check if the data exist and accessible
+via Pytorch default access within GPU.
+name: name of the device</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.log_data_list">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">log_data_list</span></span><a class="headerlink" href="#data_manager.CUDADataManager.log_data_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.meta_info">
+<span class="sig-name descname"><span class="pre">meta_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.meta_info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.pull_data_from_device">
+<span class="sig-name descname"><span class="pre">pull_data_from_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.pull_data_from_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch the values of device array back to the host</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – name of the device array</p>
+</dd>
+</dl>
+<p>returns: a host copy of scalar data or numpy array
+fetched back from the device array</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.push_data_to_device">
+<span class="sig-name descname"><span class="pre">push_data_to_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">torch_accessible</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.push_data_to_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register data to the host, and push to the device
+(1) register at self._host_data
+(2) push to device and register at self._device_data_pointer,
+CUDA program can directly access those data via pointer
+(3) if save_copy_and_apply_at_reset or log_data_across_episode
+as instructed by the data, register and push to device using step (1)(2) too</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> – e.g., {“name”: {“data”: numpy array,</p>
+</dd>
+</dl>
+<p>“attributes”: {“save_copy_and_apply_at_reset”: True,
+“log_data_across_episode”: True}}}.
+This data dictionary can be constructed by warp_drive.utils.data_feed.DataFeed
+:param torch_accessible: if True, the data is directly accessible by Pytorch</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.reset_data_list">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">reset_data_list</span></span><a class="headerlink" href="#data_manager.CUDADataManager.reset_data_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.reset_device">
+<span class="sig-name descname"><span class="pre">reset_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.reset_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the device array values back to the host array values
+Note: this reset is not a device-only execution,
+but incurs data transfer from host to device</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – (optional) reset a device array by name, if None, reset all arrays</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.scalar_data_list">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">scalar_data_list</span></span><a class="headerlink" href="#data_manager.CUDADataManager.scalar_data_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data_manager.CUDADataManager.shared_constant">
+<span class="sig-name descname"><span class="pre">shared_constant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CUDADataManager.shared_constant" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data_manager.CudaTensorHolder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">data_manager.</span></span><span class="sig-name descname"><span class="pre">CudaTensorHolder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#data_manager.CudaTensorHolder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pycuda._driver.PointerHolderBase</span></code></p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Tian Lan, Sunil Srinivasa, Stephan Zheng.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

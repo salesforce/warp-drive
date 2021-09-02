@@ -161,7 +161,7 @@ class CUDAFunctionManager:
         # main_file is the source code
         main_file = f"{header_path}/env_runner.cu"
         # cubin_file is the targeted compiled exe
-        cubin_file = f"{bin_path}/env_runner.cubin"
+        cubin_file = f"{bin_path}/env_runner.fatbin"
         print(f"Compiling {main_file} -> {cubin_file}")
 
         self._compile(main_file, cubin_file)
@@ -177,7 +177,7 @@ class CUDAFunctionManager:
             raise Exception("make bin file failed ... ")
         print(f"Successfully mkdir the binary folder {bin_path}")
 
-        cmd = f"nvcc --cubin -arch=sm_70 {main_file} -o {cubin_file}"
+        cmd = f"nvcc --fatbin -arch=compute_30 -code=sm_30 -code=sm_50 -code=sm_60 -code=sm_70 {main_file} -o {cubin_file}"
         print(f"Running cmd: {cmd}")
 
         make_process = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT)

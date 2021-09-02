@@ -30,7 +30,7 @@ class TestActionSampler(unittest.TestCase):
             num_agents=int(self.dm.meta_info("n_agents")),
             num_envs=int(self.dm.meta_info("n_envs")),
         )
-        self.fm.load_cuda_from_binary_file(f"{_CUBIN_FILEPATH}/test_build.cubin")
+        self.fm.load_cuda_from_binary_file(f"{_CUBIN_FILEPATH}/test_build.fatbin")
         self.sampler = CUDASampler(function_manager=self.fm)
         self.sampler.init_random(seed=None)
 

@@ -92,7 +92,7 @@ class EnvWrapper:
             print(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
             if testing_mode:
                 self.cuda_function_manager.load_cuda_from_binary_file(
-                    f"{_CUBIN_FILEPATH}/test_build.cubin"
+                    f"{_CUBIN_FILEPATH}/test_build.fatbin"
                 )
             else:
                 self.cuda_function_manager.compile_and_load_cuda(

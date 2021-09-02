@@ -177,8 +177,8 @@ class CUDAFunctionManager:
             raise Exception("make bin file failed ... ")
         print(f"Successfully mkdir the binary folder {bin_path}")
 
-        arch_codes = ["-code=sm_30", "-code=sm_50", "-code=sm_60", "-code=sm_70", "-code=sm_80"]
-        compiler = "nvcc --fatbin -arch=compute_30"
+        arch_codes = ["-code=sm_37", "-code=sm_50", "-code=sm_60", "-code=sm_70", "-code=sm_80"]
+        compiler = "nvcc --fatbin -arch=compute_37"
         in_out_fname = f"{main_file} -o {cubin_file}"
         # for example, cmd = f"nvcc --fatbin -arch=compute_30 -code=sm_30 -code=sm_50 "
         #                    f"-code=sm_60 -code=sm_70 {main_file} -o {cubin_file}"

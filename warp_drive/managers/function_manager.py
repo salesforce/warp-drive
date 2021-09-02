@@ -177,13 +177,30 @@ class CUDAFunctionManager:
             raise Exception("make bin file failed ... ")
         print(f"Successfully mkdir the binary folder {bin_path}")
 
-        cmd = f"nvcc --fatbin -arch=compute_30 -code=sm_30 -code=sm_50 -code=sm_60 -code=sm_70 {main_file} -o {cubin_file}"
-        print(f"Running cmd: {cmd}")
+        arch_codes = ["-code=sm_30", "-code=sm_50", "-code=sm_60", "-code=sm_70", "-code=sm_80"]
+        compiler = "nvcc --fatbin -arch=compute_30"
+        in_out_fname = f"{main_file} -o {cubin_file}"
+        # for example, cmd = f"nvcc --fatbin -arch=compute_30 -code=sm_30 -code=sm_50 "
+        #                    f"-code=sm_60 -code=sm_70 {main_file} -o {cubin_file}"
+        build_success = False
+        for i in range(len(arch_codes)):
+            try:
+                cmd = " ".join([compiler] + arch_codes[:len(arch_codes)-i] + [in_out_fname])
+                make_process = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT)
+                if make_process.wait() != 0:
+                    raise Exception(f"build failed ... : \n"
+                                    f"{cmd} \n"
+                                    f"try to build the lower gpu-code version ... ")
+                else:
+                    print(f"Running cmd: {cmd}")
+                    print(f"Successfully build the cubin_file from {main_file} to {cubin_file}")
+                    build_success = True
+                    break
+            except Exception as err:
+                print(err)
 
-        make_process = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT)
-        if make_process.wait() != 0:
+        if not build_success:
             raise Exception("build failed ... ")
-        print(f"Successfully build the cubin_file from {main_file} to {cubin_file}")
 
     def initialize_default_functions(self):
         """

@@ -35,7 +35,7 @@ class EnvWrapper:
     all happen on the GPU
     """
 
-    def __init__(self, env_obj=None, num_envs=1, use_cuda=False, testing_mode=False):
+    def __init__(self, env_obj=None, num_envs=1, use_cuda=False, testing_mode=False, customized_env_registrar=None):
         """
         'env_obj': an environment instance
         'use_cuda': if True, step through the environment on the GPU, else on the CPU
@@ -43,6 +43,8 @@ class EnvWrapper:
         only relevant when use_cuda is True
         'testing_mode': a flag used to determine whether to simply load the .cubin (when
         testing) or compile the .cu source code to create a .cubin and use that.
+        'customized_env_registrar': CustomizedEnvironmentRegistrar object
+            it provides the customized env info (like src path) for the build
         """
         # Need to pass in an environment instance
         assert env_obj is not None
@@ -99,6 +101,7 @@ class EnvWrapper:
                     env_name=self.name,
                     template_header_file="template_env_config.h",
                     template_runner_file="template_env_runner.cu",
+                    customized_env_registrar=customized_env_registrar
                 )
 
             # Register the CUDA step() function for the env

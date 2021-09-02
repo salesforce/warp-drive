@@ -21,6 +21,7 @@ from warp_drive.utils.common import (
     update_env_runner,
 )
 from warp_drive.utils.data_feed import DataFeed
+from warp_drive.utils.env_registrar import CustomizedEnvironmentRegistrar
 
 
 class CUDAFunctionManager:
@@ -109,6 +110,7 @@ class CUDAFunctionManager:
         template_runner_file: str,
         template_path: Optional[str] = None,
         default_functions_included: bool = True,
+        customized_env_registrar: Optional[CustomizedEnvironmentRegistrar] = None,
     ):
         """
         Compile a template source code, so self.num_agents and self.num_envs
@@ -126,6 +128,8 @@ class CUDAFunctionManager:
         :param template_path: template path, by default,
         it is f"{ROOT_PATH}/warp_drive/cuda_includes/"
         :param default_functions_included: load default function lists
+        :param customized_env_registrar: CustomizedEnvironmentRegistrar object
+            it provides the customized env info (e.g., source code path)for the build
         """
         # 'bin_path' is the designated cuda exe binary path that warp_drive
         # is built into; 'header_path' is the designated cuda main source code path
@@ -145,6 +149,7 @@ class CUDAFunctionManager:
             template_runner_file=template_runner_file,
             path=template_path,
             env_name=env_name,
+            customized_env_registrar=customized_env_registrar
         )
         check_env_header(
             header_file="env_config.h",

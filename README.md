@@ -105,7 +105,7 @@ CUDA (which includes nvcc) can be installed by following Nvidia's instructions h
 
 ### Docker Image
 
-You can refer to the [example Dockerfile](www.github.com/salesforce/warp-drive/blob/master/Dockerfile) to configure your system. 
+You can refer to the [example Dockerfile](https://github.com/salesforce/warp-drive/blob/master/Dockerfile) to configure your system. 
 In particular, we suggest you visit [Nvidia Docker Hub](https://hub.docker.com/r/nvidia/cuda) to download the CUDA and cuDNN images compatible with your system.
 You should be able to use the command line utility to monitor the NVIDIA GPU devices in your system:
 ```pyfunctiontypecomment

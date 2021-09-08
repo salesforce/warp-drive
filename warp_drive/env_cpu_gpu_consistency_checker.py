@@ -65,6 +65,7 @@ class EnvironmentCPUvsGPU:
         num_envs=2,
         num_episodes=2,
         use_gpu_testing_mode=True,
+        customized_env_registrar=None,
     ):
         """
         :param env_class: env class to test, for example, TagGridWorld
@@ -82,6 +83,8 @@ class EnvironmentCPUvsGPU:
             include your testing env into discrete_and_continuous_tag_envs.cu
             and build it. This is the recommended flow because the
             Makefile will automate this build.
+        :param customized_env_registrar: CustomizedEnvironmentRegistrar object
+            it provides the customized env info (like src path) for the build
 
         """
         self.env_class = env_class
@@ -95,6 +98,7 @@ class EnvironmentCPUvsGPU:
         self.num_envs = num_envs
         self.num_episodes = num_episodes
         self.use_gpu_testing_mode = use_gpu_testing_mode
+        self.customized_env_registrar = customized_env_registrar
 
     def test_env_reset_and_step(self):
         """
@@ -131,6 +135,7 @@ class EnvironmentCPUvsGPU:
                 num_envs=self.num_envs,
                 use_cuda=True,
                 testing_mode=self.use_gpu_testing_mode,
+                customized_env_registrar=self.customized_env_registrar,
             )
             env_gpu.reset_all_envs()
 

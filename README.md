@@ -58,10 +58,9 @@ trainer.train()
 ```
 
 ## Code Structure
-WarpDrive enables you to build RL workflows on a single GPU. It provides a CUDA + Python framework and quality-of-life tools so
-you can quickly build fast and flexible multi-agent RL systems. 
+WarpDrive enables you to build RL workflows on a single GPU with orders of magnitude speed gain. It provides a CUDA + Python framework and quality-of-life tools so you can quickly build fast and flexible multi-agent RL systems. The following figure gives a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA step function at the CUDA environment layer, while the rest is a pure Python interface. We have step by step tutorials for you to master the workflow.
 
-
+<img src="https://user-images.githubusercontent.com/31748898/132786214-98a48117-0c53-4707-8f1e-9253f2452403.png" width="700" height="450"/>
 
 ## White Paper and Citing WarpDrive
 

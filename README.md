@@ -183,6 +183,11 @@ make compile-test
 Running `make compile-test` will compile the core service source code into a CUDA binary and place it 
 in a `bin` folder, and additionally, run some unit tests.
 
+Equivalently, you can call
+```
+python warp_drive/utils/unittest_run.py
+```
+
 ## Learn More
 
 For more information, please check out our [blog](https://blog.einstein.ai/warpdrive-fast-rl-on-a-gpu/), [white paper](https://arxiv.org/abs/2108.13976), and code [documentation](http://opensource.salesforce.com/warp-drive/).

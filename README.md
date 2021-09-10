@@ -183,7 +183,7 @@ make compile-test
 Running `make compile-test` will compile the core service source code into a CUDA binary and place it 
 in a `bin` folder, and additionally, run some unit tests.
 
-Equivalently, you can call
+Equivalently, you can call directly from Python command
 ```
 python warp_drive/utils/unittest_run.py
 ```

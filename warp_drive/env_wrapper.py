@@ -203,9 +203,9 @@ class EnvWrapper:
         self.env_resetter.reset_when_done(self.cuda_data_manager, mode="if_done")
         return {}
 
-    def step(self, actions=None):
+    def step_all_envs(self, actions=None):
         """
-        Step through the environment
+        Step through all the environments
         """
         if self.use_cuda:
             self.env.step()
@@ -220,3 +220,15 @@ class EnvWrapper:
             obs, rew, done, info = self.env.step(actions)
 
         return obs, rew, done, info
+
+    def reset(self):
+        """
+        Alias for reset_all_envs() when CPU is used (conforms to gym-style)
+        """
+        return self.reset_all_envs()
+
+    def step(self, actions=None):
+        """
+        Alias for step_all_envs() when CPU is used (conforms to gym-style)
+        """
+        return self.step_all_envs(actions)

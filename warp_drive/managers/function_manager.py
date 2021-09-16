@@ -408,8 +408,8 @@ class CUDALogController:
             assert f_shape[1] == data_manager.meta_info(
                 "n_agents"
             ), "log function assumes the 1st dimension is n_agents"
-            if len(f_shape) == 3:
-                feature_dim = np.int32(f_shape[2])
+            if len(f_shape) >= 3:
+                feature_dim = np.int32(np.prod(f_shape[2:]))
             else:
                 feature_dim = np.int32(1)
             dtype = data_manager.get_dtype(name)
@@ -681,18 +681,16 @@ class CUDAEnvironmentReset:
             assert f_shape[0] == data_manager.meta_info(
                 "n_envs"
             ), "reset function assumes the 0th dimension is n_envs"
-            if len(f_shape) == 3:
+            if len(f_shape) >= 3:
                 agent_dim = np.int32(f_shape[1])
-                feature_dim = np.int32(f_shape[2])
+                feature_dim = np.int32(np.prod(f_shape[2:]))
                 is_3d = True
             elif len(f_shape) == 2:
                 feature_dim = np.int32(f_shape[1])
                 is_3d = False
-            elif len(f_shape) == 1:
+            else:  # len(f_shape) == 1:
                 feature_dim = np.int32(1)
                 is_3d = False
-            else:
-                raise Exception("reset function only supports data dimenstion <= 3")
             dtype = data_manager.get_dtype(name)
             if is_3d:
                 if "float" in dtype:

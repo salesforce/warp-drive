@@ -71,7 +71,7 @@ If you're using WarpDrive in your research or applications, please cite using th
 ```
 @misc{lan2021warpdrive,
       title={WarpDrive: Extremely Fast End-to-End Deep Multi-Agent Reinforcement Learning on a GPU}, 
-      author={Tian Lan and Sunil Srinivasa and Stephan Zheng},
+      author={Tian Lan and Sunil Srinivasa and Huan Wang and Caiming Xiong and Silvio Savarese and Stephan Zheng},
       year={2021},
       eprint={2108.13976},
       archivePrefix={arXiv},

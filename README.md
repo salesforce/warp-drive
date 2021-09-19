@@ -99,7 +99,7 @@ Note: You may also run these [tutorials](www.github.com/salesforce/warp-drive/bl
 and a compatible Nvidia GPU driver. You will also need [Jupyter](https://jupyter.org). 
 See [https://jupyter.readthedocs.io/en/latest/install.html](https://jupyter.readthedocs.io/en/latest/install.html) for installation instructions
 
-You can find full reference documentation [here](https://rl_warp_drive.pages.github.io).
+You can find full reference documentation [here](http://opensource.salesforce.com/warp-drive/).
 
 ## Installation Instructions
 

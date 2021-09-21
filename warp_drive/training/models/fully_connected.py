@@ -28,7 +28,7 @@ def apply_logit_mask(logits, mask=None):
     """
     if mask is None:
         return logits
-    
+
     logit_mask = torch.ones_like(logits) * -10000000
     logit_mask = logit_mask * (1 - mask)
     return logits + logit_mask

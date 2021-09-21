@@ -20,7 +20,7 @@ class CustomizedEnvironmentRegistrar:
             )
         assert (
             "cu" == cuda_env_src_path.rsplit(".", 1)[1]
-        ), "the customzed environment is expected to be a CUDA source code (*.cu)"
+        ), "the customized environment is expected to be a CUDA source code (*.cu)"
         self._customized_envs[env_name] = cuda_env_src_path
 
     def get_env_directory(self, env_name):

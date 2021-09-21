@@ -20,4 +20,4 @@ if __name__ == "__main__":
     except subprocess.TimeoutExpired:
         test_process.kill()
         outs, errs = test_process.communicate()
-        print("Unittest Timeout")
+        print("Unit Test Timeout")

@@ -35,20 +35,20 @@ class A2C:
         actions_batch=None,
         rewards_batch=None,
         done_flags_batch=None,
-        probabilities_batch=None,
-        value_function_batch=None,
+        action_probabilities_batch=None,
+        value_functions_batch=None,
     ):
         assert actions_batch is not None
         assert rewards_batch is not None
         assert done_flags_batch is not None
-        assert probabilities_batch is not None
-        assert value_function_batch is not None
+        assert action_probabilities_batch is not None
+        assert value_functions_batch is not None
 
         # Policy objective
         advantages_batch = (
             rewards_batch[:-1]
-            + self.discount_factor_gamma * value_function_batch[1:]
-            - value_function_batch[:-1]
+            + self.discount_factor_gamma * value_functions_batch[1:]
+            - value_functions_batch[:-1]
         )
 
         # Normalize across the agents and env dimensions
@@ -63,7 +63,7 @@ class A2C:
         mean_entropy = 0.0
 
         for idx in range(actions_batch.shape[-1]):
-            m = Categorical(probabilities_batch[idx])
+            m = Categorical(action_probabilities_batch[idx])
             mean_entropy += m.entropy().mean()
             log_prob += m.log_prob(actions_batch[..., idx])
 
@@ -74,7 +74,7 @@ class A2C:
 
         returns_batch[-1] = (
             done_flags_batch[-1][:, None] * rewards_batch[-1]
-            + (1 - done_flags_batch[-1][:, None]) * value_function_batch[-1]
+            + (1 - done_flags_batch[-1][:, None]) * value_functions_batch[-1]
         )
         for step in range(-2, -returns_batch.shape[0] - 1, -1):
             future_return = (
@@ -93,7 +93,7 @@ class A2C:
         else:
             normalized_returns_batch = returns_batch
 
-        vf_loss = nn.MSELoss()(normalized_returns_batch, value_function_batch)
+        vf_loss = nn.MSELoss()(normalized_returns_batch, value_functions_batch)
 
         loss = (
             policy_loss
@@ -119,7 +119,7 @@ class A2C:
             "Mean rewards": rewards_batch.mean().item(),
             "Max. rewards": rewards_batch.max().item(),
             "Min. rewards": rewards_batch.min().item(),
-            "Mean value function": value_function_batch.mean().item(),
+            "Mean value function": value_functions_batch.mean().item(),
             "Mean advantages": advantages_batch.mean().item(),
             "Mean (normalized) advantages": normalized_advantages_batch.mean().item(),
             "Mean (discounted) returns": returns_batch.mean().item(),

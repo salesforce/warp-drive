@@ -50,7 +50,7 @@ trainer = Trainer(
 create_and_push_data_placeholders(
     env_wrapper, 
     policy_tag_to_agent_id_map, 
-    training_batch_size_per_env=trainer.training_batch_size_per_env
+    trainer
 )
 
 # Perform training!

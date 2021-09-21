@@ -23,7 +23,6 @@ from warp_drive.training.algorithms.ppo import PPO
 from warp_drive.training.models.fully_connected import FullyConnected
 from warp_drive.utils.constants import Constants
 
-_OBSERVATIONS = Constants.OBSERVATIONS
 _ACTIONS = Constants.ACTIONS
 _REWARDS = Constants.REWARDS
 _DONE_FLAGS = Constants.DONE_FLAGS
@@ -40,6 +39,8 @@ class Trainer:
         env_wrapper=None,
         config=None,
         policy_tag_to_agent_id_map=None,
+        create_separate_placeholders_for_each_policy=False,
+        obs_dim_corresponding_to_num_agents="first",
     ):
         assert env_wrapper is not None
         assert config is not None
@@ -72,6 +73,12 @@ class Trainer:
         # if only one policy and discrete action, then we can use sampler
         # to sample and write to actions directly
         self.fast_sampling_mode = False
+
+        # Flag indicating whether there needs to be separate placeholders / arrays
+        # for observation, actions and rewards, for each policy
+        self.create_separate_placeholders_for_each_policy = (
+            create_separate_placeholders_for_each_policy
+        )
 
         # Number of iterations algebra
         self.num_episodes = config["trainer"]["num_episodes"]
@@ -120,6 +127,8 @@ class Trainer:
                     model_config=policy_config["model"],
                     policy=policy,
                     policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
+                    create_separate_placeholders_for_each_policy=create_separate_placeholders_for_each_policy,
+                    obs_dim_corresponding_to_num_agents=obs_dim_corresponding_to_num_agents,
                 )
             else:
                 raise NotImplementedError
@@ -151,29 +160,11 @@ class Trainer:
         del self.cuda_sample_controller
         print("Trainer exits gracefully")
 
-    def generate_rollout(self, batch_index):
-        # Code timing
-        start_event = torch.cuda.Event(enable_timing=True)
-        end_event = torch.cuda.Event(enable_timing=True)
-
-        # Policy evaluation to compute action probabilities
-        start_event.record()
-
-        probabilities = {}
-        for policy in self.policies:
-            probabilities[policy], _ = self.models[policy](
-                batch_index=batch_index,
-                batch_size=self.training_batch_size_per_env,
-            )
-
-        end_event.record()
-        torch.cuda.synchronize()
-
-        self.perf_stats.policy_eval_time += start_event.elapsed_time(end_event) / 1000
-
-        # Action sampling
-        start_event.record()
-
+    def sample_actions_and_push_to_device(self, probabilities, batch_index=None):
+        """
+        Sample action probabilities and push the sampled actions to the device.
+        """
+        assert isinstance(probabilities, dict)
         if self.fast_sampling_mode:
             probs = probabilities[self.policies[0]][0]
             self.cuda_sample_controller.sample(
@@ -182,10 +173,10 @@ class Trainer:
             actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                 _ACTIONS
             )
-            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                name=f"{_ACTIONS}_batch"
-            )[batch_index] = actions
-
+            if batch_index is not None:
+                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    name=f"{_ACTIONS}_batch"
+                )[batch_index] = actions
         else:
             for policy in self.policies:
                 actions_dict = {}
@@ -207,21 +198,58 @@ class Trainer:
                     actions = actions_dict[0]
                 elif num_actions > 1:  # MultiDiscrete actions
                     actions = torch.stack(
-                        [actions_dict[idx] for idx in range(num_actions)],
-                        dim=-1,
+                        [actions_dict[idx] for idx in range(num_actions)], dim=-1,
                     )
 
-                agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=_ACTIONS
-                )[:, agent_ids_for_policy, :] = actions
+                if self.create_separate_placeholders_for_each_policy:
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        name=f"{_ACTIONS}_{policy}"
+                    )[:] = actions
 
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=f"{_ACTIONS}_batch"
-                )[batch_index, :, agent_ids_for_policy, :] = actions
+                    if batch_index is not None:
+                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                            name=f"{_ACTIONS}_{policy}_batch"
+                        )[batch_index] = actions
+                else:
+                    agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        name=_ACTIONS
+                    )[:, agent_ids_for_policy, :] = actions
+
+                    if batch_index is not None:
+                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                            name=f"{_ACTIONS}_batch"
+                        )[batch_index, :, agent_ids_for_policy, :] = actions
+
+    def generate_rollout(self, batch_index):
+        """
+        Rollout a single step of the environment.
+        """
+        assert isinstance(batch_index, int)
+        # Code timing
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+
+        # Evaluate policy to compute action probabilities and value functions
+        start_event.record()
+
+        probabilities = {}
+        value_functions = {}
+        for policy in self.policies:
+            probabilities[policy], value_functions[policy] = self.models[policy]()
 
         end_event.record()
         torch.cuda.synchronize()
+
+        self.perf_stats.policy_eval_time += start_event.elapsed_time(end_event) / 1000
+
+        # Sample actions and push to device
+        start_event.record()
+        self.sample_actions_and_push_to_device(probabilities, batch_index)
+
+        end_event.record()
+        torch.cuda.synchronize()
+
         self.perf_stats.action_sample_time += start_event.elapsed_time(end_event) / 1000
 
         # Step through the env
@@ -235,10 +263,21 @@ class Trainer:
         )[batch_index] = done_flags
 
         # Push rewards to rewards_batch
-        rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(_REWARDS)
-        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-            name=f"{_REWARDS}_batch"
-        )[batch_index] = rewards
+        if self.create_separate_placeholders_for_each_policy:
+            for policy in self.policies:
+                rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    f"{_REWARDS}_{policy}"
+                )
+                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    name=f"{_REWARDS}_{policy}_batch"
+                )[batch_index] = rewards
+        else:
+            rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                _REWARDS
+            )
+            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                name=f"{_REWARDS}_batch"
+            )[batch_index] = rewards
 
         # Compute the number of runners left (at episode end)
         if done_flags.any():
@@ -248,6 +287,8 @@ class Trainer:
         end_event.record()
         torch.cuda.synchronize()
         self.perf_stats.env_step_time += start_event.elapsed_time(end_event) / 1000
+
+        return probabilities, value_functions
 
     def train(self):
         """
@@ -310,7 +351,7 @@ class Trainer:
                     vf_loss_coeff=self.vf_loss_coeff,
                     entropy_coeff=self.entropy_coeff,
                 )
-                print("Initializing the A2C trainer")
+                print(f"Initializing the A2C trainer for policy {policy}")
             elif self.algorithm == "PPO":
                 # Proximal Policy Optimization
                 trainers[policy] = PPO(
@@ -321,7 +362,7 @@ class Trainer:
                     vf_loss_coeff=self.vf_loss_coeff,
                     entropy_coeff=self.entropy_coeff,
                 )
-                print("Initializing the PPO trainer")
+                print(f"Initializing the PPO trainer for policy {policy}")
             else:
                 raise NotImplementedError
 
@@ -331,31 +372,57 @@ class Trainer:
         for iteration in range(self.num_iters):
             start_time = time.time()
 
+            num_actions = {}
             for batch_index in range(self.training_batch_size_per_env):
                 # Generate a rollout for every CUDA environment
-                self.generate_rollout(batch_index)
+                probabilities, value_functions = self.generate_rollout(batch_index)
+
+                if len(num_actions) == 0:  # initialization
+                    probabilities_batch = {}
+                    value_functions_batch = {}
+                    for policy in probabilities:
+                        num_actions[policy] = len(probabilities[policy])
+                        probabilities_batch[policy] = [
+                            None for _ in range(num_actions[policy])
+                        ]
+                        for idx in range(num_actions[policy]):
+                            probabilities_batch[policy][idx] = torch.zeros(
+                                (self.training_batch_size_per_env,)
+                                + probabilities[policy][idx].shape
+                            )
+                            probabilities_batch[policy][idx] = probabilities_batch[
+                                policy
+                            ][idx].cuda()
+                        value_functions_batch[policy] = torch.zeros(
+                            (self.training_batch_size_per_env,)
+                            + value_functions[policy].shape
+                        )
+                        value_functions_batch[policy] = value_functions_batch[
+                            policy
+                        ].cuda()
+
+                for policy in probabilities:
+                    for idx in range(num_actions[policy]):
+                        probabilities_batch[policy][idx][batch_index] = probabilities[
+                            policy
+                        ][idx]
+                    value_functions_batch[policy][batch_index] = value_functions[policy]
 
             # Training
             start_event.record()
 
             metrics = {}
-            full_obs_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                f"{_OBSERVATIONS}_batch"
-            )
-            full_actions_batch = (
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+
+            if not self.create_separate_placeholders_for_each_policy:
+                all_actions_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     f"{_ACTIONS}_batch"
                 )
-            )
-            full_rewards_batch = (
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                all_rewards_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     f"{_REWARDS}_batch"
                 )
-            )
-            done_flags_batch = (
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    f"{_DONE_FLAGS}_batch"
-                )
+
+            done_flags_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                f"{_DONE_FLAGS}_batch"
             )
 
             # On the device, observations_batch, actions_batch,
@@ -366,14 +433,18 @@ class Trainer:
 
             for policy in self.policies_to_train:
 
-                agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                obs_batch = full_obs_batch[:, :, agent_ids_for_policy, :]
-                actions_batch = full_actions_batch[:, :, agent_ids_for_policy, :]
-                rewards_batch = full_rewards_batch[:, :, agent_ids_for_policy]
-
-                probabilities_batch, value_function_batch = self.models[policy](
-                    obs=obs_batch
-                )
+                if self.create_separate_placeholders_for_each_policy:
+                    actions_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        f"{_ACTIONS}_{policy}_batch"
+                    )
+                    rewards_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        f"{_REWARDS}_{policy}_batch"
+                    )
+                else:
+                    agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
+                    # obs_batch = all_obs_batch[:, :, agent_ids_for_policy, :]
+                    actions_batch = all_actions_batch[:, :, agent_ids_for_policy, :]
+                    rewards_batch = all_rewards_batch[:, :, agent_ids_for_policy]
 
                 grad_norm = 0.0
                 for p in list(
@@ -387,8 +458,8 @@ class Trainer:
                     actions_batch,
                     rewards_batch,
                     done_flags_batch,
-                    probabilities_batch,
-                    value_function_batch,
+                    probabilities_batch[policy],
+                    value_functions_batch[policy],
                 )
 
                 metrics[policy].update({"Gradient norm": grad_norm})
@@ -452,11 +523,10 @@ class Trainer:
             torch.save(self.models[policy].state_dict(), filepath)
 
     def fetch_episode_global_states(
-        self,
-        list_of_states=None,
+        self, list_of_states=None,
     ):
         """
-        Step through env and fetch the global states for an episode
+        Step through env and fetch the global states for an entire episode
         """
         assert list_of_states is not None
         assert isinstance(list_of_states, list)
@@ -476,33 +546,16 @@ class Trainer:
             ] = self.cuda_envs.cuda_data_manager.pull_data_from_device(state)[env_id]
 
         for t in range(1, env.episode_length + 1):
-            obs = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                _OBSERVATIONS
-            )
+
+            # Compute action probabilities
+            probabilities = {}
             for policy in self.policies:
-                obs_policy = obs[:, self.policy_tag_to_agent_id_map[policy]]
-                probabilities, _ = self.models[policy](obs=obs_policy)
-                actions_dict = {}
-                for idx, probs in enumerate(probabilities):
-                    self.cuda_sample_controller.sample(
-                        self.cuda_envs.cuda_data_manager,
-                        probs,
-                        f"sampled_actions_{policy}_{idx}",
-                    )
-                    actions_dict[
-                        idx
-                    ] = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        f"sampled_actions_{policy}_{idx}"
-                    )
+                probabilities[policy], _ = self.models[policy]()
 
-                # Push actions
-                actions = torch.stack(
-                    [actions_dict[key] for key in range(len(actions_dict))], dim=-1
-                )
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name="sampled_actions"
-                )[:, self.policy_tag_to_agent_id_map[policy], :] = actions
+            # Sample actions
+            self.sample_actions_and_push_to_device(probabilities)
 
+            # Step through the env
             self.cuda_envs.step()
 
             # Update the global states

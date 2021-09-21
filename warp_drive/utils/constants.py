@@ -13,3 +13,4 @@ class Constants:
     ACTIONS = "sampled_actions"
     REWARDS = "rewards"
     DONE_FLAGS = "done_flags"
+    ACTION_MASK = "action_mask"

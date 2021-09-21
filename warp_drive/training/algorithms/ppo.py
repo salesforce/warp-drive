@@ -39,14 +39,14 @@ class PPO:
         actions_batch=None,
         rewards_batch=None,
         done_flags_batch=None,
-        probabilities_batch=None,
-        value_function_batch=None,
+        action_probabilities_batch=None,
+        value_functions_batch=None,
     ):
         # Policy objective
         advantages_batch = (
             rewards_batch[:-1]
-            + self.discount_factor_gamma * value_function_batch[1:]
-            - value_function_batch[:-1]
+            + self.discount_factor_gamma * value_functions_batch[1:]
+            - value_functions_batch[:-1]
         )
         # Normalize across the agents and env dimensions
         if self.normalize_advantage:
@@ -59,7 +59,7 @@ class PPO:
         log_prob = 0.0
         mean_entropy = 0.0
         for idx in range(actions_batch.shape[-1]):
-            m = Categorical(probabilities_batch[idx])
+            m = Categorical(action_probabilities_batch[idx])
             mean_entropy += m.entropy().mean()
             log_prob += m.log_prob(actions_batch[..., idx])
         if self.old_logprob is not None:
@@ -81,7 +81,7 @@ class PPO:
 
         returns_batch[-1] = (
             done_flags_batch[-1][:, None] * rewards_batch[-1]
-            + (1 - done_flags_batch[-1][:, None]) * value_function_batch[-1]
+            + (1 - done_flags_batch[-1][:, None]) * value_functions_batch[-1]
         )
 
         for step in range(-2, -returns_batch.shape[0] - 1, -1):
@@ -101,7 +101,7 @@ class PPO:
         else:
             normalized_returns_batch = returns_batch
 
-        vf_loss = nn.MSELoss()(returns_batch, value_function_batch)
+        vf_loss = nn.MSELoss()(returns_batch, value_functions_batch)
 
         loss = (
             policy_loss
@@ -126,7 +126,7 @@ class PPO:
             "Value function loss": vf_loss.item(),
             "Mean rewards": rewards_batch.mean().item(),
             "Max rewards": rewards_batch.max().item(),
-            "Mean value function": value_function_batch.mean().item(),
+            "Mean value function": value_functions_batch.mean().item(),
             "Mean advantages": advantages_batch.mean().item(),
             "Mean (normalized) advantages": normalized_advantages_batch.mean().item(),
             "Mean (discounted) returns": returns_batch.mean().item(),

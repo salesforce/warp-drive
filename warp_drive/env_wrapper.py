@@ -35,7 +35,14 @@ class EnvWrapper:
     all happen on the GPU
     """
 
-    def __init__(self, env_obj=None, num_envs=1, use_cuda=False, testing_mode=False, customized_env_registrar=None):
+    def __init__(
+        self,
+        env_obj=None,
+        num_envs=1,
+        use_cuda=False,
+        testing_mode=False,
+        customized_env_registrar=None,
+    ):
         """
         'env_obj': an environment instance
         'use_cuda': if True, step through the environment on the GPU, else on the CPU
@@ -101,7 +108,7 @@ class EnvWrapper:
                     env_name=self.name,
                     template_header_file="template_env_config.h",
                     template_runner_file="template_env_runner.cu",
-                    customized_env_registrar=customized_env_registrar
+                    customized_env_registrar=customized_env_registrar,
                 )
 
             # Register the CUDA step() function for the env

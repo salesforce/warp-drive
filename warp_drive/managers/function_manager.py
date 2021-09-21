@@ -149,7 +149,7 @@ class CUDAFunctionManager:
             template_runner_file=template_runner_file,
             path=template_path,
             env_name=env_name,
-            customized_env_registrar=customized_env_registrar
+            customized_env_registrar=customized_env_registrar,
         )
         check_env_header(
             header_file="env_config.h",
@@ -182,7 +182,13 @@ class CUDAFunctionManager:
             raise Exception("make bin file failed ... ")
         print(f"Successfully mkdir the binary folder {bin_path}")
 
-        arch_codes = ["-code=sm_37", "-code=sm_50", "-code=sm_60", "-code=sm_70", "-code=sm_80"]
+        arch_codes = [
+            "-code=sm_37",
+            "-code=sm_50",
+            "-code=sm_60",
+            "-code=sm_70",
+            "-code=sm_80",
+        ]
         compiler = "nvcc --fatbin -arch=compute_37 -code=compute_37"
         in_out_fname = f"{main_file} -o {cubin_file}"
         # for example, cmd = f"nvcc --fatbin -arch=compute_30 -code=sm_30 -code=sm_50 "
@@ -190,15 +196,24 @@ class CUDAFunctionManager:
         build_success = False
         for i in range(len(arch_codes)):
             try:
-                cmd = " ".join([compiler] + arch_codes[:len(arch_codes)-i] + [in_out_fname])
-                make_process = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT)
+                cmd = " ".join(
+                    [compiler] + arch_codes[: len(arch_codes) - i] + [in_out_fname]
+                )
+                make_process = subprocess.Popen(
+                    cmd, shell=True, stderr=subprocess.STDOUT
+                )
                 if make_process.wait() != 0:
-                    raise Exception(f"build failed ... : \n"
-                                    f"{cmd} \n"
-                                    f"try to build the lower gpu-code version ... ")
+                    raise Exception(
+                        f"build failed ... : \n"
+                        f"{cmd} \n"
+                        f"try to build the lower gpu-code version ... "
+                    )
                 else:
                     print(f"Running cmd: {cmd}")
-                    print(f"Successfully build the cubin_file from {main_file} to {cubin_file}")
+                    print(
+                        f"Successfully build the cubin_file "
+                        f"from {main_file} to {cubin_file}"
+                    )
                     build_success = True
                     break
             except Exception as err:

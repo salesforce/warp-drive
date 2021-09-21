@@ -67,10 +67,11 @@ def create_and_push_data_placeholders(env_wrapper, policy_tag_to_agent_id_map, t
         for pol_mod_tag in policy_tag_to_agent_id_map:
             assert pol_mod_tag in obs
 
-            # For the observations placeholders set save_copy_and_apply_at_reset=True, so that a
-            # copy of the initial observation values will be saved and applied at every reset.
-            # Also note that we add the "num_envs" dimension to the placeholders since we will
-            # be running multiple replicas of the environment concurrently.
+            # For the observations placeholders set save_copy_and_apply_at_reset=True,
+            # so that a copy of the initial observation values will be saved and
+            # applied at every reset.
+            # Also note that we add the "num_envs" dimension to the placeholders since
+            # we will be running multiple replicas of the environment concurrently.
             if isinstance(obs[pol_mod_tag], (list, np.ndarray)):
                 observations_placeholder = np.stack(
                     [obs[pol_mod_tag] for _ in range(num_envs)], axis=0
@@ -102,7 +103,8 @@ def create_and_push_data_placeholders(env_wrapper, policy_tag_to_agent_id_map, t
                     "Action spaces can be of type 'Discrete' or 'MultiDiscrete'"
                 )
 
-            # Use the first action dimension element's length to determine the number of actions
+            # Use the first action dimension element's length
+            # to determine the number of actions
             num_actions = len(action_dims[0])
             sampled_actions_placeholder = np.zeros(
                 (num_envs, len(policy_tag_to_agent_id_map[pol_mod_tag]), num_actions),
@@ -122,8 +124,8 @@ def create_and_push_data_placeholders(env_wrapper, policy_tag_to_agent_id_map, t
 
             # Also add separate placeholders for each policy model's sampled actions,
             # if there are multiple policies or a MultiDiscrete action space.
-            # This is required since our sampler will be invoked for each policy model and
-            # action dimension separately.
+            # This is required since our sampler will be invoked for each policy model
+            # and action dimension separately.
             single_policy_with_discrete_action_space = len(
                 policy_tag_to_agent_id_map
             ) == 1 and isinstance(action_space[pol_mod_tag], Discrete)
@@ -166,8 +168,9 @@ def create_and_push_data_placeholders(env_wrapper, policy_tag_to_agent_id_map, t
             )
     else:
         # This can be used only when all agents use the same obs/action space!
-        # If the obs/action spaces for the agents are different, we would just need to
-        # push obs/action and reward placeholders for each agent separately (like above).
+        # If the obs/action spaces for the agents are different,
+        # we would just need to push obs/action and reward placeholders
+        # for each agent separately (like above).
 
         first_agent_id = policy_tag_to_agent_id_map[pol_mod_tag][0]
 
@@ -222,7 +225,8 @@ def create_and_push_data_placeholders(env_wrapper, policy_tag_to_agent_id_map, t
             )
         assert all_equal(action_dims)
 
-        # Use the first action dimension element's length to determine the number of actions
+        # Use the first action dimension element's length
+        # to determine the number of actions
         num_actions = len(action_dims[0])
         sampled_actions_placeholder = np.zeros(
             (num_envs, env_wrapper.env.num_agents, num_actions), dtype=np.int32,
@@ -237,8 +241,8 @@ def create_and_push_data_placeholders(env_wrapper, policy_tag_to_agent_id_map, t
 
         # Also add separate placeholders for each policy model's sampled actions,
         # if there are multiple policies or a MultiDiscrete action space.
-        # This is required since our sampler will be invoked for each policy model and
-        # action dimension separately.
+        # This is required since our sampler will be invoked for each policy model
+        # and action dimension separately.
         single_policy_with_discrete_action_space = len(
             policy_tag_to_agent_id_map
         ) == 1 and isinstance(first_agent_action_space, Discrete)

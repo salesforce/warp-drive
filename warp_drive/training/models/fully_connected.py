@@ -137,7 +137,8 @@ class FullyConnected(nn.Module):
             obs = obs.permute(0, -1, *[dim for dim in range(1, shape_len - 1)])
         else:
             raise ValueError(
-                "num_agents can only be the first or last dimension in the observations."
+                "num_agents can only be the first "
+                "or the last dimension in the observations."
             )
         return obs.reshape(num_envs, num_agents, -1)
 

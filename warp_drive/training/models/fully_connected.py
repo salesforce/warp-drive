@@ -18,6 +18,7 @@ from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
 
 _OBSERVATIONS = Constants.OBSERVATIONS
+_PROCESSED_OBSERVATIONS = Constants.PROCESSED_OBSERVATIONS
 _ACTION_MASK = Constants.ACTION_MASK
 
 
@@ -65,7 +66,6 @@ class FullyConnected(nn.Module):
         )
         assert obs_dim_corresponding_to_num_agents in ["first", "last"]
         self.obs_dim_corresponding_to_num_agents = obs_dim_corresponding_to_num_agents
-        self.fast_forward_mode = False
 
         sample_agent_id = self.policy_tag_to_agent_id_map[self.policy][0]
         # Flatten obs space
@@ -85,7 +85,8 @@ class FullyConnected(nn.Module):
         self.fc = nn.ModuleDict()
         for fc_layer in range(num_fc_layers):
             self.fc[str(fc_layer)] = nn.Sequential(
-                nn.Linear(input_dims[fc_layer], output_dims[fc_layer]), nn.ReLU(),
+                nn.Linear(input_dims[fc_layer], output_dims[fc_layer]),
+                nn.ReLU(),
             )
 
         # policy network (list of heads)
@@ -177,29 +178,31 @@ class FullyConnected(nn.Module):
             raise NotImplementedError("Observation space must be of Box or Dict type")
         return flattened_obs
 
-    def set_fast_forward_mode(self):
-        # if there is only one policy with discrete action space,
-        # then there is no need to map to agents
-        self.fast_forward_mode = True
-        print(
-            f"the model {self.name} turns on the fast_forward_mode to speed up "
-            "the forward calculation (there is only one policy with discrete "
-            "action space, therefore in the model forward there is no need to have "
-            "an explicit mapping to agents which is slow) "
-        )
-
-    def forward(self, obs=None):
+    def forward(self, obs=None, batch_index=None, batch_size=None):
         if obs is None:
+            assert batch_index < batch_size
             obs = self.get_flattened_obs()
 
-            if (
-                not self.fast_forward_mode
-                and not self.create_separate_placeholders_for_each_policy
-            ):
+            if not self.create_separate_placeholders_for_each_policy:
                 agent_ids_for_policy = self.policy_tag_to_agent_id_map[self.policy]
                 ip = obs[:, agent_ids_for_policy]
             else:
                 ip = obs
+
+            # Push processed (in this case, flattened) obs to the GPU (device).
+            name = f"{_PROCESSED_OBSERVATIONS}_batch_{self.policy}"
+            processed_obs = ip
+            if not self.env.cuda_data_manager.is_data_on_device_via_torch(name):
+                processed_obs_batch = np.zeros((batch_size,) + processed_obs.shape)
+                processed_obs_feed = DataFeed()
+                processed_obs_feed.add_data(name=name, data=processed_obs_batch)
+                self.env.cuda_data_manager.push_data_to_device(
+                    processed_obs_feed, torch_accessible=True
+                )
+            self.env.cuda_data_manager.data_on_device_via_torch(name=name)[
+                batch_index
+            ] = processed_obs
+
         else:
             ip = obs
 
@@ -208,12 +211,14 @@ class FullyConnected(nn.Module):
             op = self.fc[str(layer)](ip)
             ip = op
 
+        logits = op
         # Compute the action probabilities and the value function estimate
         # Apply action mask to the logits as well.
+
         action_probs = [
-            F.softmax(apply_logit_mask(ph(op), self.action_mask), dim=-1)
+            F.softmax(apply_logit_mask(ph(logits), self.action_mask), dim=-1)
             for ph in self.policy_head
         ]
-        vals = self.vf_head(op)
+        vals = self.vf_head(logits)[..., 0]
 
-        return action_probs, vals[..., 0]
+        return action_probs, vals

@@ -112,7 +112,9 @@ if __name__ == "__main__":
     # Create and push data placeholders to the device
     # -----------------------------------------------
     create_and_push_data_placeholders(
-        env_wrapper, policy_tag_to_agent_id_map, trainer,
+        env_wrapper,
+        policy_tag_to_agent_id_map,
+        trainer,
     )
 
     # Perform training

@@ -8,6 +8,7 @@
 The Trainer, PerfStats and Metrics classes
 """
 
+import copy
 import os
 import random
 import time
@@ -15,6 +16,7 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
+import wandb
 from gym.spaces import Discrete, MultiDiscrete
 
 from warp_drive.managers.function_manager import CUDASampler
@@ -26,6 +28,7 @@ from warp_drive.utils.constants import Constants
 _ACTIONS = Constants.ACTIONS
 _REWARDS = Constants.REWARDS
 _DONE_FLAGS = Constants.DONE_FLAGS
+_PROCESSED_OBSERVATIONS = Constants.PROCESSED_OBSERVATIONS
 
 
 class Trainer:
@@ -69,16 +72,16 @@ class Trainer:
             for policy in config["policy"]
             if config["policy"][policy]["to_train"]
         ]
-        self.only_one_policy = len(self.policies) == 1
-        # if only one policy and discrete action, then we can use sampler
-        # to sample and write to actions directly
-        self.fast_sampling_mode = False
 
         # Flag indicating whether there needs to be separate placeholders / arrays
         # for observation, actions and rewards, for each policy
         self.create_separate_placeholders_for_each_policy = (
             create_separate_placeholders_for_each_policy
         )
+        # Note: separate placeholders are needed only when there are
+        # multiple policies
+        if self.create_separate_placeholders_for_each_policy:
+            assert len(self.policies) > 1
 
         # Number of iterations algebra
         self.num_episodes = config["trainer"]["num_episodes"]
@@ -86,6 +89,7 @@ class Trainer:
         self.num_envs = config["trainer"]["num_envs"]
 
         self.training_batch_size_per_env = self.training_batch_size // self.num_envs
+        assert self.training_batch_size_per_env > 0
         self.total_steps = self.cuda_envs.episode_length * self.num_episodes
         self.num_iters = self.total_steps // self.training_batch_size
 
@@ -132,11 +136,6 @@ class Trainer:
                 )
             else:
                 raise NotImplementedError
-            if (
-                hasattr(self.models[policy], "set_fast_forward_mode")
-                and self.only_one_policy is True
-            ):
-                self.models[policy].set_fast_forward_mode()
 
             # Load the model parameters (if model checkpoints are specified)
             self.load_model_checkpoint(policy)
@@ -155,71 +154,24 @@ class Trainer:
         # Metrics
         self.metrics = Metrics()
 
+        # Visualize metrics on Weights & Biases (https://wandb.ai/site)
+        # Note: To use wandb, you will need to create a wandb account first
+        self.use_wandb = self.config["saving"].get("use_wandb", False)
+
+        if self.use_wandb:
+            wandb.init(
+                project=self.config["name"],
+                group=self.config["saving"]["tag"],
+                name=experiment_name,
+                config=self.config,
+                entity="salesforce",
+                reinit=True,
+            )
+
     def graceful_close(self):
         # sample controller has random seeds defined in the CUDA memory heap
         del self.cuda_sample_controller
         print("Trainer exits gracefully")
-
-    def sample_actions_and_push_to_device(self, probabilities, batch_index=None):
-        """
-        Sample action probabilities and push the sampled actions to the device.
-        """
-        assert isinstance(probabilities, dict)
-        if self.fast_sampling_mode:
-            probs = probabilities[self.policies[0]][0]
-            self.cuda_sample_controller.sample(
-                self.cuda_envs.cuda_data_manager, probs, _ACTIONS
-            )
-            actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                _ACTIONS
-            )
-            if batch_index is not None:
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=f"{_ACTIONS}_batch"
-                )[batch_index] = actions
-        else:
-            for policy in self.policies:
-                actions_dict = {}
-                for idx, probs in enumerate(probabilities[policy]):
-                    self.cuda_sample_controller.sample(
-                        self.cuda_envs.cuda_data_manager,
-                        probs,
-                        f"{_ACTIONS}_{policy}_{idx}",
-                    )
-                    actions_dict[
-                        idx
-                    ] = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        f"{_ACTIONS}_{policy}_{idx}"
-                    )
-
-                # Push actions to actions_batch
-                num_actions = len(probabilities[policy])
-                if num_actions == 1:  # Discrete actions
-                    actions = actions_dict[0]
-                elif num_actions > 1:  # MultiDiscrete actions
-                    actions = torch.stack(
-                        [actions_dict[idx] for idx in range(num_actions)], dim=-1,
-                    )
-
-                if self.create_separate_placeholders_for_each_policy:
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=f"{_ACTIONS}_{policy}"
-                    )[:] = actions
-
-                    if batch_index is not None:
-                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                            name=f"{_ACTIONS}_{policy}_batch"
-                        )[batch_index] = actions
-                else:
-                    agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=_ACTIONS
-                    )[:, agent_ids_for_policy, :] = actions
-
-                    if batch_index is not None:
-                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                            name=f"{_ACTIONS}_batch"
-                        )[batch_index, :, agent_ids_for_policy, :] = actions
 
     def generate_rollout(self, batch_index):
         """
@@ -232,12 +184,7 @@ class Trainer:
 
         # Evaluate policy to compute action probabilities and value functions
         start_event.record()
-
-        probabilities = {}
-        value_functions = {}
-        for policy in self.policies:
-            probabilities[policy], value_functions[policy] = self.models[policy]()
-
+        probabilities = self.evaluate_policies(batch_index=batch_index)
         end_event.record()
         torch.cuda.synchronize()
 
@@ -245,8 +192,7 @@ class Trainer:
 
         # Sample actions and push to device
         start_event.record()
-        self.sample_actions_and_push_to_device(probabilities, batch_index)
-
+        self.sample_actions(probabilities, batch_index=batch_index)
         end_event.record()
         torch.cuda.synchronize()
 
@@ -269,7 +215,7 @@ class Trainer:
                     f"{_REWARDS}_{policy}"
                 )
                 self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=f"{_REWARDS}_{policy}_batch"
+                    name=f"{_REWARDS}_batch_{policy}"
                 )[batch_index] = rewards
         else:
             rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
@@ -288,7 +234,87 @@ class Trainer:
         torch.cuda.synchronize()
         self.perf_stats.env_step_time += start_event.elapsed_time(end_event) / 1000
 
-        return probabilities, value_functions
+    def evaluate_policies(self, batch_index):
+        probabilities = {}
+        for policy in self.policies:
+            probabilities[policy], _ = self.models[policy](
+                batch_index=batch_index, batch_size=self.training_batch_size_per_env
+            )
+            # Combine probabilities if there are multiple policies,
+            # yet they share the same placeholders
+            if (
+                len(self.policies) > 1
+                and not self.create_separate_placeholders_for_each_policy
+            ):
+                num_agents = self.cuda_envs.env.num_agents
+                agent_to_id_mapping = self.policy_tag_to_agent_id_map[policy]
+                combined_probabilities = [
+                    None for _ in range(len(probabilities[policy]))
+                ]
+                for action_idx, probs in enumerate(probabilities[policy]):
+                    num_envs = probs.shape[0]
+                    action_dim = probs.shape[-1]
+                    combined_probabilities[action_idx] = torch.zeros(
+                        (num_envs, num_agents, action_dim)
+                    ).cuda()
+                    combined_probabilities[action_idx][
+                        :, agent_to_id_mapping
+                    ] = probabilities[policy][action_idx]
+                probabilities[policy] = combined_probabilities
+        return probabilities
+
+    def sample_actions(self, probabilities, batch_index):
+        """
+        Sample action probabilities (and push the sampled actions to the device).
+        """
+        if self.create_separate_placeholders_for_each_policy:
+            for policy in self.policies:
+                suffix = f"_{policy}"
+                self.sample_actions_helper(
+                    probabilities[policy], batch_index, suffix=suffix
+                )
+        else:
+            for policy in self.policies:
+                suffix = ""
+            self.sample_actions_helper(
+                probabilities[policy], batch_index, suffix=suffix
+            )
+
+    def sample_actions_helper(self, probabilities, batch_index, suffix=""):
+        for action_idx, probs in enumerate(probabilities):
+            action_name = f"{_ACTIONS}_{action_idx}" + suffix
+            self.cuda_sample_controller.sample(
+                self.cuda_envs.cuda_data_manager, probs, action_name
+            )
+            actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                action_name
+            )
+
+            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                name=_ACTIONS + suffix
+            )[:, :, action_idx] = actions
+            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                name=f"{_ACTIONS}_batch" + suffix
+            )[batch_index, :, :, action_idx] = actions
+
+    def register_actions(self, action_space, suffix=""):
+        if isinstance(action_space, Discrete):
+            # Single action
+            action_dim = [action_space.n]
+        elif isinstance(action_space, MultiDiscrete):
+            # Multiple actions
+            action_dim = action_space.nvec
+        else:
+            raise NotImplementedError(
+                "Action spaces can be of type" "Discrete or MultiDiscrete"
+            )
+
+        for action_idx in range(len(action_dim)):
+            self.cuda_sample_controller.register_actions(
+                self.cuda_envs.cuda_data_manager,
+                action_name=f"{_ACTIONS}_{action_idx}" + suffix,
+                num_actions=action_dim[action_idx],
+            )
 
     def train(self):
         """
@@ -297,47 +323,6 @@ class Trainer:
 
         start_event = torch.cuda.Event(enable_timing=True)
         end_event = torch.cuda.Event(enable_timing=True)
-
-        # Register action placeholders for each policy
-        for policy in self.policies:
-            sample_agent_id = self.policy_tag_to_agent_id_map[policy][0]
-            action_space = self.cuda_envs.env.action_space[sample_agent_id]
-
-            if isinstance(action_space, Discrete):
-                # Single action
-                if not self.only_one_policy:
-                    self.cuda_sample_controller.register_actions(
-                        self.cuda_envs.cuda_data_manager,
-                        action_name=f"{_ACTIONS}_{policy}_0",
-                        num_actions=action_space.n,
-                    )
-                else:
-                    # if only one policy and this policy has only a discrete action
-                    self.fast_sampling_mode = True
-                    print(
-                        "the trainer turns on the fast_sampling_mode to speed up "
-                        "the action sampling (there is only one policy with discrete "
-                        "action space, therefore there is no need to have "
-                        "torch gpu concatenates multiple actions samplings "
-                        "and map to agents which is slow) "
-                    )
-                    self.cuda_sample_controller.register_actions(
-                        self.cuda_envs.cuda_data_manager,
-                        action_name=_ACTIONS,
-                        num_actions=action_space.n,
-                    )
-            elif isinstance(action_space, MultiDiscrete):
-                # Multiple actions
-                for idx in range(len(action_space.nvec)):
-                    self.cuda_sample_controller.register_actions(
-                        self.cuda_envs.cuda_data_manager,
-                        action_name=f"{_ACTIONS}_{policy}_{idx}",
-                        num_actions=action_space.nvec[idx],
-                    )
-            else:
-                raise NotImplementedError(
-                    "Action spaces can be of type" "Discrete or MultiDiscrete"
-                )
 
         # Initialize the trainers
         trainers = {}
@@ -366,47 +351,30 @@ class Trainer:
             else:
                 raise NotImplementedError
 
+        # Register action placeholders
+        if self.create_separate_placeholders_for_each_policy:
+            for policy in self.policies:
+                sample_agent_id = self.policy_tag_to_agent_id_map[policy][0]
+                action_space = self.cuda_envs.env.action_space[sample_agent_id]
+
+                self.register_actions(action_space, suffix=f"_{policy}")
+        else:
+            sample_policy = self.policies[0]
+            sample_agent_id = self.policy_tag_to_agent_id_map[sample_policy][0]
+            action_space = self.cuda_envs.env.action_space[sample_agent_id]
+
+            self.register_actions(action_space)
+
         # Ensure env is reset before the start of training, and done flags are False
         self.cuda_envs.reset_all_envs()
 
         for iteration in range(self.num_iters):
             start_time = time.time()
 
-            num_actions = {}
             for batch_index in range(self.training_batch_size_per_env):
+
                 # Generate a rollout for every CUDA environment
-                probabilities, value_functions = self.generate_rollout(batch_index)
-
-                if len(num_actions) == 0:  # initialization
-                    probabilities_batch = {}
-                    value_functions_batch = {}
-                    for policy in probabilities:
-                        num_actions[policy] = len(probabilities[policy])
-                        probabilities_batch[policy] = [
-                            None for _ in range(num_actions[policy])
-                        ]
-                        for idx in range(num_actions[policy]):
-                            probabilities_batch[policy][idx] = torch.zeros(
-                                (self.training_batch_size_per_env,)
-                                + probabilities[policy][idx].shape
-                            )
-                            probabilities_batch[policy][idx] = probabilities_batch[
-                                policy
-                            ][idx].cuda()
-                        value_functions_batch[policy] = torch.zeros(
-                            (self.training_batch_size_per_env,)
-                            + value_functions[policy].shape
-                        )
-                        value_functions_batch[policy] = value_functions_batch[
-                            policy
-                        ].cuda()
-
-                for policy in probabilities:
-                    for idx in range(num_actions[policy]):
-                        probabilities_batch[policy][idx][batch_index] = probabilities[
-                            policy
-                        ][idx]
-                    value_functions_batch[policy][batch_index] = value_functions[policy]
+                self.generate_rollout(batch_index)
 
             # Training
             start_event.record()
@@ -414,15 +382,21 @@ class Trainer:
             metrics = {}
 
             if not self.create_separate_placeholders_for_each_policy:
-                all_actions_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    f"{_ACTIONS}_batch"
+                all_actions_batch = (
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        f"{_ACTIONS}_batch"
+                    )
                 )
-                all_rewards_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    f"{_REWARDS}_batch"
+                all_rewards_batch = (
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        f"{_REWARDS}_batch"
+                    )
                 )
 
-            done_flags_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                f"{_DONE_FLAGS}_batch"
+            done_flags_batch = (
+                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    f"{_DONE_FLAGS}_batch"
+                )
             )
 
             # On the device, observations_batch, actions_batch,
@@ -432,19 +406,31 @@ class Trainer:
             # Perform training sequentially for each policy
 
             for policy in self.policies_to_train:
-
                 if self.create_separate_placeholders_for_each_policy:
-                    actions_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        f"{_ACTIONS}_{policy}_batch"
+                    actions_batch = (
+                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                            f"{_ACTIONS}_batch_{policy}"
+                        )
                     )
-                    rewards_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        f"{_REWARDS}_{policy}_batch"
+                    rewards_batch = (
+                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                            f"{_REWARDS}_batch_{policy}"
+                        )
                     )
                 else:
                     agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                    # obs_batch = all_obs_batch[:, :, agent_ids_for_policy, :]
                     actions_batch = all_actions_batch[:, :, agent_ids_for_policy, :]
                     rewards_batch = all_rewards_batch[:, :, agent_ids_for_policy]
+
+                processed_obs_batch = (
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        f"{_PROCESSED_OBSERVATIONS}_batch_{policy}"
+                    )
+                )
+
+                probabilities_batch, value_functions_batch = self.models[policy](
+                    obs=processed_obs_batch
+                )
 
                 grad_norm = 0.0
                 for p in list(
@@ -458,8 +444,8 @@ class Trainer:
                     actions_batch,
                     rewards_batch,
                     done_flags_batch,
-                    probabilities_batch[policy],
-                    value_functions_batch[policy],
+                    probabilities_batch,
+                    value_functions_batch,
                 )
 
                 metrics[policy].update({"Gradient norm": grad_norm})
@@ -489,6 +475,8 @@ class Trainer:
                 self.perf_stats.pretty_print()
                 self.metrics.pretty_print(metrics)
                 print("\n", "*" * 100, "\n")
+                if self.use_wandb:
+                    wandb.log(metrics)
 
             if iteration % self.config["saving"]["save_model_params_freq"] == 0:
                 # Save torch model
@@ -523,7 +511,8 @@ class Trainer:
             torch.save(self.models[policy].state_dict(), filepath)
 
     def fetch_episode_global_states(
-        self, list_of_states=None,
+        self,
+        list_of_states=None,
     ):
         """
         Step through env and fetch the global states for an entire episode
@@ -545,23 +534,19 @@ class Trainer:
                 0
             ] = self.cuda_envs.cuda_data_manager.pull_data_from_device(state)[env_id]
 
-        for t in range(1, env.episode_length + 1):
+        for t in range(env.episode_length):
+            probabilities = self.evaluate_policies(batch_index=t)
 
-            # Compute action probabilities
-            probabilities = {}
-            for policy in self.policies:
-                probabilities[policy], _ = self.models[policy]()
-
-            # Sample actions
-            self.sample_actions_and_push_to_device(probabilities)
+            # Sample actions and push to device
+            self.sample_actions(probabilities, batch_index=t)
 
             # Step through the env
-            self.cuda_envs.step()
+            _, _, done, _ = self.cuda_envs.step()
 
             # Update the global states
             for state in list_of_states:
                 global_states[state][
-                    t
+                    t + 1
                 ] = self.cuda_envs.cuda_data_manager.pull_data_from_device(state)[
                     env_id
                 ]

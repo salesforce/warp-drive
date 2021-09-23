@@ -16,7 +16,6 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
-import wandb
 from gym.spaces import Discrete, MultiDiscrete
 
 from warp_drive.managers.function_manager import CUDASampler
@@ -153,20 +152,6 @@ class Trainer:
 
         # Metrics
         self.metrics = Metrics()
-
-        # Visualize metrics on Weights & Biases (https://wandb.ai/site)
-        # Note: To use wandb, you will need to create a wandb account first
-        self.use_wandb = self.config["saving"].get("use_wandb", False)
-
-        if self.use_wandb:
-            wandb.init(
-                project=self.config["name"],
-                group=self.config["saving"]["tag"],
-                name=experiment_name,
-                config=self.config,
-                entity="salesforce",
-                reinit=True,
-            )
 
     def graceful_close(self):
         # sample controller has random seeds defined in the CUDA memory heap
@@ -475,8 +460,6 @@ class Trainer:
                 self.perf_stats.pretty_print()
                 self.metrics.pretty_print(metrics)
                 print("\n", "*" * 100, "\n")
-                if self.use_wandb:
-                    wandb.log(metrics)
 
             if iteration % self.config["saving"]["save_model_params_freq"] == 0:
                 # Save torch model

@@ -28,6 +28,14 @@ _ACTIONS = Constants.ACTIONS
 _REWARDS = Constants.REWARDS
 _DONE_FLAGS = Constants.DONE_FLAGS
 _PROCESSED_OBSERVATIONS = Constants.PROCESSED_OBSERVATIONS
+_COMBINED = "combined"
+
+
+def all_equal(iterable):
+    """
+    Check all elements of an iterable (e.g., list) are identical
+    """
+    return len(set(iterable)) <= 1
 
 
 class Trainer:
@@ -225,27 +233,46 @@ class Trainer:
             probabilities[policy], _ = self.models[policy](
                 batch_index=batch_index, batch_size=self.training_batch_size_per_env
             )
-            # Combine probabilities if there are multiple policies,
-            # yet they share the same placeholders
-            if (
-                len(self.policies) > 1
-                and not self.create_separate_placeholders_for_each_policy
-            ):
-                num_agents = self.cuda_envs.env.num_agents
-                agent_to_id_mapping = self.policy_tag_to_agent_id_map[policy]
-                combined_probabilities = [
-                    None for _ in range(len(probabilities[policy]))
+
+        # Combine probabilities across policies if there are multiple policies,
+        # yet they are expected to share the same action placeholders
+        if (
+            len(self.policies) > 1
+            and not self.create_separate_placeholders_for_each_policy
+        ):
+            for policy in self.policies:
+                num_action_types[policy] = len(probabilities[policy])
+                probability_shapes[policy] = [
+                    probabilities[policy][action_idx].shape
+                    for action_idx in range(num_action_types[policy])
                 ]
-                for action_idx, probs in enumerate(probabilities[policy]):
-                    num_envs = probs.shape[0]
-                    action_dim = probs.shape[-1]
-                    combined_probabilities[action_idx] = torch.zeros(
-                        (num_envs, num_agents, action_dim)
-                    ).cuda()
+            assert all_equal(list(num_action_types.values()))
+
+            # Initialize combined_probabilities
+            first_policy = list(probabilities.keys())[0]
+            num_action_types = len(probabilities[first_policy])
+
+            first_action_idx = 0
+            num_envs = probabilities[first_policy][first_action_idx].shape[0]
+            action_dim = probabilities[first_policy][first_action_idx].shape[-1]
+            num_agents = self.cuda_envs.env.num_agents
+
+            combined_probabilities = [None for _ in range(num_action_types)]
+
+            for action_type in range(num_action_types):
+                combined_probabilities[action_type] = torch.zeros(
+                    (num_envs, num_agents, action_dim)
+                ).cuda()
+
+            for action_idx in range(num_action_types):
+                for policy in probabilities:
+                    agent_to_id_mapping = self.policy_tag_to_agent_id_map[policy]
                     combined_probabilities[action_idx][
                         :, agent_to_id_mapping
                     ] = probabilities[policy][action_idx]
-                probabilities[policy] = combined_probabilities
+
+            probabilities = {_COMBINED: combined_probabilities}
+
         return probabilities
 
     def sample_actions(self, probabilities, batch_index):
@@ -259,11 +286,8 @@ class Trainer:
                     probabilities[policy], batch_index, suffix=suffix
                 )
         else:
-            for policy in self.policies:
-                suffix = ""
-            self.sample_actions_helper(
-                probabilities[policy], batch_index, suffix=suffix
-            )
+            for policy in probabilities:
+                self.sample_actions_helper(probabilities[policy], batch_index)
 
     def sample_actions_helper(self, probabilities, batch_index, suffix=""):
         for action_idx, probs in enumerate(probabilities):
@@ -275,12 +299,13 @@ class Trainer:
                 action_name
             )
 
-            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                name=_ACTIONS + suffix
-            )[:, :, action_idx] = actions
-            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                name=f"{_ACTIONS}_batch" + suffix
-            )[batch_index, :, :, action_idx] = actions
+            if len(probabilities) > 1:
+                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    name=_ACTIONS + suffix
+                )[:, :, action_idx] = actions
+                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    name=f"{_ACTIONS}_batch" + suffix
+                )[batch_index, :, :, action_idx] = actions
 
     def register_actions(self, action_space, suffix=""):
         if isinstance(action_space, Discrete):

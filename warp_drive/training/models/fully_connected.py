@@ -102,6 +102,7 @@ class FullyConnected(nn.Module):
         self.action_mask = None
 
     def get_flattened_obs_size(self):
+        """Get the total size of the observations after flattening"""
         if isinstance(self.observation_space, Box):
             obs_size = np.prod(self.observation_space.shape)
         elif isinstance(self.observation_space, Dict):
@@ -144,6 +145,13 @@ class FullyConnected(nn.Module):
         return obs.reshape(num_envs, num_agents, -1)
 
     def get_flattened_obs(self):
+        """
+        If the obs is of Box type, it will already be flattened.
+        If the obs is of Dict type, then concatenate all the
+        obs values and flatten them out.
+        Returns the concatenated and flattened obs.
+
+        """
         if isinstance(self.observation_space, Box):
             if self.create_separate_placeholders_for_each_policy:
                 obs = self.env.cuda_data_manager.data_on_device_via_torch(
@@ -179,6 +187,10 @@ class FullyConnected(nn.Module):
         return flattened_obs
 
     def forward(self, obs=None, batch_index=None, batch_size=None):
+        """
+        Forward pass through the model.
+        Returns action probabilities and value functions.
+        """
         if obs is None:
             assert batch_index < batch_size
             obs = self.get_flattened_obs()

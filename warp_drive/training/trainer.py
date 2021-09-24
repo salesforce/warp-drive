@@ -52,10 +52,37 @@ class Trainer:
         create_separate_placeholders_for_each_policy=False,
         obs_dim_corresponding_to_num_agents="first",
     ):
+        """
+        Args:
+            env_wrapper: the wrapped environment object
+            config: the experiment run configuration
+            policy_tag_to_agent_id_map:
+                a dictionary mapping policy tag to agent ids
+            create_separate_placeholders_for_each_policy:
+                flag indicating whether there exist separate observations,
+                actions and rewards placeholders, as designed in the step
+                function. The placeholders will be used in the step() function
+                and during training.
+                When there's only a single policy, this flag will be True.
+                It can also be True when there are multiple policies, yet
+                all the agents have the same obs/action space, so we can
+                share the same placeholder.
+                Defaults to "False"
+            obs_dim_corresponding_to_num_agents:
+                indicative of which dimension in the observation corresponds
+                to the number of agents, as designed in the step function.
+                It may be "first" or "last". In other words,
+                observations may be shaped (num_agents, *feature_dim) or
+                (*feature_dim, num_agents). This is required in order for
+                WarpDrive to process the observations correctly.
+                Defaults to "first"
+        """
         assert env_wrapper is not None
         assert config is not None
         assert isinstance(policy_tag_to_agent_id_map, dict)
         assert len(policy_tag_to_agent_id_map) > 0  # at least one policy
+        assert isinstance(create_separate_placeholders_for_each_policy, bool)
+        assert obs_dim_corresponding_to_num_agents in ["first", "last"]
 
         self.cuda_envs = env_wrapper
         self.config = config
@@ -218,9 +245,9 @@ class Trainer:
                 name=f"{_REWARDS}_batch"
             )[batch_index] = rewards
 
-        # Compute the number of runners left (at episode end)
+        # Compute the number of runners left (at episode end).
         if done_flags.any():
-            # Reset the env that's in done state
+            # Reset the env that's in done state.
             self.cuda_envs.reset_only_done_envs()
 
         end_event.record()
@@ -228,6 +255,9 @@ class Trainer:
         self.perf_stats.env_step_time += start_event.elapsed_time(end_event) / 1000
 
     def evaluate_policies(self, batch_index):
+        """
+        Perform the policy evaluation (forward pass through the models)
+        """
         probabilities = {}
         for policy in self.policies:
             probabilities[policy], _ = self.models[policy](
@@ -235,22 +265,23 @@ class Trainer:
             )
 
         # Combine probabilities across policies if there are multiple policies,
-        # yet they are expected to share the same action placeholders
+        # yet they share the same action placeholders.
+        # The action sampler will then need to run just once on each action type.
         if (
             len(self.policies) > 1
             and not self.create_separate_placeholders_for_each_policy
         ):
+            # Assert that all the probabilities are of the same length
+            # in other words the number of action types for each policy
+            # is the same.
+            num_action_types = {}
             for policy in self.policies:
                 num_action_types[policy] = len(probabilities[policy])
-                probability_shapes[policy] = [
-                    probabilities[policy][action_idx].shape
-                    for action_idx in range(num_action_types[policy])
-                ]
             assert all_equal(list(num_action_types.values()))
 
-            # Initialize combined_probabilities
+            # Initialize combined_probabilities.
             first_policy = list(probabilities.keys())[0]
-            num_action_types = len(probabilities[first_policy])
+            num_action_types = num_action_types[first_policy]
 
             first_action_idx = 0
             num_envs = probabilities[first_policy][first_action_idx].shape[0]
@@ -260,6 +291,7 @@ class Trainer:
             combined_probabilities = [None for _ in range(num_action_types)]
 
             for action_type in range(num_action_types):
+                action_dim = probabilities[first_policy][action_type].shape[-1]
                 combined_probabilities[action_type] = torch.zeros(
                     (num_envs, num_agents, action_dim)
                 ).cuda()
@@ -391,6 +423,7 @@ class Trainer:
 
             metrics = {}
 
+            # Fetch the actions and rewards batches for all agents
             if not self.create_separate_placeholders_for_each_policy:
                 all_actions_batch = (
                     self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
@@ -428,28 +461,25 @@ class Trainer:
                         )
                     )
                 else:
+                    # Filter the actions and rewards only for the agents
+                    # corresponding to a particular policy
                     agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
                     actions_batch = all_actions_batch[:, :, agent_ids_for_policy, :]
                     rewards_batch = all_rewards_batch[:, :, agent_ids_for_policy]
 
+                # Fetch the (processed) observations batch to pass through the model
                 processed_obs_batch = (
                     self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                         f"{_PROCESSED_OBSERVATIONS}_batch_{policy}"
                     )
                 )
 
+                # Policy evaluation for the entire batch
                 probabilities_batch, value_functions_batch = self.models[policy](
                     obs=processed_obs_batch
                 )
 
-                grad_norm = 0.0
-                for p in list(
-                    filter(
-                        lambda p: p.grad is not None, self.models[policy].parameters()
-                    )
-                ):
-                    grad_norm += p.grad.data.norm(2).item()
-
+                # Loss and metrics computation
                 loss, metrics[policy] = trainers[policy].compute_loss_and_metrics(
                     actions_batch,
                     rewards_batch,
@@ -458,9 +488,17 @@ class Trainer:
                     value_functions_batch,
                 )
 
+                # Compute the gradient norm
+                grad_norm = 0.0
+                for p in list(
+                    filter(
+                        lambda p: p.grad is not None, self.models[policy].parameters()
+                    )
+                ):
+                    grad_norm += p.grad.data.norm(2).item()
                 metrics[policy].update({"Gradient norm": grad_norm})
 
-                # Optimization step
+                # Loss backpropagation and optimization step
                 self.optimizers[policy].zero_grad()
                 loss.backward()
 

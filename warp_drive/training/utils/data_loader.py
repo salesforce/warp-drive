@@ -238,44 +238,48 @@ def create_and_push_data_placeholders_helper(
         )
 
     num_action_types = len(action_dim)
-    sampled_actions_placeholder = np.zeros(
-        (num_envs, num_agents),
-        dtype=np.int32,
-    )
 
     if isinstance(action_space, Discrete):
         assert num_action_types == 1
+        sampled_actions_placeholder = np.zeros(
+            (num_envs, num_agents, num_action_types),
+            dtype=np.int32,
+        )
         tensor_feed.add_data(
-            name=f"{_ACTIONS}_0" + suffix, data=sampled_actions_placeholder
+            name=_ACTIONS + suffix, data=sampled_actions_placeholder
         )
     elif isinstance(action_space, MultiDiscrete):
         # Add separate placeholders for a MultiDiscrete action space.
         # This is required since our sampler will be invoked for each
         # action dimension separately.
 
+        sampled_actions_placeholder = np.zeros(
+            (num_envs, num_agents),
+            dtype=np.int32,
+        )
         assert num_action_types > 1
         for action_idx in range(num_action_types):
             tensor_feed.add_data(
                 name=f"{_ACTIONS}_{action_idx}" + suffix,
                 data=sampled_actions_placeholder,
             )
+        tensor_feed.add_data(
+            name=_ACTIONS + suffix,
+            data=np.zeros(
+                sampled_actions_placeholder.shape + (num_action_types,),
+                dtype=np.int32,
+                ),
+        )
     else:
         raise NotImplementedError(
             "Action spaces can be of type 'Discrete' or 'MultiDiscrete'"
         )
 
     tensor_feed.add_data(
-        name=_ACTIONS + suffix,
-        data=np.zeros(
-            sampled_actions_placeholder.shape + (num_action_types,),
-            dtype=np.int32,
-        ),
-    )
-    tensor_feed.add_data(
         name=f"{_ACTIONS}_batch" + suffix,
         data=np.zeros(
             (training_batch_size_per_env,)
-            + sampled_actions_placeholder.shape
+            + (num_envs, num_agents,)
             + (num_action_types,),
             dtype=np.int32,
         ),

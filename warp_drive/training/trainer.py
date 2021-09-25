@@ -63,7 +63,7 @@ class Trainer:
                 actions and rewards placeholders, as designed in the step
                 function. The placeholders will be used in the step() function
                 and during training.
-                When there's only a single policy, this flag will be True.
+                When there's only a single policy, this flag will be False.
                 It can also be True when there are multiple policies, yet
                 all the agents have the same obs/action space, so we can
                 share the same placeholder.
@@ -285,7 +285,6 @@ class Trainer:
 
             first_action_idx = 0
             num_envs = probabilities[first_policy][first_action_idx].shape[0]
-            action_dim = probabilities[first_policy][first_action_idx].shape[-1]
             num_agents = self.cuda_envs.env.num_agents
 
             combined_probabilities = [None for _ in range(num_action_types)]
@@ -318,20 +317,35 @@ class Trainer:
                     probabilities[policy], batch_index, suffix=suffix
                 )
         else:
-            for policy in probabilities:
-                self.sample_actions_helper(probabilities[policy], batch_index)
+            assert len(probabilities) == 1
+            policy = list(probabilities.keys())[0]
+            self.sample_actions_helper(probabilities[policy], batch_index)
 
     def sample_actions_helper(self, probabilities, batch_index, suffix=""):
-        for action_idx, probs in enumerate(probabilities):
-            action_name = f"{_ACTIONS}_{action_idx}" + suffix
+
+        num_action_types = len(probabilities)
+
+        if num_action_types == 1:
+            action_name = _ACTIONS + suffix
             self.cuda_sample_controller.sample(
-                self.cuda_envs.cuda_data_manager, probs, action_name
+                self.cuda_envs.cuda_data_manager, probabilities[0], action_name
             )
             actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                 action_name
             )
+            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                name=f"{_ACTIONS}_batch"
+            )[batch_index] = actions
 
-            if len(probabilities) > 1:
+        else:
+            for action_idx, probs in enumerate(probabilities):
+                action_name = f"{_ACTIONS}_{action_idx}" + suffix
+                self.cuda_sample_controller.sample(
+                    self.cuda_envs.cuda_data_manager, probs, action_name
+                )
+                actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    action_name
+                )
                 self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     name=_ACTIONS + suffix
                 )[:, :, action_idx] = actions
@@ -350,13 +364,19 @@ class Trainer:
             raise NotImplementedError(
                 "Action spaces can be of type" "Discrete or MultiDiscrete"
             )
-
-        for action_idx in range(len(action_dim)):
+        if len(action_dim) == 1:
             self.cuda_sample_controller.register_actions(
                 self.cuda_envs.cuda_data_manager,
-                action_name=f"{_ACTIONS}_{action_idx}" + suffix,
-                num_actions=action_dim[action_idx],
+                action_name=_ACTIONS + suffix,
+                num_actions=action_dim[0],
             )
+        else:
+            for action_idx in range(len(action_dim)):
+                self.cuda_sample_controller.register_actions(
+                    self.cuda_envs.cuda_data_manager,
+                    action_name=f"{_ACTIONS}_{action_idx}" + suffix,
+                    num_actions=action_dim[action_idx],
+                )
 
     def train(self):
         """

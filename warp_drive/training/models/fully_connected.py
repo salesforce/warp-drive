@@ -193,27 +193,21 @@ class FullyConnected(nn.Module):
         """
         if obs is None:
             assert batch_index < batch_size
+            # Read in observation from the placeholders and flatten them
+            # before passing through the fully connected layers.
+            # This is particularly relevant if the observations space is a Dict.
             obs = self.get_flattened_obs()
 
-            if not self.create_separate_placeholders_for_each_policy:
+            if self.create_separate_placeholders_for_each_policy:
+                ip = obs
+            else:
                 agent_ids_for_policy = self.policy_tag_to_agent_id_map[self.policy]
                 ip = obs[:, agent_ids_for_policy]
-            else:
-                ip = obs
 
-            # Push processed (in this case, flattened) obs to the GPU (device).
-            name = f"{_PROCESSED_OBSERVATIONS}_batch_{self.policy}"
-            processed_obs = ip
-            if not self.env.cuda_data_manager.is_data_on_device_via_torch(name):
-                processed_obs_batch = np.zeros((batch_size,) + processed_obs.shape)
-                processed_obs_feed = DataFeed()
-                processed_obs_feed.add_data(name=name, data=processed_obs_batch)
-                self.env.cuda_data_manager.push_data_to_device(
-                    processed_obs_feed, torch_accessible=True
-                )
-            self.env.cuda_data_manager.data_on_device_via_torch(name=name)[
-                batch_index
-            ] = processed_obs
+            # Push the processed (in this case, flattened) obs to the GPU (device).
+            # The write happens to a specific batch index in the processed obs batch.
+            # The processed obs batch is required for training.
+            self.push_processed_obs_to_batch(batch_index, batch_size, ip)
 
         else:
             ip = obs
@@ -222,11 +216,10 @@ class FullyConnected(nn.Module):
         for layer in range(len(self.fc)):
             op = self.fc[str(layer)](ip)
             ip = op
-
         logits = op
+
         # Compute the action probabilities and the value function estimate
         # Apply action mask to the logits as well.
-
         action_probs = [
             F.softmax(apply_logit_mask(ph(logits), self.action_mask), dim=-1)
             for ph in self.policy_head
@@ -234,3 +227,16 @@ class FullyConnected(nn.Module):
         vals = self.vf_head(logits)[..., 0]
 
         return action_probs, vals
+
+    def push_processed_obs_to_batch(self, batch_index, batch_size, processed_obs):
+        name = f"{_PROCESSED_OBSERVATIONS}_batch_{self.policy}"
+        if not self.env.cuda_data_manager.is_data_on_device_via_torch(name):
+            processed_obs_batch = np.zeros((batch_size,) + processed_obs.shape)
+            processed_obs_feed = DataFeed()
+            processed_obs_feed.add_data(name=name, data=processed_obs_batch)
+            self.env.cuda_data_manager.push_data_to_device(
+                processed_obs_feed, torch_accessible=True
+            )
+        self.env.cuda_data_manager.data_on_device_via_torch(name=name)[
+            batch_index
+        ] = processed_obs

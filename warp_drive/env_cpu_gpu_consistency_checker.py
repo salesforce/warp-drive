@@ -237,7 +237,7 @@ class EnvironmentCPUvsGPU:
                 }
 
                 # Update actions tensor on the gpu
-                _, _, done_gpu, _ = env_gpu.step()
+                _, _, done_gpu, _ = env_gpu.step_all_envs()
                 done_gpu["__all__"] = done_gpu["__all__"].cpu().numpy()
 
                 obs_gpu = env_gpu.cuda_data_manager.pull_data_from_device(_OBSERVATIONS)

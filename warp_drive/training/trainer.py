@@ -288,13 +288,13 @@ class Trainer:
             num_agents = self.cuda_envs.env.num_agents
 
             combined_probabilities = [None for _ in range(num_action_types)]
-
             for action_type in range(num_action_types):
                 action_dim = probabilities[first_policy][action_type].shape[-1]
                 combined_probabilities[action_type] = torch.zeros(
                     (num_envs, num_agents, action_dim)
                 ).cuda()
 
+            # Combine the probabilities across policies
             for action_idx in range(num_action_types):
                 for policy in probabilities:
                     agent_to_id_mapping = self.policy_tag_to_agent_id_map[policy]
@@ -330,11 +330,12 @@ class Trainer:
             self.cuda_sample_controller.sample(
                 self.cuda_envs.cuda_data_manager, probabilities[0], action_name
             )
+            # Push actions to actions batch
             actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                 action_name
             )
             self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                name=f"{_ACTIONS}_batch"
+                name=f"{_ACTIONS}_batch" + suffix
             )[batch_index] = actions
 
         else:
@@ -343,6 +344,7 @@ class Trainer:
                 self.cuda_sample_controller.sample(
                     self.cuda_envs.cuda_data_manager, probs, action_name
                 )
+                # Push indexed actions to actions and actions batch
                 actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     action_name
                 )
@@ -467,7 +469,6 @@ class Trainer:
             # (batch_size, num_envs, num_agents, *feature_dim).
             # done_flags_batch is shaped (batch_size, num_envs)
             # Perform training sequentially for each policy
-
             for policy in self.policies_to_train:
                 if self.create_separate_placeholders_for_each_policy:
                     actions_batch = (

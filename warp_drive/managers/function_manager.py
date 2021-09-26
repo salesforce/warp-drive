@@ -68,7 +68,7 @@ class CUDAFunctionManager:
         self._default_functions_initialized = False
 
     def load_cuda_from_source_code(
-        self, code: str, default_functions_included: bool = True
+        self, code: str, default_functions_included: bool = True, use_jit: bool = False
     ):
         """
         Load cuda module from the source code
@@ -76,11 +76,20 @@ class CUDAFunctionManager:
         not the directory of the source code.
         :param code: source code in the string text format
         :param default_functions_included: load default function lists
+        :param use_jit: just-in-time compile
+                        https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#virtual-architectures
         """
         assert (
             self._CUDA_module is None
         ), "CUDA module has already been loaded, not allowed to load twice"
-        self._CUDA_module = SourceModule(code, no_extern_c=True)
+        if not use_jit:
+            self._CUDA_module = SourceModule(code, no_extern_c=True)
+        else:
+            # we use the JIT and a virtual code architecture=compute_37
+            self._CUDA_module = SourceModule(code,
+                                             no_extern_c=True,
+                                             arch="compute_37",
+                                             code="compute_37")
         print("Successfully build and load the source code")
         if default_functions_included:
             self.initialize_default_functions()

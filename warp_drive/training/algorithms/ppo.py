@@ -134,4 +134,11 @@ class PPO:
             "Mean entropy": mean_entropy.item(),
             "Variance explained by the value function": variance_explained,
         }
+        # mean of the standard deviation of sampled actions
+        std_over_agent_per_action = actions_batch.float().std(axis=2).mean(axis=(0, 1))
+        std_over_time_per_action = actions_batch.float().std(axis=0).mean(axis=(0, 1))
+        for i in range(len(std_over_agent_per_action)):
+            std_action = {f"Std. of sampled action_{i} over agents": std_over_agent_per_action[i],
+                          f"Std. of sampled action_{i} over time": std_over_time_per_action[i]}
+            metrics.update(std_action)
         return loss, metrics

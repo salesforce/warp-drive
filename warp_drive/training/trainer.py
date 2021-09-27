@@ -218,9 +218,9 @@ class Trainer:
 
         self.perf_stats.action_sample_time += start_event.elapsed_time(end_event) / 1000
 
-        # Step through the env
+        # Step through all the envs
         start_event.record()
-        _, _, done, _ = self.cuda_envs.step()
+        _, _, done, _ = self.cuda_envs.step_all_envs()
 
         # Push done flags to done_flags_batch
         done_flags = done["__all__"]
@@ -579,11 +579,13 @@ class Trainer:
 
     def fetch_episode_global_states(
         self,
-        list_of_states=None,
+        env_id=0,  # environment id to fetch the states from
+        list_of_states=None,  # list of (global) states to fetch
     ):
         """
         Step through env and fetch the global states for an entire episode
         """
+        assert 0 <= env_id < self.num_envs
         assert list_of_states is not None
         assert isinstance(list_of_states, list)
         assert len(list_of_states) > 0
@@ -592,10 +594,9 @@ class Trainer:
         env = self.cuda_envs.env
 
         global_states = {}
-        # Just use the data from the first env
-        env_id = 0
 
         for state in list_of_states:
+            assert self.cuda_envs.cuda_data_manager.is_data_on_device(state)
             global_states[state] = np.zeros((env.episode_length + 1, env.num_agents))
             global_states[state][
                 0
@@ -607,8 +608,8 @@ class Trainer:
             # Sample actions and push to device
             self.sample_actions(probabilities, batch_index=t)
 
-            # Step through the env
-            _, _, done, _ = self.cuda_envs.step()
+            # Step through all the environments
+            _, _, done, _ = self.cuda_envs.step_all_envs()
 
             # Update the global states
             for state in list_of_states:
@@ -620,7 +621,7 @@ class Trainer:
 
             # Fetch the global states when episode is complete
             if env.cuda_data_manager.pull_data_from_device("_done_")[env_id]:
-                return {state: global_states[state][: t + 1] for state in global_states}
+                return {state: global_states[state][: t + 2] for state in global_states}
 
 
 class PerfStats:

@@ -12,6 +12,7 @@ import numpy as np
 import pycuda.driver as cuda_driver
 import torch
 from pycuda.compiler import SourceModule
+from pycuda.driver import Context
 
 from warp_drive.managers.data_manager import CUDADataManager, CudaTensorHolder
 from warp_drive.utils.common import (
@@ -68,7 +69,7 @@ class CUDAFunctionManager:
         self._default_functions_initialized = False
 
     def load_cuda_from_source_code(
-        self, code: str, default_functions_included: bool = True, use_jit: bool = False
+        self, code: str, default_functions_included: bool = True
     ):
         """
         Load cuda module from the source code
@@ -76,20 +77,13 @@ class CUDAFunctionManager:
         not the directory of the source code.
         :param code: source code in the string text format
         :param default_functions_included: load default function lists
-        :param use_jit: just-in-time compile
-                        https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#virtual-architectures
         """
         assert (
             self._CUDA_module is None
         ), "CUDA module has already been loaded, not allowed to load twice"
-        if not use_jit:
-            self._CUDA_module = SourceModule(code, no_extern_c=True)
-        else:
-            # we use the JIT and a virtual code architecture=compute_37
-            self._CUDA_module = SourceModule(code,
-                                             no_extern_c=True,
-                                             arch="compute_37",
-                                             code="compute_37")
+
+        self._CUDA_module = SourceModule(code, no_extern_c=True)
+
         print("Successfully build and load the source code")
         if default_functions_included:
             self.initialize_default_functions()
@@ -191,6 +185,29 @@ class CUDAFunctionManager:
             raise Exception("make bin file failed ... ")
         print(f"Successfully mkdir the binary folder {bin_path}")
 
+        try:
+            arch = "sm_%d%d" % Context.get_device().compute_capability()
+            cmd = f"nvcc --fatbin -arch={arch} {main_file} -o {cubin_file}"
+            make_process = subprocess.Popen(
+                cmd, shell=True, stderr=subprocess.STDOUT
+            )
+            if make_process.wait() != 0:
+                raise Exception(
+                    f"build failed when running the following build... : \n"
+                    f"{cmd} \n"
+                    f"try to build the fatbin hybrid version of virtual PTX + gpu binary ... "
+                )
+            else:
+                print(f"Running cmd: {cmd}")
+                print(
+                    f"Successfully build the cubin_file "
+                    f"from {main_file} to {cubin_file}"
+                )
+                return
+
+        except Exception as err:
+            print(err)
+
         arch_codes = [
             "-code=sm_37",
             "-code=sm_50",
@@ -213,7 +230,7 @@ class CUDAFunctionManager:
                 )
                 if make_process.wait() != 0:
                     raise Exception(
-                        f"build failed ... : \n"
+                        f"build failed when running the following build... : \n"
                         f"{cmd} \n"
                         f"try to build the lower gpu-code version ... "
                     )

@@ -12,6 +12,7 @@ import numpy as np
 import pycuda.driver as cuda_driver
 import torch
 from pycuda.compiler import SourceModule
+from pycuda.driver import Context
 
 from warp_drive.managers.data_manager import CUDADataManager, CudaTensorHolder
 from warp_drive.utils.common import (
@@ -80,7 +81,9 @@ class CUDAFunctionManager:
         assert (
             self._CUDA_module is None
         ), "CUDA module has already been loaded, not allowed to load twice"
+
         self._CUDA_module = SourceModule(code, no_extern_c=True)
+
         print("Successfully build and load the source code")
         if default_functions_included:
             self.initialize_default_functions()
@@ -149,7 +152,7 @@ class CUDAFunctionManager:
             template_runner_file=template_runner_file,
             path=template_path,
             env_name=env_name,
-            customized_env_registrar=customized_env_registrar
+            customized_env_registrar=customized_env_registrar,
         )
         check_env_header(
             header_file="env_config.h",
@@ -182,7 +185,36 @@ class CUDAFunctionManager:
             raise Exception("make bin file failed ... ")
         print(f"Successfully mkdir the binary folder {bin_path}")
 
-        arch_codes = ["-code=sm_37", "-code=sm_50", "-code=sm_60", "-code=sm_70", "-code=sm_80"]
+        try:
+            arch = "sm_%d%d" % Context.get_device().compute_capability()
+            cmd = f"nvcc --fatbin -arch={arch} {main_file} -o {cubin_file}"
+            make_process = subprocess.Popen(
+                cmd, shell=True, stderr=subprocess.STDOUT
+            )
+            if make_process.wait() != 0:
+                raise Exception(
+                    f"build failed when running the following build... : \n"
+                    f"{cmd} \n"
+                    f"try to build the fatbin hybrid version of virtual PTX + gpu binary ... "
+                )
+            else:
+                print(f"Running cmd: {cmd}")
+                print(
+                    f"Successfully build the cubin_file "
+                    f"from {main_file} to {cubin_file}"
+                )
+                return
+
+        except Exception as err:
+            print(err)
+
+        arch_codes = [
+            "-code=sm_37",
+            "-code=sm_50",
+            "-code=sm_60",
+            "-code=sm_70",
+            "-code=sm_80",
+        ]
         compiler = "nvcc --fatbin -arch=compute_37 -code=compute_37"
         in_out_fname = f"{main_file} -o {cubin_file}"
         # for example, cmd = f"nvcc --fatbin -arch=compute_30 -code=sm_30 -code=sm_50 "
@@ -190,15 +222,24 @@ class CUDAFunctionManager:
         build_success = False
         for i in range(len(arch_codes)):
             try:
-                cmd = " ".join([compiler] + arch_codes[:len(arch_codes)-i] + [in_out_fname])
-                make_process = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT)
+                cmd = " ".join(
+                    [compiler] + arch_codes[: len(arch_codes) - i] + [in_out_fname]
+                )
+                make_process = subprocess.Popen(
+                    cmd, shell=True, stderr=subprocess.STDOUT
+                )
                 if make_process.wait() != 0:
-                    raise Exception(f"build failed ... : \n"
-                                    f"{cmd} \n"
-                                    f"try to build the lower gpu-code version ... ")
+                    raise Exception(
+                        f"build failed when running the following build... : \n"
+                        f"{cmd} \n"
+                        f"try to build the lower gpu-code version ... "
+                    )
                 else:
                     print(f"Running cmd: {cmd}")
-                    print(f"Successfully build the cubin_file from {main_file} to {cubin_file}")
+                    print(
+                        f"Successfully build the cubin_file "
+                        f"from {main_file} to {cubin_file}"
+                    )
                     build_success = True
                     break
             except Exception as err:
@@ -408,8 +449,8 @@ class CUDALogController:
             assert f_shape[1] == data_manager.meta_info(
                 "n_agents"
             ), "log function assumes the 1st dimension is n_agents"
-            if len(f_shape) == 3:
-                feature_dim = np.int32(f_shape[2])
+            if len(f_shape) >= 3:
+                feature_dim = np.int32(np.prod(f_shape[2:]))
             else:
                 feature_dim = np.int32(1)
             dtype = data_manager.get_dtype(name)
@@ -681,18 +722,16 @@ class CUDAEnvironmentReset:
             assert f_shape[0] == data_manager.meta_info(
                 "n_envs"
             ), "reset function assumes the 0th dimension is n_envs"
-            if len(f_shape) == 3:
+            if len(f_shape) >= 3:
                 agent_dim = np.int32(f_shape[1])
-                feature_dim = np.int32(f_shape[2])
+                feature_dim = np.int32(np.prod(f_shape[2:]))
                 is_3d = True
             elif len(f_shape) == 2:
                 feature_dim = np.int32(f_shape[1])
                 is_3d = False
-            elif len(f_shape) == 1:
+            else:  # len(f_shape) == 1:
                 feature_dim = np.int32(1)
                 is_3d = False
-            else:
-                raise Exception("reset function only supports data dimenstion <= 3")
             dtype = data_manager.get_dtype(name)
             if is_3d:
                 if "float" in dtype:

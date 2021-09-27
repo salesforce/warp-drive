@@ -7,6 +7,7 @@
 import os
 import re
 from pathlib import Path
+
 from warp_drive.utils.env_registrar import CustomizedEnvironmentRegistrar
 
 
@@ -76,10 +77,12 @@ def check_env_header(header_file="env_config.h", path=None, num_envs=1, num_agen
                 ), f"{header_file} has different num_agents"
 
 
-def update_env_runner(template_runner_file,
-                      path=None,
-                      env_name=None,
-                      customized_env_registrar: CustomizedEnvironmentRegistrar = None):
+def update_env_runner(
+    template_runner_file,
+    path=None,
+    env_name=None,
+    customized_env_registrar: CustomizedEnvironmentRegistrar = None,
+):
     def from_dict(dct):
         def lookup(match):
             key = match.group(1)
@@ -101,14 +104,25 @@ def update_env_runner(template_runner_file,
         os.remove(f"{destination_runner_path}/{destination_runner_file}")
 
     env_cuda = None
-    if customized_env_registrar is not None and customized_env_registrar.get_env_directory(env_name) is not None:
+    if (
+        customized_env_registrar is not None
+        and customized_env_registrar.get_env_directory(env_name) is not None
+    ):
         env_cuda = customized_env_registrar.get_env_directory(env_name)
-        print(f"Find the targeting environment source code from the customized environment directory: {env_cuda}")
+        print(
+            f"Find the targeting environment source code "
+            f"from the customized environment directory: {env_cuda}"
+        )
     elif get_default_env_directory(env_name) is not None:
         env_cuda = get_default_env_directory(env_name)
-        print(f"Find the targeting environment source code from the default environment directory: {env_cuda}")
+        print(
+            f"Find the targeting environment source code "
+            f"from the default environment directory: {env_cuda}"
+        )
 
-    assert env_cuda is not None and isinstance(env_cuda, str), "Fail to find or validate the targeting environment"
+    assert env_cuda is not None and isinstance(
+        env_cuda, str
+    ), "Fail to find or validate the targeting environment"
 
     runner_subs = {"ENV_CUDA": env_cuda}
     runner_content = ""

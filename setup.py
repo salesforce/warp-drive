@@ -11,7 +11,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="rl-warp-drive",
-    version="1.0",
+    version="1.1",
     author="Tian Lan, Sunil Srinivasa, Stephan Zheng",
     author_email="stephan.zheng@salesforce.com",
     description="Framework for fast end-to-end "
@@ -32,6 +32,7 @@ setup(
         "numpy>=1.18.1",
         "pycuda==2021.1",
         "pytest>=6.1.0",
+        "pyyaml>=5.4",
         "torch==1.9.0",
     ],
     classifiers=[

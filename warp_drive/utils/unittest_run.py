@@ -1,4 +1,5 @@
 import subprocess
+
 from warp_drive.managers.function_manager import CUDAFunctionManager
 from warp_drive.utils.common import get_project_root
 
@@ -19,4 +20,4 @@ if __name__ == "__main__":
     except subprocess.TimeoutExpired:
         test_process.kill()
         outs, errs = test_process.communicate()
-        print("Unittest Timeout")
+        print("Unit Test Timeout")

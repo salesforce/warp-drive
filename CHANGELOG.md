@@ -11,3 +11,7 @@
 - Environments
   - tag (grid-world version)
   - tag (continuous version)
+
+# Release 1.1 (2021-09-27)
+- Support to register custom environments
+- Support for 'Dict' observation spaces

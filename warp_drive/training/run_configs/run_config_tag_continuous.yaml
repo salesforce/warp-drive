@@ -9,7 +9,7 @@ name: "tag_continuous"
 # Environment settings
 env:
     num_taggers: 10
-    num_runners: 700
+    num_runners: 100
     grid_length: 100.0
     episode_length: 500
     max_acceleration: 0.1

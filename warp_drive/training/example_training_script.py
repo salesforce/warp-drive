@@ -13,11 +13,11 @@ import os
 
 import torch
 import yaml
-from trainer import Trainer
 
 from example_envs.tag_continuous.tag_continuous import TagContinuous
 from example_envs.tag_gridworld.tag_gridworld import TagGridWorld
 from warp_drive.env_wrapper import EnvWrapper
+from warp_drive.training.trainer import Trainer
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.data_feed import DataFeed
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     create_and_push_data_placeholders(
         env_wrapper,
         policy_tag_to_agent_id_map,
-        training_batch_size_per_env=trainer.training_batch_size_per_env,
+        trainer,
     )
 
     # Perform training

@@ -32,7 +32,6 @@ class PPO:
         self.normalize_return = normalize_return
         self.vf_loss_coeff = vf_loss_coeff
         self.entropy_coeff = entropy_coeff
-        self.old_logprob = None
 
     def compute_loss_and_metrics(
         self,
@@ -62,10 +61,10 @@ class PPO:
             m = Categorical(action_probabilities_batch[idx])
             mean_entropy += m.entropy().mean()
             log_prob += m.log_prob(actions_batch[..., idx])
-        if self.old_logprob is not None:
-            ratio = torch.exp(log_prob[:-1] - self.old_logprob[:-1])
-        else:
-            ratio = torch.ones_like(log_prob[:-1])
+
+        old_logprob = log_prob.detach()
+        ratio = torch.exp(log_prob[:-1] - old_logprob[:-1])
+
         surr1 = ratio * normalized_advantages_batch
         surr2 = (
             torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
@@ -73,8 +72,6 @@ class PPO:
         )
         policy_surr = torch.minimum(surr1, surr2)
         policy_loss = -1.0 * policy_surr.mean()
-
-        self.old_logprob = log_prob.detach()
 
         # Value objective.
         returns_batch = torch.zeros_like(rewards_batch)
@@ -137,8 +134,11 @@ class PPO:
         # mean of the standard deviation of sampled actions
         std_over_agent_per_action = actions_batch.float().std(axis=2).mean(axis=(0, 1))
         std_over_time_per_action = actions_batch.float().std(axis=0).mean(axis=(0, 1))
+        std_over_env_per_action = actions_batch.float().std(axis=1).mean(axis=(0, 1))
         for i in range(len(std_over_agent_per_action)):
             std_action = {f"Std. of sampled action_{i} over agents": std_over_agent_per_action[i],
-                          f"Std. of sampled action_{i} over time": std_over_time_per_action[i]}
+                          f"Std. of sampled action_{i} over envs": std_over_env_per_action[i],
+                          f"Std. of sampled action_{i} over time": std_over_time_per_action[i],
+                          }
             metrics.update(std_action)
         return loss, metrics

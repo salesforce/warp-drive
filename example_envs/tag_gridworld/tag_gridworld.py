@@ -11,6 +11,7 @@ from gym.utils import seeding
 # seeding code from https://github.com/openai/gym/blob/master/gym/utils/seeding.py
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
+from warp_drive.utils.gpu_environment_context import GPUEnvironmentContext
 
 _OBSERVATIONS = Constants.OBSERVATIONS
 _ACTIONS = Constants.ACTIONS
@@ -19,7 +20,7 @@ _LOC_X = "loc_x"
 _LOC_Y = "loc_y"
 
 
-class TagGridWorld:
+class TagGridWorld(GPUEnvironmentContext):
     """
     The game of tag on a 2D square grid plane.
     This is a simplified version of the continuous tag.
@@ -62,6 +63,8 @@ class TagGridWorld:
         :param use_cuda (bool): boolean to indicate whether to use the CPU or
             the GPU(cuda) for stepping through the environment
         """
+        super().__init__()
+
         assert num_taggers > 0
         self.num_taggers = num_taggers
         # there is one runner
@@ -126,8 +129,6 @@ class TagGridWorld:
         # These will be set via the env_wrapper, and are required only for
         # running on the GPU
         self.use_cuda = use_cuda
-        self.cuda_data_manager = None
-        self.cuda_function_manager = None
 
     name = "TagGridWorld"
 

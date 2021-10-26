@@ -115,13 +115,11 @@ class EnvWrapper:
             # Note: generate_observation() and compute_reward()
             # should be part of the step function itself
             step_function = f"Cuda{self.name}Step"
-            self.cuda_function_manager.initialize_functions([step_function])
-
-            # Add wrapper attributes for use within env
-            self.env.cuda_data_manager = self.cuda_data_manager
-            self.env.cuda_function_manager = self.cuda_function_manager
-            self.env.cuda_step = self.cuda_function_manager._get_function(step_function)
-
+            context_ready = self.env.initialize_step_function_context(cuda_data_manager=self.cuda_data_manager,
+                                                                      cuda_function_manager=self.cuda_function_manager,
+                                                                      step_function_name=step_function)
+            if self.use_cuda:
+                assert context_ready, "The environment class failed to initialize the CUDA step function"
             # Register the env resetter
             self.env_resetter = CUDAEnvironmentReset(
                 function_manager=self.cuda_function_manager

@@ -11,7 +11,7 @@ from gym.utils import seeding
 # seeding code from https://github.com/openai/gym/blob/master/gym/utils/seeding.py
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
-from warp_drive.utils.gpu_environment_context import GPUEnvironmentContext
+from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 
 _OBSERVATIONS = Constants.OBSERVATIONS
 _ACTIONS = Constants.ACTIONS
@@ -20,7 +20,7 @@ _LOC_X = "loc_x"
 _LOC_Y = "loc_y"
 
 
-class TagGridWorld(GPUEnvironmentContext):
+class TagGridWorld(CUDAEnvironmentContext):
     """
     The game of tag on a 2D square grid plane.
     This is a simplified version of the continuous tag.

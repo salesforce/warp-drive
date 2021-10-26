@@ -19,7 +19,7 @@ from warp_drive.utils.common import get_project_root
 from warp_drive.utils.recursive_obs_dict_to_spaces_dict import (
     recursive_obs_dict_to_spaces_dict,
 )
-from warp_drive.utils.gpu_environment_context import GPUEnvironmentContext
+from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 
 _CUBIN_FILEPATH = f"{get_project_root()}/warp_drive/cuda_bin"
 
@@ -82,8 +82,8 @@ class EnvWrapper:
         if self.use_cuda:
             print("USING CUDA...")
 
-            assert isinstance(self.env, GPUEnvironmentContext), \
-                "use_cuda requires the environment an instance of GPUEnvironmentContext"
+            assert isinstance(self.env, CUDAEnvironmentContext), \
+                "use_cuda requires the environment an instance of CUDAEnvironmentContext"
 
             # Number of environments to run in parallel
             assert num_envs >= 1

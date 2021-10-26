@@ -1,4 +1,4 @@
-class GPUEnvironmentContext:
+class CUDAEnvironmentContext:
     """
     Environment Context class to manage APIs for the communication between EnvWrapper class and the Environment class
     """

@@ -13,7 +13,7 @@ from gym.utils import seeding
 
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
-from warp_drive.utils.gpu_environment_context import GPUEnvironmentContext
+from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 
 _OBSERVATIONS = Constants.OBSERVATIONS
 _ACTIONS = Constants.ACTIONS
@@ -26,7 +26,7 @@ _ACC = "acceleration"
 _SIG = "still_in_the_game"
 
 
-class TagContinuous(GPUEnvironmentContext):
+class TagContinuous(CUDAEnvironmentContext):
     """
     The game of tag on a continuous circular 2D space.
     There are some taggers trying to tag several runners.

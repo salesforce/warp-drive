@@ -245,9 +245,7 @@ def create_and_push_data_placeholders_helper(
             (num_envs, num_agents, num_action_types),
             dtype=np.int32,
         )
-        tensor_feed.add_data(
-            name=_ACTIONS + suffix, data=sampled_actions_placeholder
-        )
+        tensor_feed.add_data(name=_ACTIONS + suffix, data=sampled_actions_placeholder)
     elif isinstance(action_space, MultiDiscrete):
         # Add separate placeholders for a MultiDiscrete action space.
         # This is required since our sampler will be invoked for each
@@ -268,7 +266,7 @@ def create_and_push_data_placeholders_helper(
             data=np.zeros(
                 sampled_actions_placeholder.shape + (num_action_types,),
                 dtype=np.int32,
-                ),
+            ),
         )
     else:
         raise NotImplementedError(
@@ -279,7 +277,10 @@ def create_and_push_data_placeholders_helper(
         name=f"{_ACTIONS}_batch" + suffix,
         data=np.zeros(
             (training_batch_size_per_env,)
-            + (num_envs, num_agents,)
+            + (
+                num_envs,
+                num_agents,
+            )
             + (num_action_types,),
             dtype=np.int32,
         ),

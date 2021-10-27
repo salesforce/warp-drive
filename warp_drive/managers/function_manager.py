@@ -188,9 +188,7 @@ class CUDAFunctionManager:
         try:
             arch = "sm_%d%d" % Context.get_device().compute_capability()
             cmd = f"nvcc --fatbin -arch={arch} {main_file} -o {cubin_file}"
-            make_process = subprocess.Popen(
-                cmd, shell=True, stderr=subprocess.STDOUT
-            )
+            make_process = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT)
             if make_process.wait() != 0:
                 raise Exception(
                     f"build failed when running the following build... : \n"

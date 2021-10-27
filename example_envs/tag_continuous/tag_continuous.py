@@ -13,6 +13,7 @@ from gym.utils import seeding
 
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
+from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 
 _OBSERVATIONS = Constants.OBSERVATIONS
 _ACTIONS = Constants.ACTIONS
@@ -25,7 +26,7 @@ _ACC = "acceleration"
 _SIG = "still_in_the_game"
 
 
-class TagContinuous:
+class TagContinuous(CUDAEnvironmentContext):
     """
     The game of tag on a continuous circular 2D space.
     There are some taggers trying to tag several runners.
@@ -122,6 +123,7 @@ class TagContinuous:
                 or the GPU. (cuda) for stepping through the environment].
                 Defaults to False.
         """
+        super().__init__()
 
         self.float_dtype = np.float32
         self.int_dtype = np.int32
@@ -297,8 +299,6 @@ class TagContinuous:
         # use_cuda will be set to True (by the env_wrapper), if needed
         # to be simulated on the GPU
         self.use_cuda = use_cuda
-        self.cuda_data_manager = None
-        self.cuda_function_manager = None
 
         # Copy runners dict for applying at reset
         self.runners_at_reset = copy.deepcopy(self.runners)

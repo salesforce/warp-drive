@@ -16,10 +16,10 @@ from warp_drive.managers.function_manager import (
     CUDAFunctionManager,
 )
 from warp_drive.utils.common import get_project_root
+from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 from warp_drive.utils.recursive_obs_dict_to_spaces_dict import (
     recursive_obs_dict_to_spaces_dict,
 )
-from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 
 _CUBIN_FILEPATH = f"{get_project_root()}/warp_drive/cuda_bin"
 
@@ -82,8 +82,9 @@ class EnvWrapper:
         if self.use_cuda:
             print("USING CUDA...")
 
-            assert isinstance(self.env, CUDAEnvironmentContext), \
-                "use_cuda requires the environment an instance of CUDAEnvironmentContext"
+            assert isinstance(
+                self.env, CUDAEnvironmentContext
+            ), "use_cuda requires the environment an instance of CUDAEnvironmentContext"
 
             # Number of environments to run in parallel
             assert num_envs >= 1
@@ -119,11 +120,15 @@ class EnvWrapper:
             # Note: generate_observation() and compute_reward()
             # should be part of the step function itself
             step_function = f"Cuda{self.name}Step"
-            context_ready = self.env.initialize_step_function_context(cuda_data_manager=self.cuda_data_manager,
-                                                                      cuda_function_manager=self.cuda_function_manager,
-                                                                      step_function_name=step_function)
+            context_ready = self.env.initialize_step_function_context(
+                cuda_data_manager=self.cuda_data_manager,
+                cuda_function_manager=self.cuda_function_manager,
+                step_function_name=step_function,
+            )
             if self.use_cuda:
-                assert context_ready, "The environment class failed to initialize the CUDA step function"
+                assert (
+                    context_ready
+                ), "The environment class failed to initialize the CUDA step function"
             # Register the env resetter
             self.env_resetter = CUDAEnvironmentReset(
                 function_manager=self.cuda_function_manager

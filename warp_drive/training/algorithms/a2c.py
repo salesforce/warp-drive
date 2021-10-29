@@ -44,37 +44,16 @@ class A2C:
         assert action_probabilities_batch is not None
         assert value_functions_batch is not None
 
-        # Policy objective
-        advantages_batch = (
-            rewards_batch[:-1]
-            + self.discount_factor_gamma * value_functions_batch[1:]
-            - value_functions_batch[:-1]
-        )
-
-        # Normalize across the agents and env dimensions
-        if self.normalize_advantage:
-            normalized_advantages_batch = (
-                advantages_batch - advantages_batch.mean(dim=(1, 2), keepdim=True)
-            ) / (advantages_batch.std(dim=(1, 2), keepdim=True) + 1e-10)
-        else:
-            normalized_advantages_batch = advantages_batch
-
-        log_prob = 0.0
-        mean_entropy = 0.0
-
-        for idx in range(actions_batch.shape[-1]):
-            m = Categorical(action_probabilities_batch[idx])
-            mean_entropy += m.entropy().mean()
-            log_prob += m.log_prob(actions_batch[..., idx])
-
-        policy_loss = (-log_prob[:-1] * normalized_advantages_batch).mean()
+        # Detach value_functions_batch from the computation graph
+        # for return and advantage computations.
+        value_functions_batch_detached = value_functions_batch.detach()
 
         # Value objective.
         returns_batch = torch.zeros_like(rewards_batch)
 
         returns_batch[-1] = (
             done_flags_batch[-1][:, None] * rewards_batch[-1]
-            + (1 - done_flags_batch[-1][:, None]) * value_functions_batch[-1]
+            + (1 - done_flags_batch[-1][:, None]) * value_functions_batch_detached[-1]
         )
         for step in range(-2, -returns_batch.shape[0] - 1, -1):
             future_return = (
@@ -95,6 +74,31 @@ class A2C:
 
         vf_loss = nn.MSELoss()(normalized_returns_batch, value_functions_batch)
 
+        # Policy objective
+        advantages_batch = (
+            normalized_returns_batch
+            - value_functions_batch_detached
+        )
+
+        # Normalize across the agents and env dimensions
+        if self.normalize_advantage:
+            normalized_advantages_batch = (
+                advantages_batch - advantages_batch.mean(dim=(1, 2), keepdim=True)
+            ) / (advantages_batch.std(dim=(1, 2), keepdim=True) + 1e-10)
+        else:
+            normalized_advantages_batch = advantages_batch
+
+        log_prob = 0.0
+        mean_entropy = 0.0
+
+        for idx in range(actions_batch.shape[-1]):
+            m = Categorical(action_probabilities_batch[idx])
+            mean_entropy += m.entropy().mean()
+            log_prob += m.log_prob(actions_batch[..., idx])
+
+        policy_loss = (-log_prob * normalized_advantages_batch).mean()
+
+        # Total loss
         loss = (
             policy_loss
             + self.vf_loss_coeff * vf_loss

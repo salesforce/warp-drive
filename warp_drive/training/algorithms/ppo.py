@@ -41,12 +41,43 @@ class PPO:
         action_probabilities_batch=None,
         value_functions_batch=None,
     ):
+        # Detach value_functions_batch from the computation graph
+        # for return and advantage computations.
+        value_functions_batch_detached = value_functions_batch.detach()
+
+        # Value objective.
+        returns_batch = torch.zeros_like(rewards_batch)
+
+        returns_batch[-1] = (
+            done_flags_batch[-1][:, None] * rewards_batch[-1]
+            + (1 - done_flags_batch[-1][:, None]) * value_functions_batch_detached[-1]
+        )
+
+        for step in range(-2, -returns_batch.shape[0] - 1, -1):
+            future_return = (
+                done_flags_batch[step][:, None] * torch.zeros_like(rewards_batch[step])
+                + (1 - done_flags_batch[step][:, None])
+                * self.discount_factor_gamma
+                * returns_batch[step + 1]
+            )
+            returns_batch[step] = rewards_batch[step] + future_return
+
+        # Normalize across the agents and env dimensions
+        if self.normalize_return:
+            normalized_returns_batch = (
+                returns_batch - returns_batch.mean(dim=(1, 2), keepdim=True)
+            ) / (returns_batch.std(dim=(1, 2), keepdim=True) + 1e-10)
+        else:
+            normalized_returns_batch = returns_batch
+
+        vf_loss = nn.MSELoss()(normalized_returns_batch, value_functions_batch)
+
         # Policy objective
         advantages_batch = (
-            rewards_batch[:-1]
-            + self.discount_factor_gamma * value_functions_batch[1:]
-            - value_functions_batch[:-1]
+            normalized_returns_batch
+            - value_functions_batch_detached
         )
+
         # Normalize across the agents and env dimensions
         if self.normalize_advantage:
             normalized_advantages_batch = (
@@ -73,33 +104,7 @@ class PPO:
         policy_surr = torch.minimum(surr1, surr2)
         policy_loss = -1.0 * policy_surr.mean()
 
-        # Value objective.
-        returns_batch = torch.zeros_like(rewards_batch)
-
-        returns_batch[-1] = (
-            done_flags_batch[-1][:, None] * rewards_batch[-1]
-            + (1 - done_flags_batch[-1][:, None]) * value_functions_batch[-1]
-        )
-
-        for step in range(-2, -returns_batch.shape[0] - 1, -1):
-            future_return = (
-                done_flags_batch[step][:, None] * torch.zeros_like(rewards_batch[step])
-                + (1 - done_flags_batch[step][:, None])
-                * self.discount_factor_gamma
-                * returns_batch[step + 1]
-            )
-            returns_batch[step] = rewards_batch[step] + future_return
-
-        # Normalize across the agents and env dimensions
-        if self.normalize_return:
-            normalized_returns_batch = (
-                returns_batch - returns_batch.mean(dim=(1, 2), keepdim=True)
-            ) / (returns_batch.std(dim=(1, 2), keepdim=True) + 1e-10)
-        else:
-            normalized_returns_batch = returns_batch
-
-        vf_loss = nn.MSELoss()(returns_batch, value_functions_batch)
-
+        # Total loss
         loss = (
             policy_loss
             + self.vf_loss_coeff * vf_loss

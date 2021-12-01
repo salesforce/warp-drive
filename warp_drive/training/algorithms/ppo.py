@@ -4,17 +4,22 @@
 # For full license text, see the LICENSE file in the repo root
 # or https://opensource.org/licenses/BSD-3-Clause
 #
-"""
-The Proximal Policy Optimization Class
-https://arxiv.org/abs/1707.06347
-"""
 
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.distributions import Categorical
+
+from warp_drive.training.utils.param_scheduler import ParamScheduler
+
+_EPSILON = 1e-10  # small number to prevent indeterminate division
 
 
 class PPO:
+    """
+    The Proximal Policy Optimization Class
+    https://arxiv.org/abs/1707.06347
+    """
+
     def __init__(
         self,
         discount_factor_gamma=1.0,
@@ -30,17 +35,27 @@ class PPO:
         self.clip_param = clip_param
         self.normalize_advantage = normalize_advantage
         self.normalize_return = normalize_return
-        self.vf_loss_coeff = vf_loss_coeff
-        self.entropy_coeff = entropy_coeff
+        # Create vf_loss and entropy coefficient schedules
+        self.vf_loss_coeff_schedule = ParamScheduler(vf_loss_coeff)
+        self.entropy_coeff_schedule = ParamScheduler(entropy_coeff)
 
     def compute_loss_and_metrics(
         self,
+        timestep=None,
         actions_batch=None,
         rewards_batch=None,
         done_flags_batch=None,
         action_probabilities_batch=None,
         value_functions_batch=None,
+        perform_logging=False,
     ):
+        assert timestep is not None
+        assert actions_batch is not None
+        assert rewards_batch is not None
+        assert done_flags_batch is not None
+        assert action_probabilities_batch is not None
+        assert value_functions_batch is not None
+
         # Detach value_functions_batch from the computation graph
         # for return and advantage computations.
         value_functions_batch_detached = value_functions_batch.detach()
@@ -52,7 +67,6 @@ class PPO:
             done_flags_batch[-1][:, None] * rewards_batch[-1]
             + (1 - done_flags_batch[-1][:, None]) * value_functions_batch_detached[-1]
         )
-
         for step in range(-2, -returns_batch.shape[0] - 1, -1):
             future_return = (
                 done_flags_batch[step][:, None] * torch.zeros_like(rewards_batch[step])
@@ -66,23 +80,22 @@ class PPO:
         if self.normalize_return:
             normalized_returns_batch = (
                 returns_batch - returns_batch.mean(dim=(1, 2), keepdim=True)
-            ) / (returns_batch.std(dim=(1, 2), keepdim=True) + 1e-10)
+            ) / (returns_batch.std(dim=(1, 2), keepdim=True) + torch.tensor(_EPSILON))
         else:
             normalized_returns_batch = returns_batch
 
         vf_loss = nn.MSELoss()(normalized_returns_batch, value_functions_batch)
 
         # Policy objective
-        advantages_batch = (
-            normalized_returns_batch
-            - value_functions_batch_detached
-        )
+        advantages_batch = normalized_returns_batch - value_functions_batch_detached
 
         # Normalize across the agents and env dimensions
         if self.normalize_advantage:
             normalized_advantages_batch = (
                 advantages_batch - advantages_batch.mean(dim=(1, 2), keepdim=True)
-            ) / (advantages_batch.std(dim=(1, 2), keepdim=True) + 1e-10)
+            ) / (
+                advantages_batch.std(dim=(1, 2), keepdim=True) + torch.tensor(_EPSILON)
+            )
         else:
             normalized_advantages_batch = advantages_batch
 
@@ -94,7 +107,7 @@ class PPO:
             log_prob += m.log_prob(actions_batch[..., idx])
 
         old_logprob = log_prob.detach()
-        ratio = torch.exp(log_prob[:-1] - old_logprob[:-1])
+        ratio = torch.exp(log_prob - old_logprob)
 
         surr1 = ratio * normalized_advantages_batch
         surr2 = (
@@ -105,46 +118,62 @@ class PPO:
         policy_loss = -1.0 * policy_surr.mean()
 
         # Total loss
-        loss = (
-            policy_loss
-            + self.vf_loss_coeff * vf_loss
-            - self.entropy_coeff * mean_entropy
-        )
+        vf_loss_coeff_t = self.vf_loss_coeff_schedule.get_param_value(timestep)
+        entropy_coeff_t = self.entropy_coeff_schedule.get_param_value(timestep)
+        loss = policy_loss + vf_loss_coeff_t * vf_loss - entropy_coeff_t * mean_entropy
 
         variance_explained = max(
-            -1.0,
+            torch.tensor(-1.0),
             (
                 1
                 - (
                     normalized_advantages_batch.detach().var()
-                    / normalized_returns_batch.detach().var()
+                    / (normalized_returns_batch.detach().var() + torch.tensor(_EPSILON))
                 )
-            ).item(),
+            ),
         )
 
-        metrics = {
-            "Total loss": loss.item(),
-            "Policy loss": policy_loss.item(),
-            "Value function loss": vf_loss.item(),
-            "Mean rewards": rewards_batch.mean().item(),
-            "Max rewards": rewards_batch.max().item(),
-            "Mean value function": value_functions_batch.mean().item(),
-            "Mean advantages": advantages_batch.mean().item(),
-            "Mean (normalized) advantages": normalized_advantages_batch.mean().item(),
-            "Mean (discounted) returns": returns_batch.mean().item(),
-            "Mean normalized returns": normalized_returns_batch.mean().item(),
-            "Mean entropy": mean_entropy.item(),
-            "Variance explained by the value function": variance_explained,
-        }
-        # mean of the standard deviation of sampled actions
-        std_over_agent_per_action = actions_batch.float().std(axis=2).mean(axis=(0, 1))
-        std_over_time_per_action = actions_batch.float().std(axis=0).mean(axis=(0, 1))
-        std_over_env_per_action = actions_batch.float().std(axis=1).mean(axis=(0, 1))
-        for i in range(len(std_over_agent_per_action)):
-            std_action = {
-                f"Std. of sampled action_{i} over agents": std_over_agent_per_action[i],
-                f"Std. of sampled action_{i} over envs": std_over_env_per_action[i],
-                f"Std. of sampled action_{i} over time": std_over_time_per_action[i],
+        if perform_logging:
+            metrics = {
+                "VF loss coefficient": vf_loss_coeff_t,
+                "Entropy coefficient": entropy_coeff_t,
+                "Total loss": loss.item(),
+                "Policy loss": policy_loss.item(),
+                "Value function loss": vf_loss.item(),
+                "Mean rewards": rewards_batch.mean().item(),
+                "Max. rewards": rewards_batch.max().item(),
+                "Min. rewards": rewards_batch.min().item(),
+                "Mean value function": value_functions_batch.mean().item(),
+                "Mean advantages": advantages_batch.mean().item(),
+                "Mean (normalized) advantages": normalized_advantages_batch.mean().item(),
+                "Mean (discounted) returns": returns_batch.mean().item(),
+                "Mean normalized returns": normalized_returns_batch.mean().item(),
+                "Mean entropy": mean_entropy.item(),
+                "Variance explained by the value function": variance_explained.item(),
             }
-            metrics.update(std_action)
+            # mean of the standard deviation of sampled actions
+            std_over_agent_per_action = (
+                actions_batch.float().std(axis=2).mean(axis=(0, 1))
+            )
+            std_over_time_per_action = (
+                actions_batch.float().std(axis=0).mean(axis=(0, 1))
+            )
+            std_over_env_per_action = (
+                actions_batch.float().std(axis=1).mean(axis=(0, 1))
+            )
+            for idx, _ in enumerate(std_over_agent_per_action):
+                std_action = {
+                    f"Std. of sampled action_{idx} over agents": std_over_agent_per_action[
+                        idx
+                    ].item(),
+                    f"Std. of sampled action_{idx} over envs": std_over_env_per_action[
+                        idx
+                    ].item(),
+                    f"Std. of sampled action_{idx} over time": std_over_time_per_action[
+                        idx
+                    ].item(),
+                }
+                metrics.update(std_action)
+        else:
+            metrics = {}
         return loss, metrics

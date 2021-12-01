@@ -228,7 +228,7 @@ cuda_function_manager.load_cuda_from_binary_file(fname)</p>
 can be populated at compile time)
 cuda_function_manager.compile_and_load_cuda(template_header_file)</p>
 <p>cuda_function_manager.initialize_functions([“step”, “test”])</p>
-<p>cuda_step_func = cuda_function_manager._get_function(“step”)</p>
+<p>cuda_step_func = cuda_function_manager.get_function(“step”)</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="function_manager.CUDAFunctionManager.block">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">block</span></span><a class="headerlink" href="#function_manager.CUDAFunctionManager.block" title="Permalink to this definition">¶</a></dt>

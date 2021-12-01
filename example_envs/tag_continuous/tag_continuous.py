@@ -295,6 +295,10 @@ class TagContinuous(CUDAEnvironmentContext):
             end_of_game_reward_for_runner
         )
 
+        # Note: These will be set later
+        self.edge_hit_reward_penalty = None
+        self.still_in_the_game = None
+
         # These will also be set via the env_wrapper
         # use_cuda will be set to True (by the env_wrapper), if needed
         # to be simulated on the GPU
@@ -374,9 +378,9 @@ class TagContinuous(CUDAEnvironmentContext):
 
         # Crossing the edge
         has_crossed_edge = ~(
-            (0 <= loc_x_curr_t)
+            (loc_x_curr_t >= 0)
             & (loc_x_curr_t <= self.grid_length)
-            & (0 <= loc_y_curr_t)
+            & (loc_y_curr_t >= 0)
             & (loc_y_curr_t <= self.grid_length)
         )
 
@@ -432,7 +436,7 @@ class TagContinuous(CUDAEnvironmentContext):
                     (ag_id, self.compute_distance(agent_id, ag_id))
                 ]
         K_nearest_neighbor_ids_and_distances = heapq.nsmallest(
-            self.num_other_agents_observed, agent_ids_and_distances, key=lambda x: x[1]
+            K, agent_ids_and_distances, key=lambda x: x[1]
         )
 
         return [
@@ -617,7 +621,7 @@ class TagContinuous(CUDAEnvironmentContext):
 
         taggers_list = sorted(self.taggers)
 
-        # Atleast one runner present
+        # At least one runner present
         if self.num_runners > 0:
             runners_list = sorted(self.runners)
             runner_locations_x = self.global_state[_LOC_X][self.timestep][runners_list]
@@ -805,43 +809,48 @@ class TagContinuous(CUDAEnvironmentContext):
             # CUDA version of step()
             # This subsumes update_state(), generate_observation(),
             # and compute_reward()
+
+            args = [
+                _LOC_X,
+                _LOC_Y,
+                _SP,
+                _DIR,
+                _ACC,
+                "agent_types",
+                "edge_hit_reward_penalty",
+                "edge_hit_penalty",
+                "grid_length",
+                "acceleration_actions",
+                "turn_actions",
+                "max_speed",
+                "num_other_agents_observed",
+                "skill_levels",
+                "runner_exits_game_after_tagged",
+                "still_in_the_game",
+                "use_full_observation",
+                _OBSERVATIONS,
+                _ACTIONS,
+                "neighbor_distances",
+                "neighbor_ids_sorted_by_distance",
+                "nearest_neighbor_ids",
+                _REWARDS,
+                "step_rewards",
+                "num_runners",
+                "distance_margin_for_reward",
+                "tag_reward_for_tagger",
+                "tag_penalty_for_runner",
+                "end_of_game_reward_for_runner",
+                "_done_",
+                "_timestep_",
+                ("n_agents", "meta"),
+                ("episode_length", "meta"),
+            ]
             self.cuda_step(
-                self.cuda_data_manager.device_data(_LOC_X),
-                self.cuda_data_manager.device_data(_LOC_Y),
-                self.cuda_data_manager.device_data(_SP),
-                self.cuda_data_manager.device_data(_DIR),
-                self.cuda_data_manager.device_data(_ACC),
-                self.cuda_data_manager.device_data("agent_types"),
-                self.cuda_data_manager.device_data("edge_hit_reward_penalty"),
-                self.cuda_data_manager.device_data("edge_hit_penalty"),
-                self.cuda_data_manager.device_data("grid_length"),
-                self.cuda_data_manager.device_data("acceleration_actions"),
-                self.cuda_data_manager.device_data("turn_actions"),
-                self.cuda_data_manager.device_data("max_speed"),
-                self.cuda_data_manager.device_data("num_other_agents_observed"),
-                self.cuda_data_manager.device_data("skill_levels"),
-                self.cuda_data_manager.device_data("runner_exits_game_after_tagged"),
-                self.cuda_data_manager.device_data("still_in_the_game"),
-                self.cuda_data_manager.device_data("use_full_observation"),
-                self.cuda_data_manager.device_data(_OBSERVATIONS),
-                self.cuda_data_manager.device_data(_ACTIONS),
-                self.cuda_data_manager.device_data("neighbor_distances"),
-                self.cuda_data_manager.device_data("neighbor_ids_sorted_by_distance"),
-                self.cuda_data_manager.device_data("nearest_neighbor_ids"),
-                self.cuda_data_manager.device_data(_REWARDS),
-                self.cuda_data_manager.device_data("step_rewards"),
-                self.cuda_data_manager.device_data("num_runners"),
-                self.cuda_data_manager.device_data("distance_margin_for_reward"),
-                self.cuda_data_manager.device_data("tag_reward_for_tagger"),
-                self.cuda_data_manager.device_data("tag_penalty_for_runner"),
-                self.cuda_data_manager.device_data("end_of_game_reward_for_runner"),
-                self.cuda_data_manager.device_data("_done_"),
-                self.cuda_data_manager.device_data("_timestep_"),
-                self.cuda_data_manager.meta_info("n_agents"),
-                self.cuda_data_manager.meta_info("episode_length"),
+                *self.cuda_step_function_feed(args),
                 block=self.cuda_function_manager.block,
                 grid=self.cuda_function_manager.grid,
             )
+            result = None  # do not return anything
         else:
             assert isinstance(actions, dict)
             assert len(actions) == self.num_agents
@@ -854,12 +863,10 @@ class TagContinuous(CUDAEnvironmentContext):
             ]
 
             assert all(
-                [
-                    0 <= acc <= self.num_acceleration_levels
-                    for acc in acceleration_action_ids
-                ]
+                0 <= acc <= self.num_acceleration_levels
+                for acc in acceleration_action_ids
             )
-            assert all([0 <= turn <= self.num_turn_levels for turn in turn_action_ids])
+            assert all(0 <= turn <= self.num_turn_levels for turn in turn_action_ids)
 
             delta_accelerations = self.acceleration_actions[acceleration_action_ids]
             delta_turns = self.turn_actions[turn_action_ids]
@@ -877,4 +884,5 @@ class TagContinuous(CUDAEnvironmentContext):
             }
             info = {}
 
-            return obs, rew, done, info
+            result = obs, rew, done, info
+        return result

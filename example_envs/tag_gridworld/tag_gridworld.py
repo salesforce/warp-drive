@@ -20,7 +20,7 @@ _LOC_X = "loc_x"
 _LOC_Y = "loc_y"
 
 
-class TagGridWorld(CUDAEnvironmentContext):
+class TagGridWorld:
     """
     The game of tag on a 2D square grid plane.
     This is a simplified version of the continuous tag.
@@ -41,7 +41,6 @@ class TagGridWorld(CUDAEnvironmentContext):
         tag_penalty_for_runner=2.0,
         step_cost_for_tagger=0.01,
         use_full_observation=True,
-        use_cuda=False,
     ):
         """
         :param num_taggers (int): the total number of taggers. In this env,
@@ -60,11 +59,7 @@ class TagGridWorld(CUDAEnvironmentContext):
         :param use_full_observation (bool): boolean indicating whether to
             include all the agents' data in the use_full_observation or
             just the nearest neighbor. Defaults to True.
-        :param use_cuda (bool): boolean to indicate whether to use the CPU or
-            the GPU(cuda) for stepping through the environment
         """
-        super().__init__()
-
         assert num_taggers > 0
         self.num_taggers = num_taggers
         # there is one runner
@@ -125,10 +120,6 @@ class TagGridWorld(CUDAEnvironmentContext):
         self.reward_penalty = np.zeros(self.num_agents)
         self.reward_tag = np.zeros(self.num_agents)
         self.use_full_observation = use_full_observation
-
-        # These will be set via the env_wrapper, and are required only for
-        # running on the GPU
-        self.use_cuda = use_cuda
 
     name = "TagGridWorld"
 
@@ -278,35 +269,6 @@ class TagGridWorld(CUDAEnvironmentContext):
                 obs[agent_id] = np.array(feature_list)
         return obs
 
-    def get_data_dictionary(self):
-        data_dict = DataFeed()
-        for feature in [
-            _LOC_X,
-            _LOC_Y,
-        ]:
-            data_dict.add_data(
-                name=feature,
-                data=self.global_state[feature][0],
-                save_copy_and_apply_at_reset=True,
-                log_data_across_episode=True,
-            )
-
-        data_dict.add_data(name="wall_hit_penalty", data=self.wall_hit_penalty)
-        data_dict.add_data(
-            name="tag_reward_for_tagger", data=self.tag_reward_for_tagger
-        )
-        data_dict.add_data(
-            name="tag_penalty_for_runner", data=self.tag_penalty_for_runner
-        )
-        data_dict.add_data(name="step_cost_for_tagger", data=self.step_cost_for_tagger)
-        data_dict.add_data(name="use_full_observation", data=self.use_full_observation)
-        data_dict.add_data(name="world_boundary", data=self.grid_length)
-        return data_dict
-
-    def get_tensor_dictionary(self):
-        tensor_dict = DataFeed()
-        return tensor_dict
-
     def reset(self):
         # Reset time to the beginning
         self.timestep = 0
@@ -326,45 +288,108 @@ class TagGridWorld(CUDAEnvironmentContext):
         actions=None,
     ):
         self.timestep += 1
-        if self.use_cuda:
-            self.cuda_step(
-                self.cuda_data_manager.device_data(_LOC_X),
-                self.cuda_data_manager.device_data(_LOC_Y),
-                self.cuda_data_manager.device_data(_ACTIONS),
-                self.cuda_data_manager.device_data("_done_"),
-                self.cuda_data_manager.device_data(_REWARDS),
-                self.cuda_data_manager.device_data(_OBSERVATIONS),
-                self.cuda_data_manager.device_data("wall_hit_penalty"),
-                self.cuda_data_manager.device_data("tag_reward_for_tagger"),
-                self.cuda_data_manager.device_data("tag_penalty_for_runner"),
-                self.cuda_data_manager.device_data("step_cost_for_tagger"),
-                self.cuda_data_manager.device_data("use_full_observation"),
-                self.cuda_data_manager.device_data("world_boundary"),
-                self.cuda_data_manager.device_data("_timestep_"),
-                self.cuda_data_manager.meta_info("episode_length"),
-                block=self.cuda_function_manager.block,
-                grid=self.cuda_function_manager.grid,
-            )
-        else:
-            assert isinstance(actions, dict)
-            assert len(actions) == self.num_agents
+        assert isinstance(actions, dict)
+        assert len(actions) == self.num_agents
 
-            actions_x = np.array(
-                [
-                    self.step_actions[actions[agent_id]][0]
-                    for agent_id in range(self.num_agents)
-                ]
-            )
-            actions_y = np.array(
-                [
-                    self.step_actions[actions[agent_id]][1]
-                    for agent_id in range(self.num_agents)
-                ]
-            )
+        actions_x = np.array(
+            [
+                self.step_actions[actions[agent_id]][0]
+                for agent_id in range(self.num_agents)
+            ]
+        )
+        actions_y = np.array(
+            [
+                self.step_actions[actions[agent_id]][1]
+                for agent_id in range(self.num_agents)
+            ]
+        )
 
-            rew, tag = self.update_state(actions_x, actions_y)
-            obs = self.generate_observation()
-            done = {"__all__": self.timestep >= self.episode_length or tag}
-            info = {}
+        rew, tag = self.update_state(actions_x, actions_y)
+        obs = self.generate_observation()
+        done = {"__all__": self.timestep >= self.episode_length or tag}
+        info = {}
 
-            return obs, rew, done, info
+        return obs, rew, done, info
+
+
+class CUDATagGridWorld(TagGridWorld, CUDAEnvironmentContext):
+
+    def __init__(self,
+                 num_taggers=10,
+                 grid_length=10,
+                 episode_length=100,
+                 starting_location_x=None,
+                 starting_location_y=None,
+                 seed=None,
+                 wall_hit_penalty=0.1,
+                 tag_reward_for_tagger=10.0,
+                 tag_penalty_for_runner=2.0,
+                 step_cost_for_tagger=0.01,
+                 use_full_observation=True):
+
+        super().__init__(num_taggers,
+                         grid_length,
+                         episode_length,
+                         starting_location_x,
+                         starting_location_y,
+                         seed,
+                         wall_hit_penalty,
+                         tag_reward_for_tagger,
+                         tag_penalty_for_runner,
+                         step_cost_for_tagger,
+                         use_full_observation)
+
+    def get_data_dictionary(self):
+        data_dict = DataFeed()
+        for feature in [
+            _LOC_X,
+            _LOC_Y,
+        ]:
+            data_dict.add_data(
+                name=feature,
+                data=self.global_state[feature][0],
+                save_copy_and_apply_at_reset=True,
+                log_data_across_episode=True,
+            )
+        data_dict.add_data_list(
+            [
+                ("wall_hit_penalty", self.wall_hit_penalty),
+                ("tag_reward_for_tagger", self.tag_reward_for_tagger),
+                ("tag_penalty_for_runner", self.tag_penalty_for_runner),
+                ("step_cost_for_tagger", self.step_cost_for_tagger),
+                ("use_full_observation", self.use_full_observation),
+                ("world_boundary", self.grid_length)
+            ]
+        )
+        return data_dict
+
+    def get_tensor_dictionary(self):
+        tensor_dict = DataFeed()
+        return tensor_dict
+
+    def step(
+        self,
+        actions=None
+    ):
+        self.timestep += 1
+        args = [
+            _LOC_X,
+            _LOC_Y,
+            _ACTIONS,
+            "_done_",
+            _REWARDS,
+            _OBSERVATIONS,
+            "wall_hit_penalty",
+            "tag_reward_for_tagger",
+            "tag_penalty_for_runner",
+            "step_cost_for_tagger",
+            "use_full_observation",
+            "world_boundary",
+            "_timestep_",
+            ("episode_length", "meta"),
+        ]
+        self.cuda_step(
+            *self.cuda_step_function_feed(args),
+            block=self.cuda_function_manager.block,
+            grid=self.cuda_function_manager.grid,
+        )

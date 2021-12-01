@@ -8,7 +8,7 @@ import os
 import re
 from pathlib import Path
 
-from warp_drive.utils.env_registrar import CustomizedEnvironmentRegistrar
+from warp_drive.utils.env_registrar import EnvironmentRegistrar
 
 
 def get_project_root() -> Path:
@@ -50,11 +50,13 @@ def update_env_header(template_header_file, path=None, num_envs=1, num_agents=1)
     header_subs = {"N_ENVS": str(num_envs), "N_AGENTS": str(num_agents)}
     header_content = ""
 
-    with open(f"{path}/{template_header_file}", "r") as reader:
+    with open(f"{path}/{template_header_file}", "r", encoding="utf8") as reader:
         for line in reader.readlines():
             updated_line = re.sub("<<(.*?)>>", from_dict(header_subs), line)
             header_content += updated_line
-    with open(f"{destination_header_path}/{destination_header_file}", "w") as writer:
+    with open(
+        f"{destination_header_path}/{destination_header_file}", "w", encoding="utf8"
+    ) as writer:
         writer.write(header_content)
 
 
@@ -63,7 +65,7 @@ def check_env_header(header_file="env_config.h", path=None, num_envs=1, num_agen
     if path is None:
         path = f"{get_project_root()}/warp_drive/cuda_includes"
 
-    with open(f"{path}/{header_file}", "r") as reader:
+    with open(f"{path}/{header_file}", "r", encoding="utf8") as reader:
         for line in reader.readlines():
             if "num_envs" in line:
                 res = re.findall(r"\b\d+\b", line)
@@ -81,7 +83,7 @@ def update_env_runner(
     template_runner_file,
     path=None,
     env_name=None,
-    customized_env_registrar: CustomizedEnvironmentRegistrar = None,
+    customized_env_registrar: EnvironmentRegistrar = None,
 ):
     def from_dict(dct):
         def lookup(match):
@@ -106,9 +108,9 @@ def update_env_runner(
     env_cuda = None
     if (
         customized_env_registrar is not None
-        and customized_env_registrar.get_env_directory(env_name) is not None
+        and customized_env_registrar.get_cuda_env_src_path(env_name) is not None
     ):
-        env_cuda = customized_env_registrar.get_env_directory(env_name)
+        env_cuda = customized_env_registrar.get_cuda_env_src_path(env_name)
         print(
             f"Find the targeting environment source code "
             f"from the customized environment directory: {env_cuda}"
@@ -132,9 +134,11 @@ def update_env_runner(
         f"with source code at: {runner_subs['ENV_CUDA']}"
     )
 
-    with open(f"{path}/{template_runner_file}", "r") as reader:
+    with open(f"{path}/{template_runner_file}", "r", encoding="utf8") as reader:
         for line in reader.readlines():
             updated_line = re.sub("<<(.*?)>>", from_dict(runner_subs), line)
             runner_content += updated_line
-    with open(f"{destination_runner_path}/{destination_runner_file}", "w") as writer:
+    with open(
+        f"{destination_runner_path}/{destination_runner_file}", "w", encoding="utf8"
+    ) as writer:
         writer.write(runner_content)

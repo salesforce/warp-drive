@@ -22,7 +22,7 @@ from warp_drive.utils.common import (
     update_env_runner,
 )
 from warp_drive.utils.data_feed import DataFeed
-from warp_drive.utils.env_registrar import CustomizedEnvironmentRegistrar
+from warp_drive.utils.env_registrar import EnvironmentRegistrar
 
 
 class CUDAFunctionManager:
@@ -46,7 +46,7 @@ class CUDAFunctionManager:
 
         cuda_function_manager.initialize_functions(["step", "test"])
 
-        cuda_step_func = cuda_function_manager._get_function("step")
+        cuda_step_func = cuda_function_manager.get_function("step")
 
     """
 
@@ -113,7 +113,7 @@ class CUDAFunctionManager:
         template_runner_file: str,
         template_path: Optional[str] = None,
         default_functions_included: bool = True,
-        customized_env_registrar: Optional[CustomizedEnvironmentRegistrar] = None,
+        customized_env_registrar: Optional[EnvironmentRegistrar] = None,
     ):
         """
         Compile a template source code, so self.num_agents and self.num_envs
@@ -180,28 +180,32 @@ class CUDAFunctionManager:
     def _compile(self, main_file, cubin_file):
         bin_path = f"{get_project_root()}/warp_drive/cuda_bin"
         mkbin = f"mkdir -p {bin_path}"
-        mkbin_process = subprocess.Popen(mkbin, shell=True, stderr=subprocess.STDOUT)
-        if mkbin_process.wait() != 0:
-            raise Exception("make bin file failed ... ")
+        with subprocess.Popen(
+            mkbin, shell=True, stderr=subprocess.STDOUT
+        ) as mkbin_process:
+            if mkbin_process.wait() != 0:
+                raise Exception("make bin file failed ... ")
         print(f"Successfully mkdir the binary folder {bin_path}")
 
         try:
-            arch = "sm_%d%d" % Context.get_device().compute_capability()
+            arch = f"{Context.get_device().compute_capability():sm_%d%d}"
             cmd = f"nvcc --fatbin -arch={arch} {main_file} -o {cubin_file}"
-            make_process = subprocess.Popen(cmd, shell=True, stderr=subprocess.STDOUT)
-            if make_process.wait() != 0:
-                raise Exception(
-                    f"build failed when running the following build... : \n"
-                    f"{cmd} \n"
-                    f"try to build the fatbin hybrid version of virtual PTX + gpu binary ... "
-                )
-            else:
-                print(f"Running cmd: {cmd}")
-                print(
-                    f"Successfully build the cubin_file "
-                    f"from {main_file} to {cubin_file}"
-                )
-                return
+            with subprocess.Popen(
+                cmd, shell=True, stderr=subprocess.STDOUT
+            ) as make_process:
+                if make_process.wait() != 0:
+                    raise Exception(
+                        f"build failed when running the following build... : \n"
+                        f"{cmd} \n"
+                        f"try to build the fatbin hybrid version "
+                        f"of virtual PTX + gpu binary ... "
+                    )
+            print(f"Running cmd: {cmd}")
+            print(
+                f"Successfully build the cubin_file "
+                f"from {main_file} to {cubin_file}"
+            )
+            return
 
         except Exception as err:
             print(err)
@@ -223,23 +227,22 @@ class CUDAFunctionManager:
                 cmd = " ".join(
                     [compiler] + arch_codes[: len(arch_codes) - i] + [in_out_fname]
                 )
-                make_process = subprocess.Popen(
+                with subprocess.Popen(
                     cmd, shell=True, stderr=subprocess.STDOUT
+                ) as make_process:
+                    if make_process.wait() != 0:
+                        raise Exception(
+                            f"build failed when running the following build... : \n"
+                            f"{cmd} \n"
+                            f"try to build the lower gpu-code version ... "
+                        )
+                print(f"Running cmd: {cmd}")
+                print(
+                    f"Successfully build the cubin_file "
+                    f"from {main_file} to {cubin_file}"
                 )
-                if make_process.wait() != 0:
-                    raise Exception(
-                        f"build failed when running the following build... : \n"
-                        f"{cmd} \n"
-                        f"try to build the lower gpu-code version ... "
-                    )
-                else:
-                    print(f"Running cmd: {cmd}")
-                    print(
-                        f"Successfully build the cubin_file "
-                        f"from {main_file} to {cubin_file}"
-                    )
-                    build_success = True
-                    break
+                build_success = True
+                break
             except Exception as err:
                 print(err)
 
@@ -323,6 +326,14 @@ class CUDAFunctionManager:
         return self._cuda_functions[fname]
 
     @property
+    def compile(self):
+        return self._compile
+
+    @property
+    def get_function(self):
+        return self._get_function
+
+    @property
     def cuda_function_names(self):
         return self._cuda_function_names
 
@@ -333,6 +344,47 @@ class CUDAFunctionManager:
     @property
     def grid(self):
         return self._grid
+
+
+class CUDAFunctionFeed:
+    """
+    CUDAFunctionFeed as the intermediate layer to feed data arguments
+    into the CUDA function. Please make sure that the order of data
+    aligns with the CUDA function signature.
+
+    """
+
+    def __init__(self, data_manager: CUDADataManager):
+        self.data_manager = data_manager
+        self._function_feeds = None
+
+    def __call__(self, arguments: list) -> list:
+        """
+        :param arguments: a list of arguments containing names of data
+            that are stored inside CUDADataManager
+
+        returns: the list of data pointers as arguments to feed into the CUDA function
+        """
+        # if the function has not yet defined function feed
+        if self._function_feeds is None:
+            data_pointers = []
+            for arg in arguments:
+                if isinstance(arg, str):
+                    data_pointers.append(self.data_manager.device_data(arg))
+                elif isinstance(arg, tuple):
+                    key = arg[0]
+                    source = arg[1].lower()
+                    if source in ("d", "device"):
+                        data_pointers.append(self.data_manager.device_data(key))
+                    elif source in ("m", "meta"):
+                        data_pointers.append(self.data_manager.meta_info(key))
+                    elif source in ("s", "shared"):
+                        data_pointers.append(self.data_manager.shared_constant(key))
+                else:
+                    raise Exception(f"Unknown definition of CUDA function feed: {arg}")
+            self._function_feeds = data_pointers
+
+        return self._function_feeds
 
 
 class CUDALogController:
@@ -434,10 +486,8 @@ class CUDALogController:
         assert env_id < data_manager.meta_info("n_envs")
         env_id = np.int32(env_id)
 
-        log_func_in_float = self._function_manager._get_function(
-            "log_one_step_in_float"
-        )
-        log_func_in_int = self._function_manager._get_function("log_one_step_in_int")
+        log_func_in_float = self._function_manager.get_function("log_one_step_in_float")
+        log_func_in_int = self._function_manager.get_function("log_one_step_in_int")
 
         for name in data_manager.log_data_list:
             f_shape = data_manager.get_shape(name)
@@ -475,7 +525,7 @@ class CUDALogController:
         update self.last_valid_step
         """
         step = np.int32(step)
-        update_mask = self._function_manager._get_function("update_log_mask")
+        update_mask = self._function_manager.get_function("update_log_mask")
         update_mask(
             data_manager.device_data("_log_mask_"),
             step,
@@ -486,7 +536,7 @@ class CUDALogController:
         self.last_valid_step = step
 
     def _reset_log_mask(self, data_manager: CUDADataManager):
-        reset = self._function_manager._get_function("reset_log_mask")
+        reset = self._function_manager.get_function("reset_log_mask")
         reset(
             data_manager.device_data("_log_mask_"),
             data_manager.meta_info("episode_length"),
@@ -544,10 +594,10 @@ class CUDASampler:
         self._grid = function_manager.grid
         self._random_initialized = False
 
-        self.sample_actions = self._function_manager._get_function("sample_actions")
+        self.sample_actions = self._function_manager.get_function("sample_actions")
 
     def __del__(self):
-        free = self._function_manager._get_function("free_random")
+        free = self._function_manager.get_function("free_random")
         free(block=self._block, grid=self._grid)
         self._random_initialized = False
         print("CUDASampler has explicitly released the random states memory in CUDA")
@@ -564,7 +614,7 @@ class CUDASampler:
                 f"using the current timestamp {seed} as seed"
             )
         seed = np.int32(seed)
-        init = self._function_manager._get_function("init_random")
+        init = self._function_manager.get_function("init_random")
         init(seed, block=self._block, grid=self._grid)
         self._random_initialized = True
 
@@ -671,23 +721,37 @@ class CUDAEnvironmentReset:
         self._block = function_manager.block
         self._grid = function_manager.grid
 
-        self.reset_func_in_float_2d = self._function_manager._get_function(
+        self.reset_func_in_float_2d = self._function_manager.get_function(
             "reset_in_float_when_done_2d"
         )
-        self.reset_func_in_int_2d = self._function_manager._get_function(
+        self.reset_func_in_int_2d = self._function_manager.get_function(
             "reset_in_int_when_done_2d"
         )
-        self.reset_func_in_float_3d = self._function_manager._get_function(
+        self.reset_func_in_float_3d = self._function_manager.get_function(
             "reset_in_float_when_done_3d"
         )
-        self.reset_func_in_int_3d = self._function_manager._get_function(
+        self.reset_func_in_int_3d = self._function_manager.get_function(
             "reset_in_int_when_done_3d"
         )
-        self.undo = self._function_manager._get_function(
+        self.undo = self._function_manager.get_function(
             "undo_done_flag_and_reset_timestep"
         )
 
     def reset_when_done(
+        self,
+        data_manager: CUDADataManager,
+        mode: str = "if_done",
+        undo_done_after_reset: bool = True,
+        use_random_reset: bool = False,
+    ):
+        if not use_random_reset:
+            self.reset_when_done_deterministic(
+                data_manager, mode, undo_done_after_reset
+            )
+        else:
+            self.reset_when_done_random(data_manager, mode, undo_done_after_reset)
+
+    def reset_when_done_deterministic(
         self,
         data_manager: CUDADataManager,
         mode: str = "if_done",

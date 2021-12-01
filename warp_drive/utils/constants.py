@@ -9,6 +9,10 @@
 
 
 class Constants:
+    """
+    Constants for WarpDrive
+    """
+
     OBSERVATIONS = "observations"
     ACTIONS = "sampled_actions"
     REWARDS = "rewards"

@@ -34,7 +34,7 @@ def cuda_tag_gridworld_step(
 ):
     # reset env if done flag is seen
     env_resetter.reset_when_done(data_manager)
-    tag_gridworld_step = function_manager._get_function("CudaTagGridWorldStep")
+    tag_gridworld_step = function_manager.get_function("CudaTagGridWorldStep")
 
     tag_gridworld_step(
         data_manager.device_data("loc_x"),
@@ -59,6 +59,10 @@ def cuda_tag_gridworld_step(
 
 
 class TestCUDAEnvTagGridWorld(unittest.TestCase):
+    """
+    Unit tests for the (CUDA) step function in Tag GridWorld.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dm = CUDADataManager(num_agents=5, num_envs=2, episode_length=1)

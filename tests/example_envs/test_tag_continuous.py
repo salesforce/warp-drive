@@ -81,10 +81,14 @@ env_configs = {
 
 
 class MyTestCase(unittest.TestCase):
+    """
+    CPU v GPU consistency unit tests
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.testing_class = EnvironmentCPUvsGPU(
-            env_class=TagContinuous,
+            dual_mode_env_class=TagContinuous,
             env_configs=env_configs,
             num_envs=2,
             num_episodes=2,
@@ -93,6 +97,6 @@ class MyTestCase(unittest.TestCase):
 
     def test_env_consistency(self):
         try:
-            self.testing_class.test_env_reset_and_step()
-        except Exception:
-            self.fail("TagContinous environment consistency tests failed")
+            self.testing_class.test_env_reset_and_step(seed=274880)
+        except AssertionError:
+            self.fail("TagContinuous environment consistency tests failed")

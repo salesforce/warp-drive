@@ -37,7 +37,7 @@ def cuda_dummy_step(
 
     step = np.int32(step)
     target = np.int32(target)
-    test_step = function_manager._get_function("testkernel")
+    test_step = function_manager.get_function("testkernel")
     test_step(
         data_manager.device_data("X"),
         data_manager.device_data("Y"),
@@ -54,6 +54,10 @@ def cuda_dummy_step(
 
 
 class TestFunctionManager(unittest.TestCase):
+    """
+    Unit tests for the CUDA function manager
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dm = CUDADataManager(num_agents=5, num_envs=2, episode_length=2)

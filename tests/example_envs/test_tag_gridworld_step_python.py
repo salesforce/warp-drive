@@ -12,6 +12,10 @@ from example_envs.tag_gridworld import tag_gridworld
 
 
 class TestPyEnvTagGridWorld(unittest.TestCase):
+    """
+    Unit tests for the (Python) step function in Tag GridWorld
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.env = None

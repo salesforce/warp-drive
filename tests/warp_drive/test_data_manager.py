@@ -13,6 +13,10 @@ from warp_drive.utils.data_feed import DataFeed
 
 
 class TestDataManager(unittest.TestCase):
+    """
+    Unit tests for the CUDA data manager
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dm = CUDADataManager(num_agents=5, num_envs=1, episode_length=3)

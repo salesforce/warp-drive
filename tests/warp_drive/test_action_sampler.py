@@ -4,7 +4,6 @@
 # For full license text, see the LICENSE file in the repo root
 # or https://opensource.org/licenses/BSD-3-Clause
 
-import os
 import unittest
 
 import numpy as np
@@ -23,6 +22,10 @@ _ACTIONS = Constants.ACTIONS
 
 
 class TestActionSampler(unittest.TestCase):
+    """
+    Unit tests for the CUDA action sampler
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dm = CUDADataManager(num_agents=5, episode_length=1, num_envs=2)

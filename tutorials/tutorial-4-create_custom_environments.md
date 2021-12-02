@@ -31,7 +31,7 @@ To help with this process, we provide an *environment consistency checker* metho
 
 This workflow helps to familiarize yourself with CUDA C and works well for relatively simple simulations.
 
-## Case Study: Building a CUDA Version of Tag
+# Case Study: Building a CUDA Version of Tag
 
 Within the WarpDrive package, you can find the source code for the discrete and continuous versions of Tag.
 
@@ -42,11 +42,11 @@ Tag is a simple multi-agent game involving 'taggers' and 'runners'. The taggers 
 
 Next, we'll use the *continuous* version of Tag to explain some important elements of building CUDA C simulations.
 
-## Managing CUDA Simulations from Python using WarpDrive
+# Managing CUDA Simulations from Python using WarpDrive
 
 We begin with the Python version of the continuous version [Tag](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous.py). The simulation follows the [gym](https://gym.openai.com/) format, implementing `reset` and `step` methods. We now detail all the steps necessary to transform the `step` function into [CUDA code](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous_step.cu) that can be run on a GPU. Importantly, WarpDrive lets you to call these CUDA methods from Python, so you can design your own RL workflow entirely in Python.
 
-### 1. Add data to be pushed to GPU via the *DataFeed* class
+## 1. Add data to be pushed to GPU via the *DataFeed* class
 
 First, we need to push all the data relevant to performing the reset() and step() functions on the GPU. In particular, there are two methods that need to be added to the environment 
 ```python
@@ -102,7 +102,7 @@ Note: the data feed object also supports pushing multiple arrays at once via the
 
 An important point to note is that CUDA C always uses **32-bit precision**, so it's good to cast all the numpy arrays used in the Python simulation to 32-bit precision as well, before you push them.
 
-### 2. Invoke the CUDA version of *step* in Python
+## 2. Invoke the CUDA version of *step* in Python
 
 After all the relevant data is added to the data dictionary, we need to invoke the CUDA C kernel code for stepping through the environment (when `self.use_cuda` is `True`). The syntax to do this is as follows
 
@@ -139,7 +139,7 @@ Note that `n_agents` and `episode_length` are part of the meta information for t
 
 WarpDrive also supports feeding multiple arguments at once via the `CUDAFunctionFeed` class, see the [Tag (GridWorld)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py) code for an example.
 
-### 3. Write the *step()* method in CUDA C
+## 3. Write the *step()* method in CUDA C
 
 The most laborious part of this exercise is actually writing out the step function in CUDA C. This function will need to be named `Cuda<env.name>Step`, so that WarpDrive knows it represents the CUDA version of the step function for the particular environment. The order of the arguments should naturally follow the order written out where the CUDA C kernel is invoked.
 
@@ -190,7 +190,7 @@ if (kThisAgentId < kNumAgents) {
     
 </table>
 
-### 4. Put together as an Environment class
+## 4. Put together as an Environment class
 
 To use an existing Python Environment with
 WarpDrive, one needs to add two augmentations. First,
@@ -283,7 +283,7 @@ class MyCUDAEnvironment(MyCPUEnvironment, CUDAEnvironmentContext):
         return None
 ```
 
-### 5. The EnvWrapper Class
+## 5. The EnvWrapper Class
 
 Once the CUDA C environment implementation is complete, WarpDrive provides an environment wrapper class to help launch the simulation on the CPU or the GPU. This wrapper determines whether the simulation needs to be launched on the CPU or the GPU (via the `use_cuda` flag), and proceeds accordingly. If the environment runs on the CPU, the `reset` and `step` calls also occur on the CPU. If the environment runs on the GPU, only the first `reset` happens on the CPU, all the relevant data is copied over the GPU after, and the subsequent steps (and resets) all happen on the GPU. In the latter case, the environment wrapper also uses the `num_envs` argument to instantiate multiple replicas of the environment on the GPU.
 
@@ -295,11 +295,11 @@ Additionally, the environment wrapper handles all the tasks required to run the 
 - Pushes the data listed in the data dictionary and tensor dictionary attributes of the environment, and repeats them across the environment dimension, if necessary.
 - Automatically resets each environment when it is done.
 
-#### Register the CUDA environment
+### Register the CUDA environment
 
 Here we have some more details about how to use EnvWrapper to identify and build your environment automatically once the CUDA C step environment is ready.
 
-##### 1. Default Environment
+#### 1. Default Environment
 
 You shall register your default environment in `warp_drive/utils/common` and the function `get_default_env_directory()`. There, you can simply provide the path to your CUDA environment source code. Please remember that the register uses the environment name defined in your environment class as the key so EnvWrapper class can link it to the right environment. 
 
@@ -314,7 +314,7 @@ The **FULL_PATH_TO_YOUR_ENV_SRC** can be any path inside or outside of WarpDrive
 ```
 Usually we do not suggest you use this "hard" way because it integrates your environment directly into WarpDrive. So far, we have our Tag games as benchmarks registered right there as we regard them as part of WarpDrive codebase.
 
-##### 2. Customized Environment
+#### 2. Customized Environment
 
 You can register a customized environment by using **EnvironmentRegistrar**. Please note that the customized environment has the higher priority than the default environments, i.e., if two environments (one is registered as customized, the other is the default) take the same name, the customized environment will be loaded. However, it is recommended to not have any environment name conflict in any circumstance.
 
@@ -333,7 +333,7 @@ env_wrapper = EnvWrapper(
 
 Now, inside the EnvWrapper, function managers will be able to feed the `self.num_env` and `self.num_agents` to the CUDA compiler in the compile time to build and load a unique CUDA environment context for all the tasks.
 
-### 6. Environment Consistency Checker
+## 6. Environment Consistency Checker
 
 Given the environment is implemented in both Python and CUDA C (for running on the CPU and GPU, respectively), please use **EnvironmentCPUvsGPU** class to test the consistency of your implementation. The module will instantiate two separate environment objects (with the `use_cuda` flag set to True and False), step through `num_episodes` episodes (with the same actions) and determine if there are inconsistencies in terms of the generated states, rewards or done flags. 
 
@@ -392,14 +392,14 @@ testing_class = EnvironmentCPUvsGPU(
 testing_class.test_env_reset_and_step()
 ```
 
-### 6. Unittest WarpDrive
+## 7. Unittest WarpDrive
 
 The build and test can be done automatically by directly go to the CUDA source code folder and make 
 `cd warp_drive/cuda_includes; make compile-test`
 
 Or, you can run `python warp_drive/utils/run_unittests.py`
 
-## Important CUDA C Concepts
+# Important CUDA C Concepts
 
 Writing CUDA programs requires basic knowledge of C and how CUDA C extends C. Here's a [quick reference](https://learnxinyminutes.com/docs/c/) to see the syntax of C. 
 
@@ -407,7 +407,7 @@ For many simulations, basic C concepts should get you very far. However, you cou
 
 Below, we'll discuss two important CUDA C concepts -- we're constantly planning to add more materials and tools in the future to facilitate developing CUDA simulations.
 
-### Array Indexing
+## Array Indexing
 
 As described in the first [tutorial](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-1-warp_drive_basics.ipynb#Array-indexing), CUDA stores arrays in a C-contiguous or a row-major fashion; 
 
@@ -419,7 +419,7 @@ and this index can be reused across different contexts.
 
 Note: to facilitate simulation development, we also created a `get_flattened_array_index` helper function to provide the flattened array index; please see [Tag (GridWorld)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py) for a working example. 
 
-### __syncthreads
+## __syncthreads
 
 Another keyword that is useful to understand in the context of multi-agent simulations is `__syncthreads()`. While all the agents can operate fully in parallel, there are often operations that may need to be performed sequentially by the agents or only by one of the agents. For such cases, we may use **__syncthreads()** command, a thread block-level synchronization barrier. All the threads will wait for all the threads in the block to reach that point, until processing further.
 
@@ -433,7 +433,7 @@ Another keyword that is useful to understand in the context of multi-agent simul
         __syncthreads();
 ```
 
-## Debugging and Checking Consistency
+# Debugging and Checking Consistency
 
 Once you are done building your environment, you may use the `env_cpu_gpu_consistency_checker` function in WarpDrive to ensure the Python and CUDA C versions of the environment are logically consistent with one another. The consistency tests run across two full episode lengths (to ensure consistent behavior even beyond the point when the environments are reset), and ensure that the observations, rewards, and done flags match one another. For catching syntax errors, the C compiler is pretty good at pointing out the exact error and the line number. Often, to figure out deeper issues with the code, `printf` is your best friend.
 

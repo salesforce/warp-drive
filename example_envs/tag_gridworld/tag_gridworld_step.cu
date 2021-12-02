@@ -148,10 +148,14 @@ extern "C" {
     assert(env_timestep_arr[kEnvId] > 0 && env_timestep_arr[kEnvId]
       <= episode_length);
 
-    int state_index = kEnvId * num_agents + kThisAgentId;
-    int adversary_state_index = kEnvId * num_agents + num_agents - 1;
-    int action_index = kEnvId * num_agents + kThisAgentId;
-    int reward_index = kEnvId * num_agents + kThisAgentId;
+    int global_state_arr_shape[] = {gridDim.x, num_agents};
+    int agent_index[] = {kEnvId, kThisAgentId};
+    int adv_agent_index[] = {kEnvId, num_agents - 1};
+    int dimension = 2;
+    int state_index = get_flattened_array_index(agent_index, global_state_arr_shape, dimension);
+    int adversary_state_index = get_flattened_array_index(adv_agent_index, global_state_arr_shape, dimension);
+    int action_index = get_flattened_array_index(agent_index, global_state_arr_shape, dimension);
+    int reward_index = get_flattened_array_index(agent_index, global_state_arr_shape, dimension);
 
     rewards_arr[reward_index] = 0.0;
 

@@ -1,0 +1,39 @@
+# Copyright (c) 2021, salesforce.com, inc.
+# All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+# For full license text, see the LICENSE file in the repo root
+# or https://opensource.org/licenses/BSD-3-Clause
+
+# Default trainer, policy and saving configurations
+
+# Default trainer settings
+trainer:
+    num_envs: 10 # Number of environment replicas
+    num_episodes: 10000 # Number of episodes to run the training for
+    train_batch_size: 10000 # total batch size used for training per iteration (across all the environments)
+    algorithm: "A2C" # trainer algorithm
+    vf_loss_coeff: 0.01 # loss coefficient for the value function loss
+    entropy_coeff: 0.05
+    clip_grad_norm: True # fla indicating whether to clip the gradient norm or not
+    max_grad_norm: 0.5 # when clip_grad_norm is True, the clip level
+    normalize_advantage: False # flag indicating whether to normalize advantage or not
+    normalize_return: False # flag indicating whether to normalize return or not
+    clip_param: 0.01 # clip param for PPO
+
+# Default policy network settings
+policy:
+    to_train: False
+    name: "fully_connected"
+    gamma: 0.98
+    lr: 0.0001
+    model:
+        fc_dims: [256, 256]
+        model_ckpt_filepath: ""
+
+# Default checkpoint saving setting (and W&B logging)
+saving:
+    metrics_log_freq: 100 # How often (in iterations) to log (and print) the metrics
+    model_params_save_freq: 1000 # How often (in iterations) to save the model parameters
+    basedir: "/tmp" # base folder used for saving
+    name: "default"
+    tag: "experiment"

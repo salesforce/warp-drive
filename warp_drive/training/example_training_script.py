@@ -15,14 +15,14 @@ import torch
 import yaml
 
 from example_envs.tag_continuous.tag_continuous import TagContinuous
-from example_envs.tag_gridworld.tag_gridworld import TagGridWorld
+from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.trainer import Trainer
-from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
 from warp_drive.utils.common import get_project_root
-from warp_drive.utils.data_feed import DataFeed
 
 pytorch_cuda_init_success = torch.cuda.FloatTensor(8)
+
+_ROOT_DIR = get_project_root()
 
 _TAG_CONTINUOUS = "tag_continuous"
 _TAG_GRIDWORLD = "tag_gridworld"
@@ -42,17 +42,22 @@ if __name__ == "__main__":
     # Read the run configurations specific to each environment.
     # Note: The run config yamls can be edited at warp_drive/training/run_configs
     # ---------------------------------------------------------------------------
-    assert args.env in [_TAG_CONTINUOUS, _TAG_GRIDWORLD], (
-        f"Currently, the environments supported "
-        f"are {_TAG_GRIDWORLD} and {_TAG_CONTINUOUS}"
+    assert args.env in [
+        _TAG_CONTINUOUS,
+        _TAG_GRIDWORLD,
+    ], (
+        f"Currently, the environment arguments supported "
+        f"are ["
+        f"{_TAG_GRIDWORLD}, "
+        f"{_TAG_CONTINUOUS}"
+        f"]"
     )
 
-    ROOT_DIR = get_project_root()
     config_path = os.path.join(
-        ROOT_DIR, "warp_drive", "training", "run_configs", f"run_config_{args.env}.yaml"
+        _ROOT_DIR, "warp_drive", "training", "run_configs", f"{args.env}.yaml"
     )
-    with open(config_path, "r") as f:
-        run_config = yaml.safe_load(f)
+    with open(config_path, "r", encoding="utf8") as fp:
+        run_config = yaml.safe_load(fp)
 
     num_envs = run_config["trainer"]["num_envs"]
 
@@ -61,14 +66,19 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------
     if run_config["name"] == _TAG_GRIDWORLD:
         env_wrapper = EnvWrapper(
-            TagGridWorld(**run_config["env"]), num_envs=num_envs, use_cuda=True
+            CUDATagGridWorld(**run_config["env"]), num_envs=num_envs, use_cuda=True
         )
     elif run_config["name"] == _TAG_CONTINUOUS:
         env_wrapper = EnvWrapper(
             TagContinuous(**run_config["env"]), num_envs=num_envs, use_cuda=True
         )
     else:
-        raise NotImplementedError
+        raise NotImplementedError(
+            f"Currently, the environments supported are ["
+            f"{_TAG_GRIDWORLD}, "
+            f"{_TAG_CONTINUOUS}"
+            f"]",
+        )
 
     # Initialize shared constants for action index to sampled_actions_placeholder
     # ---------------------------------------------------------------------------
@@ -107,14 +117,6 @@ if __name__ == "__main__":
         env_wrapper=env_wrapper,
         config=run_config,
         policy_tag_to_agent_id_map=policy_tag_to_agent_id_map,
-    )
-
-    # Create and push data placeholders to the device
-    # -----------------------------------------------
-    create_and_push_data_placeholders(
-        env_wrapper,
-        policy_tag_to_agent_id_map,
-        trainer,
     )
 
     # Perform training

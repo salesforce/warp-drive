@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # For full license text, see the LICENSE file in the repo root
 # or https://opensource.org/licenses/BSD-3-Clause
-#
+
 # YAML configuration for the tag gridworld environment
 name: "tag_gridworld"
 # Environment settings
@@ -34,7 +34,7 @@ policy: # list all the policies below
     shared:
         to_train: True
         name: "fully_connected"
-        gamma: 0.98 # discount rate gamms
+        gamma: 0.98 # discount rate gamma
         lr: 0.001 # learning rate
         model:
         # dimension(s) of the fully connected layers as a list
@@ -42,8 +42,8 @@ policy: # list all the policies below
             model_ckpt_filepath: ""
 # Checkpoint saving setting (and W&B logging)
 saving:
-    print_metrics_freq: 100 # How often (in iterations) to print the metrics
-    save_model_params_freq: 5000 # How often (in iterations) to save the model parameters
+    metrics_log_freq: 100 # How often (in iterations) to log (and print) the metrics
+    model_params_save_freq: 5000 # How often (in iterations) to save the model parameters
     basedir: "/tmp" # base folder used for saving
-    tag: "experiments"
-         
+    name: "tag_gridworld"
+    tag: "experiments" 

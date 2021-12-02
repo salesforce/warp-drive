@@ -10,9 +10,9 @@ The Fully Connected Network class
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from gym.spaces import Box, Dict, Discrete, MultiDiscrete
+from torch import nn
 
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
@@ -47,7 +47,7 @@ class FullyConnected(nn.Module):
     def __init__(
         self,
         env,
-        model_config,
+        fc_dims,
         policy,
         policy_tag_to_agent_id_map,
         create_separate_placeholders_for_each_policy=False,
@@ -56,7 +56,6 @@ class FullyConnected(nn.Module):
         super().__init__()
 
         self.env = env
-        fc_dims = model_config["fc_dims"]
         assert isinstance(fc_dims, list)
         num_fc_layers = len(fc_dims)
         self.policy = policy
@@ -136,7 +135,7 @@ class FullyConnected(nn.Module):
             shape_len = len(obs.shape)
             if shape_len == 1:
                 obs = obs.reshape(-1, num_agents)  # valid only when num_agents = 1
-            obs = obs.permute(0, -1, *[dim for dim in range(1, shape_len - 1)])
+            obs = obs.permute(0, -1, *range(1, shape_len - 1))
         else:
             raise ValueError(
                 "num_agents can only be the first "
@@ -179,8 +178,8 @@ class FullyConnected(nn.Module):
                     obs_dict[key] = obs
 
             flattened_obs_dict = {}
-            for key in obs_dict:
-                flattened_obs_dict[key] = self.reshape_and_flatten_obs(obs_dict[key])
+            for key, value in obs_dict.items():
+                flattened_obs_dict[key] = self.reshape_and_flatten_obs(value)
             flattened_obs = torch.cat(list(flattened_obs_dict.values()), dim=-1)
         else:
             raise NotImplementedError("Observation space must be of Box or Dict type")

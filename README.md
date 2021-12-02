@@ -46,13 +46,6 @@ trainer = Trainer(
     policy_tag_to_agent_id_map=policy_tag_to_agent_id_map,
 )
 
-# Create and push data placeholders to the device
-create_and_push_data_placeholders(
-    env_wrapper, 
-    policy_tag_to_agent_id_map, 
-    trainer
-)
-
 # Perform training!
 trainer.train()
 ```
@@ -90,7 +83,7 @@ Familiarize yourself with WarpDrive by running these tutorials on Colab!
 - [WarpDrive sampler](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-2-warp_drive_sampler.ipynb): Explains Python APIs controlling the GPU action sampler.
 - [WarpDrive resetter and logger](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-3_warp_drive_reset_and_log.ipynb): Explains Python APIs controlling the GPU
   environment resetter and rollout history logger.
-- [Create custom environments](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-4-create_custom_environments.ipynb): Explains how to create your own custom RL
+- [Create custom environments](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-4-create_custom_environments.md): Explains how to create your own custom RL
   environment in CUDA C, and integrate it with WarpDrive.
 - [Training with WarpDrive](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb): Explains how to train your environment on the
   GPU.

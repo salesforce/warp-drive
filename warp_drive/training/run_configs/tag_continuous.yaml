@@ -8,7 +8,7 @@
 name: "tag_continuous"
 # Environment settings
 env:
-    num_taggers: 5
+    num_taggers: 10
     num_runners: 100
     grid_length: 20.0
     episode_length: 500
@@ -18,14 +18,15 @@ env:
     min_turn: -2.356 # -3*pi/4 radians
     num_acceleration_levels: 20
     num_turn_levels: 20
-    skill_level_runner: 0.0
+    skill_level_runner: 1.0
     skill_level_tagger: 1.0
+    max_speed: 1.0
     seed: 274880
     use_full_observation: False
     runner_exits_game_after_tagged: True
     num_other_agents_observed: 10
     tag_reward_for_tagger: 10.0
-    tag_penalty_for_runner: 0.0
+    tag_penalty_for_runner: -10.0
     step_penalty_for_tagger: 0.0
     step_reward_for_runner: 0.0
     edge_hit_penalty: 0.0
@@ -33,20 +34,20 @@ env:
     tagging_distance: 0.02
 # Trainer settings
 trainer:
-    num_envs: 60 # Number of environment replicas
-    num_episodes: 900000 # Number of episodes to run the training for
-    train_batch_size: 30000 # total batch size used for training per iteration (across all the environments)
+    num_envs: 100 # Number of environment replicas
+    num_episodes: 1000000 # Number of episodes to run the training for
+    train_batch_size: 50000 # total batch size used for training per iteration (across all the environments)
     algorithm: "A2C" # trainer algorithm
     vf_loss_coeff: 1 # loss coefficient for the value function loss
     entropy_coeff: 0.05 # coefficient for the entropy component of the loss
-    clip_grad_norm: False # flag indicating whether to clip the gradient norm or not
+    clip_grad_norm: True # flag indicating whether to clip the gradient norm or not
     max_grad_norm: 0.5 # when clip_grad_norm is True, the clip level
     normalize_advantage: False # flag indicating whether to normalize advantage or not
     normalize_return: False # flag indicating whether to normalize return or not
 # Policy network settings
 policy: # list all the policies below
     runner:
-        to_train: False
+        to_train: True
         name: "fully_connected"
         gamma: 0.98 # discount rate gamma
         lr: 0.005 # learning rate

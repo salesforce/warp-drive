@@ -42,3 +42,46 @@ class DataFeed(dict):
         for key, value in kwargs.items():
             d["attributes"][key] = value
         self[name] = d
+
+    def add_data_list(self, data_list):
+        """
+        :param data_list: list of data configures either in dict or in tuple
+        for example
+        add_data_list([("x1", x1, True),
+                       ("x2", x2, False, True),
+                       {"name": "x3",
+                        "data": x3,
+                        "save_copy_and_apply_at_reset": False},
+                      ]
+
+        """
+        assert isinstance(data_list, list)
+        for d in data_list:
+            assert len(d) >= 2, "name and data are strictly required"
+
+            if isinstance(d, tuple):
+                name = d[0]
+                assert isinstance(name, str)
+                data = d[1]
+                save_copy_and_apply_at_reset = (
+                    d[2] if (len(d) > 2 and isinstance(d[2], bool)) else False
+                )
+                log_data_across_episode = (
+                    d[3] if (len(d) > 3 and isinstance(d[3], bool)) else False
+                )
+                self.add_data(
+                    name, data, save_copy_and_apply_at_reset, log_data_across_episode
+                )
+            elif isinstance(d, dict):
+                self.add_data(
+                    name=d["name"],
+                    data=d["data"],
+                    save_copy_and_apply_at_reset=d.get(
+                        "save_copy_and_apply_at_reset", False
+                    ),
+                    log_data_across_episode=d.get("log_data_across_episode", False),
+                )
+            else:
+                raise Exception(
+                    "Unknown type of data configure, only support tuple and dictionary"
+                )

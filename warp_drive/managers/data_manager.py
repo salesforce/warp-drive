@@ -15,8 +15,12 @@ from warp_drive.utils.data_feed import DataFeed
 
 
 class CudaTensorHolder(pycuda.driver.PointerHolderBase):
+    """
+    A class that facilitates casting tensors to pointers.
+    """
+
     def __init__(self, t):
-        super(CudaTensorHolder, self).__init__()
+        super().__init__()
         self.gpudata = t.data_ptr()
 
 
@@ -390,12 +394,11 @@ class CUDADataManager:
         if self.is_data_on_device_via_torch(name):
             return self._device_data_via_torch[name].cpu().numpy()
 
-        else:
-            assert name in self._device_data_pointer
+        assert name in self._device_data_pointer
 
-            v = np.empty_like(self._host_data[name])
-            cuda_driver.memcpy_dtoh(v, self._device_data_pointer[name])
-            return v
+        v = np.empty_like(self._host_data[name])
+        cuda_driver.memcpy_dtoh(v, self._device_data_pointer[name])
+        return v
 
     def data_on_device_via_torch(self, name: str) -> torch.Tensor:
         """
@@ -425,8 +428,8 @@ class CUDADataManager:
             device_array_ptr = self._device_data_pointer[name]
             cuda_driver.memcpy_htod(device_array_ptr, self._host_data[name])
         else:
-            for name, host_array in self._host_data.items():
-                device_array_ptr = self._device_data_pointer[name]
+            for key, host_array in self._host_data.items():
+                device_array_ptr = self._device_data_pointer[key]
                 cuda_driver.memcpy_htod(device_array_ptr, host_array)
 
     def meta_info(self, name: str):
@@ -447,9 +450,8 @@ class CUDADataManager:
         if name in self._scalar_data_list:
             assert name in self._host_data
             return self._host_data[name]
-        else:
-            assert name in self._device_data_pointer
-            return self._device_data_pointer[name]
+        assert name in self._device_data_pointer
+        return self._device_data_pointer[name]
 
     def _to_device(
         self,

@@ -10,5 +10,6 @@
 #include "./core/random.cu"
 #include "./core/log.cu"
 #include "./core/reset.cu"
+#include "./core/array_indexing_util.cu"
 
 #endif  // CUDA_INCLUDES_CORE_SERVICE_H_

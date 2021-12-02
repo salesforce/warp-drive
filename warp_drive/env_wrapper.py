@@ -13,6 +13,7 @@ import numpy as np
 from warp_drive.managers.data_manager import CUDADataManager
 from warp_drive.managers.function_manager import (
     CUDAEnvironmentReset,
+    CUDAFunctionFeed,
     CUDAFunctionManager,
 )
 from warp_drive.utils.common import get_project_root
@@ -39,24 +40,31 @@ class EnvWrapper:
     def __init__(
         self,
         env_obj=None,
+        env_name=None,
+        env_config=None,
         num_envs=1,
         use_cuda=False,
         testing_mode=False,
-        customized_env_registrar=None,
+        env_registry=None,
     ):
         """
-        'env_obj': an environment instance
+        'env_obj': an environment object
+        'env_name': an environment name that is registered at WarpDrive environment registrar
+        'env_config': environment configuration to instantiate a environment from the registry
         'use_cuda': if True, step through the environment on the GPU, else on the CPU
         'num_envs': the number of parallel environments to instantiate. Note: this is
         only relevant when use_cuda is True
         'testing_mode': a flag used to determine whether to simply load the .cubin (when
         testing) or compile the .cu source code to create a .cubin and use that.
-        'customized_env_registrar': CustomizedEnvironmentRegistrar object
+        'env_registry': EnvironmentRegistrar object
             it provides the customized env info (like src path) for the build
         """
         # Need to pass in an environment instance
-        assert env_obj is not None
-        self.env = env_obj
+        if env_obj is not None:
+            self.env = env_obj
+        else:
+            assert env_name is not None and env_config is not None and env_registry is not None
+            self.env = env_registry.get(env_name, use_cuda)(**env_config)
 
         self.n_agents = self.env.num_agents
         self.episode_length = self.env.episode_length
@@ -72,7 +80,8 @@ class EnvWrapper:
         # -----------------------------
         # Flag to determine whether to use CUDA or not
         self.use_cuda = use_cuda
-        self.env.use_cuda = use_cuda
+        if hasattr(self.env, "use_cuda"):
+            self.env.use_cuda = use_cuda
 
         # Flag to determine where the reset happens (host or device)
         # First reset is always on the host (CPU), and subsequent resets are on
@@ -113,8 +122,9 @@ class EnvWrapper:
                     env_name=self.name,
                     template_header_file="template_env_config.h",
                     template_runner_file="template_env_runner.cu",
-                    customized_env_registrar=customized_env_registrar,
+                    customized_env_registrar=env_registry,
                 )
+            self.cuda_function_feed = CUDAFunctionFeed(self.cuda_data_manager)
 
             # Register the CUDA step() function for the env
             # Note: generate_observation() and compute_reward()
@@ -123,12 +133,12 @@ class EnvWrapper:
             context_ready = self.env.initialize_step_function_context(
                 cuda_data_manager=self.cuda_data_manager,
                 cuda_function_manager=self.cuda_function_manager,
+                cuda_step_function_feed=self.cuda_function_feed,
                 step_function_name=step_function,
             )
-            if self.use_cuda:
-                assert (
-                    context_ready
-                ), "The environment class failed to initialize the CUDA step function"
+            assert (
+                context_ready
+            ), "The environment class failed to initialize the CUDA step function"
             # Register the env resetter
             self.env_resetter = CUDAEnvironmentReset(
                 function_manager=self.cuda_function_manager
@@ -223,17 +233,11 @@ class EnvWrapper:
         """
         if self.use_cuda:
             self.env.step()
-            obs = {}
-            rew = {}
-            done = {
-                "__all__": self.cuda_data_manager.data_on_device_via_torch("_done_") > 0
-            }
-            info = {}
+            result = None  # Do not return anything
         else:
             assert actions is not None
-            obs, rew, done, info = self.env.step(actions)
-
-        return obs, rew, done, info
+            result = self.env.step(actions)
+        return result
 
     def reset(self):
         """

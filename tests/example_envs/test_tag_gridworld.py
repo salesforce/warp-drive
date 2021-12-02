@@ -6,8 +6,9 @@
 
 import unittest
 
-from example_envs.tag_gridworld.tag_gridworld import TagGridWorld
+from example_envs.tag_gridworld.tag_gridworld import TagGridWorld, CUDATagGridWorld
 from warp_drive.env_cpu_gpu_consistency_checker import EnvironmentCPUvsGPU
+from warp_drive.utils.env_registrar import env_registry
 
 # Env configs for testing
 env_configs = {
@@ -37,18 +38,24 @@ env_configs = {
 
 
 class MyTestCase(unittest.TestCase):
+    """
+    CPU v GPU consistency unit tests
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.testing_class = EnvironmentCPUvsGPU(
-            env_class=TagGridWorld,
+            cpu_env_class=TagGridWorld,
+            cuda_env_class=CUDATagGridWorld,
             env_configs=env_configs,
             num_envs=2,
             num_episodes=2,
             use_gpu_testing_mode=True,
+            env_registry=env_registry
         )
 
     def test_env_consistency(self):
         try:
             self.testing_class.test_env_reset_and_step()
-        except Exception:
+        except AssertionError:
             self.fail("TagGridWorld environment consistency tests failed")

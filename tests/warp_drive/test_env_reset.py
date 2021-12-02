@@ -23,6 +23,10 @@ _CUBIN_FILEPATH = f"{get_project_root()}/warp_drive/cuda_bin"
 
 
 class TestEnvironmentReset(unittest.TestCase):
+    """
+    Unit tests for the CUDA environment resetter
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dm = CUDADataManager(num_agents=5, num_envs=2, episode_length=2)

@@ -50,6 +50,11 @@ trainer = Trainer(
 trainer.train()
 ```
 
+Below, we compare the training speed on an N1 16-CPU
+node versus a single A100 GPU (using WarpDrive), for the Tag environment with 100 runners and 5 taggers. With the same environment configuration and training parameters, WarpDrive on a GPU is 5× faster. Both scenarios are with 60 environment replicas running in parallel. Using more environments on the CPU node is infeasible as data copying gets too expensive. With WarpDrive, it is possible to scale up the number of environment replicas at least 10-fold, for even faster training.
+<img src="https://user-images.githubusercontent.com/7627238/144560725-83167c73-274e-4c5a-a6cf-4e06355895f0.png" width="400" height="400"/>
+
+
 ## Code Structure
 WarpDrive provides a CUDA + Python framework and quality-of-life tools so you can quickly build fast and flexible multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA step function at the CUDA environment layer, while the rest is a pure Python interface. We have step by step tutorials for you to master the workflow.
 

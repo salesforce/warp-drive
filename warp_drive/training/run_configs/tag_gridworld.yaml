@@ -21,29 +21,28 @@ trainer:
     num_envs: 2000
     num_episodes: 2000000
     train_batch_size: 200000
-    algorithm: "A2C"
-    vf_loss_coeff: 1
-    entropy_coeff: 0.05
-    clip_grad_norm: True
-    max_grad_norm: 3
-    clip_param: 0.1
-    normalize_advantage: False
-    normalize_return: False
 # Policy network settings
 policy: # list all the policies below
     shared:
-        to_train: True
-        name: "fully_connected"
+        to_train: True # flag indicating whether the model needs to be trained
+        algorithm: "A2C" # algorithm used to train the policy
+        vf_loss_coeff: 1 # loss coefficient schedule for the value function loss
+        entropy_coeff: 0.05 # loss coefficient schedule for the entropy loss
+        clip_grad_norm: True # flag indicating whether to clip the gradient norm or not
+        max_grad_norm: 3 # when clip_grad_norm is True, the clip level
+        normalize_advantage: False # flag indicating whether to normalize advantage or not
+        normalize_return: False # flag indicating whether to normalize return or not
         gamma: 0.98 # discount rate gamma
         lr: 0.001 # learning rate
-        model:
-        # dimension(s) of the fully connected layers as a list
-            fc_dims: [32, 32]
-            model_ckpt_filepath: ""
-# Checkpoint saving setting (and W&B logging)
+        model: # policy model settings
+            type: "fully_connected" # model type
+            fc_dims: [32, 32] # dimension(s) of the fully connected layers as a list
+            model_ckpt_filepath: "" # filepath (used to restore a previously saved model)
+# Checkpoint saving setting
 saving:
-    metrics_log_freq: 100 # How often (in iterations) to log (and print) the metrics
-    model_params_save_freq: 5000 # How often (in iterations) to save the model parameters
+    metrics_log_freq: 100 # how often (in iterations) to log (and print) the metrics
+    model_params_save_freq: 5000 # how often (in iterations) to save the model parameters
     basedir: "/tmp" # base folder used for saving
     name: "tag_gridworld"
     tag: "experiments" 
+

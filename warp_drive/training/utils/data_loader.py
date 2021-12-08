@@ -26,8 +26,8 @@ def all_equal(iterable):
 def create_and_push_data_placeholders(
     env_wrapper,
     policy_tag_to_agent_id_map,
-    training_batch_size_per_env,
-    create_separate_placeholders_for_each_policy,
+    training_batch_size_per_env=1,
+    create_separate_placeholders_for_each_policy=False,
 ):
     """
     Create observations, sampled_actions, rewards and done flags placeholders
@@ -37,6 +37,7 @@ def create_and_push_data_placeholders(
     assert env_wrapper is not None
     assert isinstance(policy_tag_to_agent_id_map, dict)
     assert len(policy_tag_to_agent_id_map) > 0  # at least one policy
+    assert training_batch_size_per_env > 0
 
     observation_space = {}
     action_space = {}

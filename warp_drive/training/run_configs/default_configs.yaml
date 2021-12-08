@@ -8,32 +8,32 @@
 
 # Default trainer settings
 trainer:
-    num_envs: 10 # Number of environment replicas
-    num_episodes: 10000 # Number of episodes to run the training for
+    num_envs: 10 # number of environment replicas
+    num_episodes: 10000 # number of episodes to run the training for
     train_batch_size: 10000 # total batch size used for training per iteration (across all the environments)
-    algorithm: "A2C" # trainer algorithm
-    vf_loss_coeff: 0.01 # loss coefficient for the value function loss
-    entropy_coeff: 0.05
-    clip_grad_norm: True # fla indicating whether to clip the gradient norm or not
+
+# Default policy network settings
+policy:
+    to_train: False # flag indicating whether the model needs to be trained
+    algorithm: "A2C" # algorithm used to train the policy
+    vf_loss_coeff: 0.01 # loss coefficient schedule for the value function loss
+    entropy_coeff: 0.05 # loss coefficient schedule for the entropy loss
+    clip_grad_norm: True # flag indicating whether to clip the gradient norm or not
     max_grad_norm: 0.5 # when clip_grad_norm is True, the clip level
     normalize_advantage: False # flag indicating whether to normalize advantage or not
     normalize_return: False # flag indicating whether to normalize return or not
     clip_param: 0.01 # clip param for PPO
+    gamma: 0.98 # discount factor gamma
+    lr: 0.0001 # learning rate
+    model: # policy model settings
+        type: "fully_connected" # model type
+        fc_dims: [64, 64] # dimension(s) of the fully connected layers as a list
+        model_ckpt_filepath: "" # filepath (used to restore a previously saved model)
 
-# Default policy network settings
-policy:
-    to_train: False
-    name: "fully_connected"
-    gamma: 0.98
-    lr: 0.0001
-    model:
-        fc_dims: [256, 256]
-        model_ckpt_filepath: ""
-
-# Default checkpoint saving setting (and W&B logging)
+# Default checkpoint saving setting
 saving:
-    metrics_log_freq: 100 # How often (in iterations) to log (and print) the metrics
-    model_params_save_freq: 1000 # How often (in iterations) to save the model parameters
+    metrics_log_freq: 100 # how often (in iterations) to log (and print) the metrics
+    model_params_save_freq: 1000 # how often (in iterations) to save the model parameters
     basedir: "/tmp" # base folder used for saving
-    name: "default"
-    tag: "experiment"
+    name: "default" # experiment name
+    tag: "experiment" # experiment tag

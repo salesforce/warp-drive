@@ -186,23 +186,10 @@ class Trainer:
         random.seed(seed)
         np.random.seed(seed)
 
-        self.entropy_coeff = self.get_config(["trainer", "entropy_coeff"])
-        self.algorithm = self.get_config(["trainer", "algorithm"])
-        assert self.algorithm in ["A2C", "PPO"]
-        self.vf_loss_coeff = self.get_config(["trainer", "vf_loss_coeff"])
-        self.clip_grad_norm = self.get_config(["trainer", "clip_grad_norm"])
-        if self.clip_grad_norm:
-            self.max_grad_norm = self.get_config(["trainer", "max_grad_norm"])
-        self.normalize_advantage = self.get_config(["trainer", "normalize_advantage"])
-        self.normalize_return = self.get_config(["trainer", "normalize_return"])
-        if self.algorithm == "PPO":
-            self.clip_param = self.get_config(["trainer", "clip_param"])
-
-        # Define models and optimizers
+        # Define models, optimizers, and learning rate schedules
         self.models = {}
         self.optimizers = {}
         self.lr_schedules = {}
-        self.gammas = {}
 
         # For logging episodic reward
         self.num_completed_episodes = {}
@@ -214,11 +201,11 @@ class Trainer:
 
         for policy in self.policies:
             self.current_timestep[policy] = 0
-            policy_config = self.get_config(["policy", policy])
-            if policy_config["name"] == "fully_connected":
+            policy_model_config = self.get_config(["policy", policy, "model"])
+            if policy_model_config["type"] == "fully_connected":
                 self.models[policy] = FullyConnected(
                     self.cuda_envs,
-                    policy_config["model"]["fc_dims"],
+                    policy_model_config["fc_dims"],
                     policy,
                     self.policy_tag_to_agent_id_map,
                     create_separate_placeholders_for_each_policy,
@@ -238,6 +225,7 @@ class Trainer:
             self.models[policy].cuda()
 
             # Initialize the (ADAM) optimizer
+            policy_config = self.get_config(["policy", policy])
             self.lr_schedules[policy] = ParamScheduler(policy_config["lr"])
             initial_lr = self.lr_schedules[policy].get_param_value(
                 timestep=self.current_timestep[policy]
@@ -245,8 +233,6 @@ class Trainer:
             self.optimizers[policy] = torch.optim.Adam(
                 self.models[policy].parameters(), lr=initial_lr
             )
-
-            self.gammas[policy] = policy_config["gamma"]
 
             # Initialize episodic rewards and push to the GPU
             num_agents_for_policy = len(self.policy_tag_to_agent_id_map[policy])
@@ -260,26 +246,48 @@ class Trainer:
 
         # Initialize the trainers
         self.trainers = {}
+        self.clip_grad_norm = {}
+        self.max_grad_norm = {}
         for policy in self.policies_to_train:
-            if self.algorithm == "A2C":
+            algorithm = self.get_config(["policy", policy, "algorithm"])
+            assert algorithm in ["A2C", "PPO"]
+            entropy_coeff = self.get_config(["policy", policy, "entropy_coeff"])
+            vf_loss_coeff = self.get_config(["policy", policy, "vf_loss_coeff"])
+            self.clip_grad_norm[policy] = self.get_config(
+                ["policy", policy, "clip_grad_norm"]
+            )
+            if self.clip_grad_norm[policy]:
+                self.max_grad_norm[policy] = self.get_config(
+                    ["policy", policy, "max_grad_norm"]
+                )
+            normalize_advantage = self.get_config(
+                ["policy", policy, "normalize_advantage"]
+            )
+            normalize_return = self.get_config(["policy", policy, "normalize_return"])
+            gamma = policy_config["gamma"]
+
+            if algorithm == "PPO":
+                clip_param = self.get_config(["policy", policy, "clip_param"])
+
+            if algorithm == "A2C":
                 # Advantage Actor-Critic
                 self.trainers[policy] = A2C(
-                    discount_factor_gamma=self.gammas[policy],
-                    normalize_advantage=self.normalize_advantage,
-                    normalize_return=self.normalize_return,
-                    vf_loss_coeff=self.vf_loss_coeff,
-                    entropy_coeff=self.entropy_coeff,
+                    discount_factor_gamma=gamma,
+                    normalize_advantage=normalize_advantage,
+                    normalize_return=normalize_return,
+                    vf_loss_coeff=vf_loss_coeff,
+                    entropy_coeff=entropy_coeff,
                 )
                 print(f"Initializing the A2C trainer for policy {policy}")
-            elif self.algorithm == "PPO":
+            elif algorithm == "PPO":
                 # Proximal Policy Optimization
                 self.trainers[policy] = PPO(
-                    discount_factor_gamma=self.gammas[policy],
-                    clip_param=self.clip_param,
-                    normalize_advantage=self.normalize_advantage,
-                    normalize_return=self.normalize_return,
-                    vf_loss_coeff=self.vf_loss_coeff,
-                    entropy_coeff=self.entropy_coeff,
+                    discount_factor_gamma=gamma,
+                    clip_param=clip_param,
+                    normalize_advantage=normalize_advantage,
+                    normalize_return=normalize_return,
+                    vf_loss_coeff=vf_loss_coeff,
+                    entropy_coeff=entropy_coeff,
                 )
                 print(f"Initializing the PPO trainer for policy {policy}")
             else:
@@ -676,9 +684,9 @@ class Trainer:
             self.optimizers[policy].zero_grad()
             loss.backward()
 
-            if self.clip_grad_norm:
+            if self.clip_grad_norm[policy]:
                 nn.utils.clip_grad_norm_(
-                    self.models[policy].parameters(), self.max_grad_norm
+                    self.models[policy].parameters(), self.max_grad_norm[policy]
                 )
 
             self.optimizers[policy].step()

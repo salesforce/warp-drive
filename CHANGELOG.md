@@ -22,3 +22,6 @@
 - CUDA utility to help index multi-dimensional arrays
 - Log the episodic rewards
 - Save metrics during training
+
+# Release 1.2.1 (2021-12-07)
+- Add policy-specific training parameters

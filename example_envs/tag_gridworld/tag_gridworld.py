@@ -313,31 +313,11 @@ class TagGridWorld:
 
 
 class CUDATagGridWorld(TagGridWorld, CUDAEnvironmentContext):
-
-    def __init__(self,
-                 num_taggers=10,
-                 grid_length=10,
-                 episode_length=100,
-                 starting_location_x=None,
-                 starting_location_y=None,
-                 seed=None,
-                 wall_hit_penalty=0.1,
-                 tag_reward_for_tagger=10.0,
-                 tag_penalty_for_runner=2.0,
-                 step_cost_for_tagger=0.01,
-                 use_full_observation=True):
-
-        super().__init__(num_taggers,
-                         grid_length,
-                         episode_length,
-                         starting_location_x,
-                         starting_location_y,
-                         seed,
-                         wall_hit_penalty,
-                         tag_reward_for_tagger,
-                         tag_penalty_for_runner,
-                         step_cost_for_tagger,
-                         use_full_observation)
+    """
+    CUDA version of the TagGridWorld environment.
+    Note: this class subclasses the Python environment class TagGridWorld,
+    and also the  CUDAEnvironmentContext
+    """
 
     def get_data_dictionary(self):
         data_dict = DataFeed()
@@ -358,7 +338,7 @@ class CUDATagGridWorld(TagGridWorld, CUDAEnvironmentContext):
                 ("tag_penalty_for_runner", self.tag_penalty_for_runner),
                 ("step_cost_for_tagger", self.step_cost_for_tagger),
                 ("use_full_observation", self.use_full_observation),
-                ("world_boundary", self.grid_length)
+                ("world_boundary", self.grid_length),
             ]
         )
         return data_dict
@@ -367,10 +347,7 @@ class CUDATagGridWorld(TagGridWorld, CUDAEnvironmentContext):
         tensor_dict = DataFeed()
         return tensor_dict
 
-    def step(
-        self,
-        actions=None
-    ):
+    def step(self, actions=None):
         self.timestep += 1
         args = [
             _LOC_X,

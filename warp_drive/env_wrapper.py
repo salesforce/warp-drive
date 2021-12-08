@@ -49,8 +49,10 @@ class EnvWrapper:
     ):
         """
         'env_obj': an environment object
-        'env_name': an environment name that is registered at WarpDrive environment registrar
-        'env_config': environment configuration to instantiate a environment from the registry
+        'env_name': an environment name that is registered on the
+            WarpDrive environment registrar
+        'env_config': environment configuration to instantiate
+            an environment from the registry
         'use_cuda': if True, step through the environment on the GPU, else on the CPU
         'num_envs': the number of parallel environments to instantiate. Note: this is
         only relevant when use_cuda is True
@@ -63,7 +65,11 @@ class EnvWrapper:
         if env_obj is not None:
             self.env = env_obj
         else:
-            assert env_name is not None and env_config is not None and env_registry is not None
+            assert (
+                env_name is not None
+                and env_config is not None
+                and env_registry is not None
+            )
             self.env = env_registry.get(env_name, use_cuda)(**env_config)
 
         self.n_agents = self.env.num_agents

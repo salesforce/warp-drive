@@ -21,19 +21,26 @@ class EnvironmentRegistrar:
                     if cls_name not in self._cpu_envs:
                         self._cpu_envs[cls_name] = cls
                     else:
-                        raise Exception(f"CPU environment {cls_name} already registered, you may need to go to your env class to "
-                                        f"define a different class name ")
-                elif device == "cuda" or device == "gpu":
+                        raise Exception(
+                            f"CPU environment {cls_name} already registered, "
+                            f"you may need to go to your env class to "
+                            f"define a different class name "
+                        )
+                elif device in ("cuda", "gpu"):
                     if cls_name not in self._cuda_envs:
                         self._cuda_envs[cls_name] = cls
                     else:
-                        raise Exception(f"CUDA environment {cls_name} already registered, you may need to go to your env class to "
-                                        f"define a different class name ")
+                        raise Exception(
+                            f"CUDA environment {cls_name} already registered, "
+                            f"you may need to go to your env class to "
+                            f"define a different class name "
+                        )
                     if cuda_env_src_path is not None:
                         self.add_cuda_env_src_path(cls_name, cuda_env_src_path)
                 else:
                     raise Exception("Invalid device: only support CPU and CUDA/GPU")
             return cls
+
         return add_wrapper
 
     def get(self, name, use_cuda=False):
@@ -43,11 +50,10 @@ class EnvironmentRegistrar:
                 raise Exception(f"CPU environment {name} not found ")
             print(f"return CPU environment {name} ")
             return self._cpu_envs[name]
-        else:
-            if name not in self._cuda_envs:
-                raise Exception(f"CUDA environment {name} not found ")
-            print(f"return CUDA environment {name} ")
-            return self._cuda_envs[name]
+        if name not in self._cuda_envs:
+            raise Exception(f"CUDA environment {name} not found ")
+        print(f"return CUDA environment {name} ")
+        return self._cuda_envs[name]
 
     def add_cuda_env_src_path(self, name, cuda_env_src_path):
         """
@@ -68,9 +74,6 @@ class EnvironmentRegistrar:
         assert (
             cuda_env_src_path.rsplit(".", 1)[1] == "cu"
         ), "the customized environment is expected to be a CUDA source code (*.cu)"
-        assert (
-            name in self._cuda_envs
-        ), "the customized environment is not yet added in the registrar"
         self._customized_cuda_env_src_paths[name] = cuda_env_src_path
 
     def get_cuda_env_src_path(self, name):
@@ -81,10 +84,9 @@ class EnvironmentRegistrar:
         name = name.lower()
         if device == "cpu":
             return name in self._cpu_envs
-        elif device == "cuda" or device == "gpu":
+        if device in ("cuda", "gpu"):
             return name in self._cuda_envs
-        else:
-            raise Exception("Invalid device: only support CPU and CUDA/GPU")
+        raise Exception("Invalid device: only support CPU and CUDA/GPU")
 
 
 env_registry = EnvironmentRegistrar()

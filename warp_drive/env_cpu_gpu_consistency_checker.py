@@ -132,8 +132,12 @@ class EnvironmentCPUvsGPU:
             obs_list = []
 
             for env_id in range(self.num_envs):
-                if self.env_registry is not None and self.env_registry.has_env(self.cpu_env_class.name, device="cpu"):
-                    env_cpu[env_id] = self.env_registry.get(self.cpu_env_class.name, use_cuda=False)(**env_config)
+                if self.env_registry is not None and self.env_registry.has_env(
+                    self.cpu_env_class.name, device="cpu"
+                ):
+                    env_cpu[env_id] = self.env_registry.get(
+                        self.cpu_env_class.name, use_cuda=False
+                    )(**env_config)
                 else:
                     env_cpu[env_id] = self.cpu_env_class(**env_config)
                 if self.use_gpu_testing_mode:
@@ -150,7 +154,9 @@ class EnvironmentCPUvsGPU:
             obs_cpu = np.stack((obs_list), axis=0)
 
             # GPU version of env
-            if self.env_registry is not None and self.env_registry.has_env(self.cuda_env_class.name, device="cuda"):
+            if self.env_registry is not None and self.env_registry.has_env(
+                self.cuda_env_class.name, device="cuda"
+            ):
                 # we use env_registry to instantiate env object
                 env_obj = None
             else:

@@ -141,7 +141,7 @@ WarpDrive also supports feeding multiple arguments at once via the `CUDAFunction
 
 ## 3. Write the *step()* method in CUDA C
 
-The most laborious part of this exercise is actually writing out the step function in CUDA C. This function will need to be named `Cuda<env.name>Step`, so that WarpDrive knows it represents the CUDA version of the step function for the particular environment. The order of the arguments should naturally follow the order written out where the CUDA C kernel is invoked.
+The most laborious part of this exercise is actually writing out the step function in CUDA C. Importantly ,this function will need to be named `Cuda<env.name>Step`, so that WarpDrive knows it represents the CUDA version of the step function for the particular environment. The order of the arguments should naturally follow the order written out where the CUDA C kernel is invoked.
 
 ```C
 __global__ void CudaTagContinuousStep(

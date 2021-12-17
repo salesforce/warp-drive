@@ -35,4 +35,5 @@
  "trainer": {"num_envs": 10,
   "algorithm": "A2C",
   "num_episodes": 1000000000,
-  "train_batch_size": 2500}}
+  "train_batch_size": 2500},
+  "saving": {}}

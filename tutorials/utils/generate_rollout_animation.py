@@ -12,16 +12,22 @@ from matplotlib.patches import Polygon
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
-def generate_env_rollout_animation(
+def generate_tag_env_rollout_animation(
     env,
-    i_start=1,
+    episode_states=None,
     fps=60,
     tagger_color="#C843C3",
     runner_color="#245EB6",
     runner_not_in_game_color="#666666",
-    fig_width=4,
-    fig_height=4,
+    fig_width=6,
+    fig_height=6,
 ):
+    assert episode_states is not None
+    assert isinstance(episode_states, dict)
+    assert "loc_x" in episode_states
+    assert "loc_y" in episode_states
+    assert "still_in_the_game" in episode_states
+    
     fig, ax = plt.subplots(
         1, 1, figsize=(fig_width, fig_height)  # , constrained_layout=True
     )
@@ -75,8 +81,8 @@ def generate_env_rollout_animation(
     for idx in range(len(lines)):
         if idx in env.taggers:
             lines[idx] = ax.plot3D(
-                env.global_state["loc_x"][:1, idx] / env.grid_length,
-                env.global_state["loc_y"][:1, idx] / env.grid_length,
+                episode_states["loc_x"][:1, idx] / env.grid_length,
+                episode_states["loc_y"][:1, idx] / env.grid_length,
                 0,
                 color=tagger_color,
                 marker="o",
@@ -84,8 +90,8 @@ def generate_env_rollout_animation(
             )[0]
         else:  # runners
             lines[idx] = ax.plot3D(
-                env.global_state["loc_x"][:1, idx] / env.grid_length,
-                env.global_state["loc_y"][:1, idx] / env.grid_length,
+                episode_states["loc_x"][:1, idx] / env.grid_length,
+                episode_states["loc_y"][:1, idx] / env.grid_length,
                 [0],
                 color=runner_color,
                 marker="o",
@@ -115,15 +121,15 @@ def generate_env_rollout_animation(
     label.set_color("#666666")
 
     def animate(i):
-        start = max(i - i_start, 0)
+        start = max(i - 1, 0)
         for idx, line in enumerate(lines):
             line.set_data_3d(
-                env.global_state["loc_x"][start:i, idx] / env.grid_length,
-                env.global_state["loc_y"][start:i, idx] / env.grid_length,
+                episode_states["loc_x"][start:i, idx] / env.grid_length,
+                episode_states["loc_y"][start:i, idx] / env.grid_length,
                 np.zeros((i - start,)),
             )
 
-            still_in_game = env.global_state["still_in_the_game"][i, idx]
+            still_in_game = episode_states["still_in_the_game"][i, idx]
 
             if still_in_game:
                 pass
@@ -132,12 +138,13 @@ def generate_env_rollout_animation(
                 line.set_marker("")
 
         n_runners_alive = (
-            env.global_state["still_in_the_game"][i].sum() - env.num_taggers
+            episode_states["still_in_the_game"][i].sum() - env.num_taggers
         )
         label.set_text(_get_label(i, n_runners_alive, init_num_runners).lower())
 
     ani = animation.FuncAnimation(
         fig, animate, np.arange(1, env.episode_length), interval=1000.0 / fps
     )
+    plt.close()
 
     return ani

@@ -1,0 +1,68 @@
+# Sample YAML configuration for the tag continuous environment
+name: "tag_continuous"
+
+# Environment settings
+env:
+    num_taggers: 5
+    num_runners: 100
+    grid_length: 20
+    episode_length: 500
+    max_acceleration: 0.1
+    min_acceleration: -0.1
+    max_turn: 2.35  # 3*pi/4 radians
+    min_turn: -2.35  # -3*pi/4 radians
+    num_acceleration_levels: 20
+    num_turn_levels: 20
+    skill_level_runner: 1
+    skill_level_tagger: 1
+    seed: 274880
+    use_full_observation: False
+    runner_exits_game_after_tagged: True
+    num_other_agents_observed: 10
+    tag_reward_for_tagger: 10.0
+    tag_penalty_for_runner: -10.0
+    step_penalty_for_tagger: -0.00
+    step_reward_for_runner: 0.00
+    edge_hit_penalty: -0.0
+    end_of_game_reward_for_runner: 1.0
+    tagging_distance: 0.02
+    
+# Trainer settings
+trainer:
+    num_envs: 200 # number of environment replicas
+    num_episodes: 100 # number of episodes to run the training for
+    train_batch_size: 250 # total batch size used for training per iteration (across all the environments)
+
+# Policy network settings
+policy: # list all the policies below
+    runner:
+        to_train: True # flag indicating whether the model needs to be trained
+        algorithm: "A2C" # algorithm used to train the policy
+        gamma: 0.98 # discount rate gamms
+        lr: 0.005 # learning rate
+        vf_loss_coeff: 1 # loss coefficient for the value function loss
+        entropy_coeff:
+        - [0, 0.5]
+        - [2000000, 0.05]
+        model: # policy model settings
+            type: "fully_connected" # model type 
+            fc_dims: [256, 256] # dimension(s) of the fully connected layers as a list
+            model_ckpt_filepath: "" # filepath (used to restore a previously saved model)
+    tagger:
+        to_train: True
+        algorithm: "A2C"
+        gamma: 0.98
+        lr: 0.002
+        vf_loss_coeff: 1
+        model:
+            type: "fully_connected"
+            fc_dims: [256, 256]
+            model_ckpt_filepath: ""
+            
+# Checkpoint saving setting
+saving:
+    metrics_log_freq: 50 # how often (in iterations) to print the metrics
+    model_params_save_freq: 50 # how often (in iterations) to save the model parameters
+    basedir: "/tmp" # base folder used for saving
+    name: "tag_continuous"
+    tag: "100runners_5taggers_bs250"

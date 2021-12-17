@@ -138,9 +138,9 @@ class Trainer:
 
         # Directory to save model checkpoints and metrics
         self.save_dir = os.path.join(
-            self.get_config(["saving", "basedir"]),
-            self.get_config(["saving", "name"]),
-            self.get_config(["saving", "tag"]),
+            self._get_config(["saving", "basedir"]),
+            self._get_config(["saving", "name"]),
+            self._get_config(["saving", "tag"]),
             experiment_name,
         )
         if not os.path.isdir(self.save_dir):
@@ -148,11 +148,11 @@ class Trainer:
 
         # Policies
         self.policy_tag_to_agent_id_map = policy_tag_to_agent_id_map
-        self.policies = list(self.get_config(["policy"]).keys())
+        self.policies = list(self._get_config(["policy"]).keys())
         self.policies_to_train = [
             policy
             for policy in self.policies
-            if self.get_config(["policy", policy, "to_train"])
+            if self._get_config(["policy", policy, "to_train"])
         ]
 
         # Flag indicating whether there needs to be separate placeholders / arrays
@@ -166,9 +166,9 @@ class Trainer:
             assert len(self.policies) > 1
 
         # Number of iterations algebra
-        self.num_episodes = self.get_config(["trainer", "num_episodes"])
-        self.training_batch_size = self.get_config(["trainer", "train_batch_size"])
-        self.num_envs = self.get_config(["trainer", "num_envs"])
+        self.num_episodes = self._get_config(["trainer", "num_episodes"])
+        self.training_batch_size = self._get_config(["trainer", "train_batch_size"])
+        self.num_envs = self._get_config(["trainer", "num_envs"])
 
         self.training_batch_size_per_env = self.training_batch_size // self.num_envs
         assert self.training_batch_size_per_env > 0
@@ -199,9 +199,12 @@ class Trainer:
         # Indicates the current timestep of the policy model
         self.current_timestep = {}
 
+        self.total_steps = self.cuda_envs.episode_length * self.num_episodes
+        self.num_iters = self.total_steps // self.training_batch_size
+
         for policy in self.policies:
             self.current_timestep[policy] = 0
-            policy_model_config = self.get_config(["policy", policy, "model"])
+            policy_model_config = self._get_config(["policy", policy, "model"])
             if policy_model_config["type"] == "fully_connected":
                 self.models[policy] = FullyConnected(
                     self.cuda_envs,
@@ -214,18 +217,16 @@ class Trainer:
             else:
                 raise NotImplementedError
 
-            # Load the model parameters (if model checkpoints are specified)
-            # Note: Loading the model checkpoint may also update the current timestep!
-            self.load_model_checkpoint(policy)
+        # Load the model parameters (if model checkpoints are specified)
+        # Note: Loading the model checkpoint may also update the current timestep!
+        self.load_model_checkpoint()
 
-            self.total_steps = self.cuda_envs.episode_length * self.num_episodes
-            self.num_iters = self.total_steps // self.training_batch_size
-
+        for policy in self.policies:
             # Push the models to the GPU
             self.models[policy].cuda()
 
             # Initialize the (ADAM) optimizer
-            policy_config = self.get_config(["policy", policy])
+            policy_config = self._get_config(["policy", policy])
             self.lr_schedules[policy] = ParamScheduler(policy_config["lr"])
             initial_lr = self.lr_schedules[policy].get_param_value(
                 timestep=self.current_timestep[policy]
@@ -249,25 +250,25 @@ class Trainer:
         self.clip_grad_norm = {}
         self.max_grad_norm = {}
         for policy in self.policies_to_train:
-            algorithm = self.get_config(["policy", policy, "algorithm"])
+            algorithm = self._get_config(["policy", policy, "algorithm"])
             assert algorithm in ["A2C", "PPO"]
-            entropy_coeff = self.get_config(["policy", policy, "entropy_coeff"])
-            vf_loss_coeff = self.get_config(["policy", policy, "vf_loss_coeff"])
-            self.clip_grad_norm[policy] = self.get_config(
+            entropy_coeff = self._get_config(["policy", policy, "entropy_coeff"])
+            vf_loss_coeff = self._get_config(["policy", policy, "vf_loss_coeff"])
+            self.clip_grad_norm[policy] = self._get_config(
                 ["policy", policy, "clip_grad_norm"]
             )
             if self.clip_grad_norm[policy]:
-                self.max_grad_norm[policy] = self.get_config(
+                self.max_grad_norm[policy] = self._get_config(
                     ["policy", policy, "max_grad_norm"]
                 )
-            normalize_advantage = self.get_config(
+            normalize_advantage = self._get_config(
                 ["policy", policy, "normalize_advantage"]
             )
-            normalize_return = self.get_config(["policy", policy, "normalize_return"])
+            normalize_return = self._get_config(["policy", policy, "normalize_return"])
             gamma = policy_config["gamma"]
 
             if algorithm == "PPO":
-                clip_param = self.get_config(["policy", policy, "clip_param"])
+                clip_param = self._get_config(["policy", policy, "clip_param"])
 
             if algorithm == "A2C":
                 # Advantage Actor-Critic
@@ -292,6 +293,10 @@ class Trainer:
                 print(f"Initializing the PPO trainer for policy {policy}")
             else:
                 raise NotImplementedError
+
+        # Push all the data and tensor arrays to the GPU
+        # upon resetting environments for the very first time.
+        self.cuda_envs.reset_all_envs()
 
         # Create and push data placeholders to the device
         create_and_push_data_placeholders(
@@ -321,7 +326,7 @@ class Trainer:
         # Metrics
         self.metrics = Metrics()
 
-    def get_config(self, args):
+    def _get_config(self, args):
         assert isinstance(args, (tuple, list))
         config = self.config
         for arg in args:
@@ -342,10 +347,10 @@ class Trainer:
             start_time = time.time()
 
             # Generate a batched rollout for every CUDA environment.
-            self.generate_rollout_batch()
+            self._generate_rollout_batch()
 
             # Train / update model parameters.
-            metrics = self.update_model_params(iteration)
+            metrics = self._update_model_params(iteration)
 
             self.perf_stats.iters = iteration + 1
             self.perf_stats.steps = self.perf_stats.iters * self.training_batch_size
@@ -353,12 +358,12 @@ class Trainer:
             self.perf_stats.total_time += end_time - start_time
 
             # Log the training metrics
-            self.log_metrics(metrics)
+            self._log_metrics(metrics)
 
             # Save torch model
             self.save_model_checkpoint(iteration)
 
-    def generate_rollout_batch(self):
+    def _generate_rollout_batch(self):
         """
         Generate an environment rollout batch.
         """
@@ -370,7 +375,7 @@ class Trainer:
 
             # Evaluate policies to compute action probabilities
             start_event.record()
-            probabilities = self.evaluate_policies(batch_index=batch_index)
+            probabilities = self._evaluate_policies(batch_index=batch_index)
             end_event.record()
             torch.cuda.synchronize()
             self.perf_stats.policy_eval_time += (
@@ -380,7 +385,7 @@ class Trainer:
             # Sample actions using the computed probabilities
             # and push to actions batch
             start_event.record()
-            self.sample_actions(probabilities, batch_index=batch_index)
+            self._sample_actions(probabilities, batch_index=batch_index)
             end_event.record()
             torch.cuda.synchronize()
             self.perf_stats.action_sample_time += (
@@ -402,11 +407,12 @@ class Trainer:
             torch.cuda.synchronize()
             self.perf_stats.env_step_time += start_event.elapsed_time(end_event) / 1000
 
-    def evaluate_policies(self, batch_index):
+    def _evaluate_policies(self, batch_index=0):
         """
         Perform the policy evaluation (forward pass through the models)
         and compute action probabilities
         """
+        assert isinstance(batch_index, int)
         probabilities = {}
         for policy in self.policies:
             probabilities[policy], _ = self.models[policy](
@@ -480,10 +486,11 @@ class Trainer:
                     num_actions=action_dim[action_idx],
                 )
 
-    def sample_actions(self, probabilities, batch_index):
+    def _sample_actions(self, probabilities, batch_index=0):
         """
         Sample action probabilities (and push the sampled actions to the device).
         """
+        assert isinstance(batch_index, int)
         if self.create_separate_placeholders_for_each_policy:
             for policy in self.policies:
                 suffix = f"_{policy}"
@@ -534,7 +541,7 @@ class Trainer:
         Push rewards and done flags to the corresponding batched versions.
         Also, update the episodic reward
         """
-
+        assert isinstance(batch_index, int)
         # Push done flags to done_flags_batch
         done_flags = (
             self.cuda_envs.cuda_data_manager.data_on_device_via_torch("_done_") > 0
@@ -589,7 +596,7 @@ class Trainer:
             # Reset the reward running sum
             self.reward_running_sum[policy][done_env_ids] = 0
 
-    def update_model_params(self, iteration):
+    def _update_model_params(self, iteration):
         start_event = torch.cuda.Event(enable_timing=True)
         end_event = torch.cuda.Event(enable_timing=True)
 
@@ -717,7 +724,7 @@ class Trainer:
         self.perf_stats.training_time += start_event.elapsed_time(end_event) / 1000
         return metrics_dict
 
-    def log_metrics(self, metrics):
+    def _log_metrics(self, metrics):
         # Log the metrics if it is not empty
         if len(metrics) > 0:
             perf_stats = self.perf_stats.get_perf_stats()
@@ -743,25 +750,37 @@ class Trainer:
                 json.dump(logs, fp)
                 fp.write("\n")
 
-    def load_model_checkpoint(self, policy):
+    def load_model_checkpoint(self, ckpts_dict=None):
         """
         Load the model parameters if a checkpoint path is specified.
         """
-        filepath = self.config["policy"][policy]["model"]["model_ckpt_filepath"]
-        if filepath != "":
-            assert os.path.isfile(filepath), "Invalid model checkpoint path!"
+        if ckpts_dict is None:
+            print("Loading trainer model checkpoints from the run configuration.")
+            for policy in self.policies:
+                ckpt_filepath = self.config["policy"][policy]["model"]["model_ckpt_filepath"]
+                self._load_model_checkpoint_helper(policy, ckpt_filepath)
+        else:
+            assert isinstance(ckpts_dict, dict)
+            print("Loading the provied trainer model checkpoints.")
+            for policy, ckpt_filepath in ckpts_dict.items():
+                assert policy in self.policies
+                self._load_model_checkpoint_helper(policy, ckpt_filepath)
+
+    def _load_model_checkpoint_helper(self, policy, ckpt_filepath):
+        if ckpt_filepath != "":
+            assert os.path.isfile(ckpt_filepath), "Invalid model checkpoint path!"
             print(
                 f"Loading the '{policy}' torch model "
-                f"from the previously saved checkpoint: '{filepath}'"
+                f"from the previously saved checkpoint: '{ckpt_filepath}'"
             )
-            self.models[policy].load_state_dict(torch.load(filepath))
+            self.models[policy].load_state_dict(torch.load(ckpt_filepath))
 
             # Update the current timestep using the saved checkpoint filename
-            timestep = int(filepath.split(".state_dict")[0].split("_")[-1])
+            timestep = int(ckpt_filepath.split(".state_dict")[0].split("_")[-1])
             print(f"Updating the timestep for the '{policy}' model to {timestep}.")
             self.current_timestep[policy] = timestep
 
-    def save_model_checkpoint(self, iteration):
+    def save_model_checkpoint(self, iteration=0):
         """
         Save the model parameters
         """
@@ -785,56 +804,67 @@ class Trainer:
         del self.cuda_sample_controller
         print("Trainer exits gracefully")
 
-    def fetch_episode_global_states(
+    def fetch_episode_states(
         self,
+        list_of_states=None,  # list of states (data array names) to fetch
         env_id=0,  # environment id to fetch the states from
-        list_of_states=None,  # list of (global) states to fetch
     ):
         """
-        Step through env and fetch the global states for an entire episode
+        Step through env and fetch the desired states (data arrays on the GPU)
+        for an entire episode. The trained models will be used for evaluation.
         """
         assert 0 <= env_id < self.num_envs
         assert list_of_states is not None
         assert isinstance(list_of_states, list)
         assert len(list_of_states) > 0
 
+        print(f"Fetching the episode states: {list_of_states} from the GPU.")
+        # Ensure env is reset before the start of training, and done flags are False
         self.cuda_envs.reset_all_envs()
         env = self.cuda_envs.env
 
-        global_states = {}
+        episode_states = {}
 
         for state in list_of_states:
-            assert self.cuda_envs.cuda_data_manager.is_data_on_device(state)
-            global_states[state] = np.zeros((env.episode_length + 1, env.num_agents))
-            global_states[state][
-                0
-            ] = self.cuda_envs.cuda_data_manager.pull_data_from_device(state)[env_id]
+            assert self.cuda_envs.cuda_data_manager.is_data_on_device(
+                state
+            ), f"{state} is not a valid array name on the GPU!"
+            # Note: Discard the first dimension, which is the env dimension
+            array_shape = self.cuda_envs.cuda_data_manager.get_shape(state)[1:]
 
-        for t in range(env.episode_length):
+            # Initialize the episode states
+            episode_states[state] = np.nan * np.stack(
+                [np.ones(array_shape) for _ in range(env.episode_length + 1)]
+            )
+
+        for timestep in range(env.episode_length):
+            # Update the episode states
+            for state in list_of_states:
+                episode_states[state][
+                    timestep
+                ] = self.cuda_envs.cuda_data_manager.pull_data_from_device(state)[
+                    env_id
+                ]
             # Evaluate policies to compute action probabilities
-            probabilities = self.evaluate_policies(batch_index=t)
+            probabilities = self._evaluate_policies()
 
             # Sample actions
-            self.sample_actions(probabilities, batch_index=t)
+            self._sample_actions(probabilities)
 
             # Step through all the environments
             self.cuda_envs.step_all_envs()
 
-            # Update the global states
-            for state in list_of_states:
-                global_states[state][
-                    t + 1
-                ] = self.cuda_envs.cuda_data_manager.pull_data_from_device(state)[
-                    env_id
-                ]
-
-            # Fetch the global states when episode is complete
+            # Fetch the states when episode is complete
             if env.cuda_data_manager.pull_data_from_device("_done_")[env_id]:
+                for state in list_of_states:
+                    episode_states[state][
+                        timestep
+                    ] = self.cuda_envs.cuda_data_manager.pull_data_from_device(state)[
+                        env_id
+                    ]
                 break
 
-        return {
-            key: global_state[: t + 2] for key, global_state in global_states.items()
-        }
+        return episode_states
 
 
 class PerfStats:

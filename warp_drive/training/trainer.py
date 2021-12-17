@@ -383,7 +383,7 @@ class Trainer:
             )
 
             # Sample actions using the computed probabilities
-            # and push to actions batch
+            # and push to the batch of actions
             start_event.record()
             self._sample_actions(probabilities, batch_index=batch_index)
             end_event.record()
@@ -511,7 +511,7 @@ class Trainer:
             self.cuda_sample_controller.sample(
                 self.cuda_envs.cuda_data_manager, probabilities[0], action_name
             )
-            # Push actions to actions batch
+            # Push actions to the batch of actions
             actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                 action_name
             )
@@ -525,7 +525,7 @@ class Trainer:
                 self.cuda_sample_controller.sample(
                     self.cuda_envs.cuda_data_manager, probs, action_name
                 )
-                # Push (indexed) actions to actions and actions batch
+                # Push (indexed) actions to 'actions' and 'actions_batch'
                 actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     action_name
                 )
@@ -757,7 +757,9 @@ class Trainer:
         if ckpts_dict is None:
             print("Loading trainer model checkpoints from the run configuration.")
             for policy in self.policies:
-                ckpt_filepath = self.config["policy"][policy]["model"]["model_ckpt_filepath"]
+                ckpt_filepath = self.config["policy"][policy]["model"][
+                    "model_ckpt_filepath"
+                ]
                 self._load_model_checkpoint_helper(policy, ckpt_filepath)
         else:
             assert isinstance(ckpts_dict, dict)

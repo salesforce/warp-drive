@@ -26,7 +26,7 @@ env:
     edge_hit_penalty: -0.0
     end_of_game_reward_for_runner: 1.0
     tagging_distance: 0.02
-    
+
 # Trainer settings
 trainer:
     num_envs: 200 # number of environment replicas
@@ -45,7 +45,7 @@ policy: # list all the policies below
         - [0, 0.5]
         - [2000000, 0.05]
         model: # policy model settings
-            type: "fully_connected" # model type 
+            type: "fully_connected" # model type
             fc_dims: [256, 256] # dimension(s) of the fully connected layers as a list
             model_ckpt_filepath: "" # filepath (used to restore a previously saved model)
     tagger:
@@ -58,7 +58,7 @@ policy: # list all the policies below
             type: "fully_connected"
             fc_dims: [256, 256]
             model_ckpt_filepath: ""
-            
+
 # Checkpoint saving setting
 saving:
     metrics_log_freq: 50 # how often (in iterations) to print the metrics

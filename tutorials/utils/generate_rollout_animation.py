@@ -27,7 +27,7 @@ def generate_tag_env_rollout_animation(
     assert "loc_x" in episode_states
     assert "loc_y" in episode_states
     assert "still_in_the_game" in episode_states
-    
+
     fig, ax = plt.subplots(
         1, 1, figsize=(fig_width, fig_height)  # , constrained_layout=True
     )
@@ -137,9 +137,7 @@ def generate_tag_env_rollout_animation(
                 line.set_color(runner_not_in_game_color)
                 line.set_marker("")
 
-        n_runners_alive = (
-            episode_states["still_in_the_game"][i].sum() - env.num_taggers
-        )
+        n_runners_alive = episode_states["still_in_the_game"][i].sum() - env.num_taggers
         label.set_text(_get_label(i, n_runners_alive, init_num_runners).lower())
 
     ani = animation.FuncAnimation(

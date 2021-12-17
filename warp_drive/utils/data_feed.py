@@ -29,7 +29,7 @@ class DataFeed(dict):
         :param data: data in the form of list, array or scalar
         :param save_copy_and_apply_at_reset: the copy of the data will be saved
             inside GPU for the reset
-        :param log_data_across_episode: an data buffer of episode length is
+        :param log_data_across_episode: a data buffer of episode length is
             reserved for logging data
         """
         d = {

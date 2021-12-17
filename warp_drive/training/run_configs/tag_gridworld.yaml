@@ -32,7 +32,7 @@ policy: # list all the policies below
         max_grad_norm: 3 # when clip_grad_norm is True, the clip level
         normalize_advantage: False # flag indicating whether to normalize advantage or not
         normalize_return: False # flag indicating whether to normalize return or not
-        gamma: 0.98 # discount rate gamma
+        gamma: 0.98 # discount factor
         lr: 0.001 # learning rate
         model: # policy model settings
             type: "fully_connected" # model type

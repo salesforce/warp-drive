@@ -44,7 +44,7 @@ Next, we'll use the *continuous* version of Tag to explain some important elemen
 
 # Managing CUDA Simulations from Python using WarpDrive
 
-We begin with the Python version of the continuous version [Tag](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous.py). The simulation follows the [gym](https://gym.openai.com/) format, implementing `reset` and `step` methods. We now detail all the steps necessary to transform the `step` function into [CUDA code](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous_step.cu) that can be run on a GPU. Importantly, WarpDrive lets you to call these CUDA methods from Python, so you can design your own RL workflow entirely in Python.
+We begin with the Python version of the continuous version [Tag](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous.py). The simulation follows the [gym](https://gym.openai.com/) format, implementing `reset` and `step` methods. We now detail all the steps necessary to transform the `step` function into [CUDA code](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous_step.cu) that can be run on a GPU. Importantly, WarpDrive lets you call these CUDA methods from Python, so you can design your own RL workflow entirely in Python.
 
 ## 1. Add data to be pushed to GPU via the *DataFeed* class
 
@@ -109,10 +109,11 @@ After all the relevant data is added to the data dictionary, we need to invoke t
 ```python
 if self.use_cuda:
     self.cuda_step(
-                self.cuda_data_manager.device_data("loc_x),
-                self.cuda_data_manager.device_data("loc_y),
-                self.cuda_data_manager.device_data("speed),
-                ...   
+                self.cuda_data_manager.device_data("loc_x"),
+                self.cuda_data_manager.device_data("loc_y"),
+                self.cuda_data_manager.device_data("speed"),
+                ...
+    ) 
 ```
 
 where you need to add all the keys of the data dictionary (in no particular order) as arguments to the step function. Also, remember to add the imperative `observations`, `sampled_actions` and `rewards` data, respectively as
@@ -155,7 +156,7 @@ Note the keyword `__global__` used on the increment function. Global functions a
 
 Also, note the `void` return type - CUDA step functions don't need to return anything, but all the data arrays are modified in place.
 
-While writing out the step code in CUDA C, the environment logic follows the same logic as in the Python step code. remember that each thread only acts on a single agent, and for a single environment. The code excerpt below is a side-by-side comparison of Python and CUDA C code for updating the agents' x and y location corodinates.
+While writing out the step code in CUDA C, the environment logic follows the same logic as in the Python step code. Remember that each thread only acts on a single agent, and for a single environment. The code excerpt below is a side-by-side comparison of Python and CUDA C code for updating the agents' x and y location co-ordinates.
 
 On the CUDA C side, we can simplify and make the code mode readable by using constants such as `kThisAgentId` and `kEnvId` (we have used this [naming style guide](https://google.github.io/styleguide/cppguide.html#General_Naming_Rules)) to indicate the thread and block indices, respectively. As you may have noticed by now, since each thread only writes to a specific index of the data array, understanding array indexing is critical.
 
@@ -215,7 +216,7 @@ class MyDualModeEnvironment(CUDAEnvironmentContext):
         ...
         return data_dict 
     
-    def get_tensor_dictonary(self):
+    def get_tensor_dictionary(self):
         tensor_dict = DataFeed()
         ...
         return tensor_dict
@@ -234,7 +235,7 @@ class MyDualModeEnvironment(CUDAEnvironmentContext):
                 grid=self.cuda_function_manager.grid,
             )
             return None
-        else
+        else:
             ...
             return obs, rew, done, info
 ```
@@ -268,7 +269,7 @@ class MyCUDAEnvironment(MyCPUEnvironment, CUDAEnvironmentContext):
         ...
         return data_dict 
     
-    def get_tensor_dictonary(self):
+    def get_tensor_dictionary(self):
         tensor_dict = DataFeed()
         ...
         return tensor_dict
@@ -303,7 +304,7 @@ Here we have some more details about how to use EnvWrapper to identify and build
 
 You shall register your default environment in `warp_drive/utils/common` and the function `get_default_env_directory()`. There, you can simply provide the path to your CUDA environment source code. Please remember that the register uses the environment name defined in your environment class as the key so EnvWrapper class can link it to the right environment. 
 
-The **FULL_PATH_TO_YOUR_ENV_SRC** can be any path inside or outside of WarpDrive. For example, you can develop your own CUDA step function and environment in your codebase and register right here.
+The **FULL_PATH_TO_YOUR_ENV_SRC** can be any path inside or outside WarpDrive. For example, you can develop your own CUDA step function and environment in your codebase and register right here.
 
 ```python
    envs = {
@@ -331,7 +332,7 @@ env_wrapper = EnvWrapper(
     env_registry=env_registry)
 ```
 
-Now, inside the EnvWrapper, function managers will be able to feed the `self.num_env` and `self.num_agents` to the CUDA compiler in the compile time to build and load a unique CUDA environment context for all the tasks.
+Now, inside the EnvWrapper, function managers will be able to feed the `self.num_env` and `self.num_agents` to the CUDA compiler at compile time to build and load a unique CUDA environment context for all the tasks.
 
 ## 6. Environment Consistency Checker
 

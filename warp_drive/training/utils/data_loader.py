@@ -54,8 +54,8 @@ def create_and_push_data_placeholders(
         print(f"Action space: {pol_mod_tag}", action_space[pol_mod_tag])
         print("-" * 40)
 
-    # Reset the environment
-    obs = env_wrapper.reset_all_envs()
+    # Reset the environment to obtain the obs dict
+    obs = env_wrapper.env.reset()
     num_envs = env_wrapper.n_envs
 
     tensor_feed = DataFeed()
@@ -101,7 +101,7 @@ def create_and_push_data_placeholders(
             else:
                 raise NotImplementedError("obs may be an array-type or a dictionary")
 
-            tensor_feed = create_and_push_data_placeholders_helper(
+            tensor_feed = _create_and_push_data_placeholders_helper(
                 num_envs,
                 len(policy_tag_to_agent_id_map[pol_mod_tag]),
                 training_batch_size_per_env,
@@ -197,7 +197,7 @@ def create_and_push_data_placeholders(
         else:
             raise NotImplementedError("obs may be an array-type or a dictionary")
 
-        tensor_feed = create_and_push_data_placeholders_helper(
+        tensor_feed = _create_and_push_data_placeholders_helper(
             num_envs,
             env_wrapper.n_agents,
             training_batch_size_per_env,
@@ -223,7 +223,7 @@ def create_and_push_data_placeholders(
     )
 
 
-def create_and_push_data_placeholders_helper(
+def _create_and_push_data_placeholders_helper(
     num_envs,
     num_agents,
     training_batch_size_per_env,

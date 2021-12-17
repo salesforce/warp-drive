@@ -79,7 +79,7 @@ class TagContinuous(CUDAEnvironmentContext):
                 agents]. Defaults to None.
             starting_location_y ([ndarray], optional): [starting y locations of the
             agents]. Defaults to None.
-            starting_directions ([ndarray], optional): [starting orientations
+            starting_directions ([ndarray], optional): starting orientations
                 in [0, 2*pi]. Defaults to None.
             seed ([type], optional): [seeding parameter]. Defaults to None.
             max_speed (float, optional): [max speed of the agents]. Defaults to 1.0
@@ -232,7 +232,7 @@ class TagContinuous(CUDAEnvironmentContext):
         # Add action 0 - this will be the no-op, or 0 turn
         self.turn_actions = np.insert(self.turn_actions, 0, 0).astype(self.float_dtype)
 
-        # Tagger and runner agent skill levels
+        # Tagger and runner agent skill levels.
         # Skill levels multiply on top of the acceleration levels
         self.skill_levels = [
             self.agent_type[agent_id] * self.float_dtype(skill_level_tagger)
@@ -256,9 +256,9 @@ class TagContinuous(CUDAEnvironmentContext):
             for agent_id in range(self.num_agents)
         }
         # Used in generate_observation()
-        # If use_full_observation is True, then all the agents will have info of
-        # all the other agents, otherwise, each each agent will only have info of
-        # its K nearest other agents (K = num_other_agents_observed)
+        # When use_full_observation is True, then all the agents will have info of
+        # all the other agents, otherwise, each agent will only have info of
+        # its k-nearest agents (k = num_other_agents_observed)
         self.use_full_observation = use_full_observation
         self.init_obs = None  # Will be set later in generate_observation()
 
@@ -422,10 +422,10 @@ class TagContinuous(CUDAEnvironmentContext):
             ** 2
         ).astype(self.float_dtype)
 
-    def K_nearest_neighbors(self, agent_id, K):
+    def k_nearest_neighbors(self, agent_id, k):
         """
-        Note: 'K_nearest_neighbors' is only used when running on CPU step() only.
-        When using the CUDA step function, this Python method (K_nearest_neighbors)
+        Note: 'k_nearest_neighbors' is only used when running on CPU step() only.
+        When using the CUDA step function, this Python method (k_nearest_neighbors)
         is also part of the step() function!
         """
         agent_ids_and_distances = []
@@ -435,13 +435,13 @@ class TagContinuous(CUDAEnvironmentContext):
                 agent_ids_and_distances += [
                     (ag_id, self.compute_distance(agent_id, ag_id))
                 ]
-        K_nearest_neighbor_ids_and_distances = heapq.nsmallest(
-            K, agent_ids_and_distances, key=lambda x: x[1]
+        k_nearest_neighbor_ids_and_distances = heapq.nsmallest(
+            k, agent_ids_and_distances, key=lambda x: x[1]
         )
 
         return [
             item[0]
-            for item in K_nearest_neighbor_ids_and_distances[
+            for item in k_nearest_neighbor_ids_and_distances[
                 : self.num_other_agents_observed
             ]
         ]
@@ -552,10 +552,10 @@ class TagContinuous(CUDAEnvironmentContext):
 
                 # Set obs for agents still in the game
                 if self.still_in_the_game[agent_id]:
-                    nearest_neighbor_ids = self.K_nearest_neighbors(
-                        agent_id, K=self.num_other_agents_observed
+                    nearest_neighbor_ids = self.k_nearest_neighbors(
+                        agent_id, k=self.num_other_agents_observed
                     )
-                    # For the case when the number of nearest agent ids is fewer
+                    # For the case when the number of remaining agent ids is fewer
                     # than self.num_other_agents_observed (because agents have exited
                     # the game), we also need to pad obs wih zeros
                     obs_global_states = np.hstack(
@@ -783,7 +783,7 @@ class TagContinuous(CUDAEnvironmentContext):
             key=_ACC, value=self.starting_accelerations, t=self.timestep
         )
 
-        # Array to keep track of who all are still in the game
+        # Array to keep track of the agents that are still in play
         self.still_in_the_game = np.ones(self.num_agents, dtype=self.int_dtype)
 
         # Initialize global state for "still_in_the_game" to all ones

@@ -10,7 +10,7 @@ The Fully Connected Network class
 
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as func
 from gym.spaces import Box, Dict, Discrete, MultiDiscrete
 from torch import nn
 
@@ -204,7 +204,7 @@ class FullyConnected(nn.Module):
                 ip = obs[:, agent_ids_for_policy]
 
             # Push the processed (in this case, flattened) obs to the GPU (device).
-            # The write happens to a specific batch index in the processed obs batch.
+            # The writing happens to a specific batch index in the processed obs batch.
             # The processed obs batch is required for training.
             self.push_processed_obs_to_batch(batch_index, batch_size, ip)
 
@@ -220,7 +220,7 @@ class FullyConnected(nn.Module):
         # Compute the action probabilities and the value function estimate
         # Apply action mask to the logits as well.
         action_probs = [
-            F.softmax(apply_logit_mask(ph(logits), self.action_mask), dim=-1)
+            func.softmax(apply_logit_mask(ph(logits), self.action_mask), dim=-1)
             for ph in self.policy_head
         ]
         vals = self.vf_head(logits)[..., 0]

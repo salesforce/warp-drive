@@ -129,7 +129,7 @@ class TestCUDAEnvTagGridWorld(unittest.TestCase):
     def test_step(self):
         # first step, assume got the spread agent distribution
         # and adversary distribution
-        # (used 100% so it is fixed for testing)
+        # (used 100%, so it is fixed for testing)
         agent_distribution = np.array(
             [
                 [
@@ -155,7 +155,7 @@ class TestCUDAEnvTagGridWorld(unittest.TestCase):
 
         self.sampler.sample(self.dm, agent_distribution, action_name=_ACTIONS)
 
-        # second step, run one step update
+        # second step, run one-step update
         cuda_tag_gridworld_step(self.fm, self.dm, self.resetter)
 
         rewards_update = self.dm.pull_data_from_device(_REWARDS)

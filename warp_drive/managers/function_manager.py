@@ -117,7 +117,7 @@ class CUDAFunctionManager:
     ):
         """
         Compile a template source code, so self.num_agents and self.num_envs
-        will replace the template code at the compile time.
+        will replace the template code at compile time.
         Note: self.num_agents: total number of agents for each env,
         it defines the default block size
         self.num_envs: number of example_envs in parallel,
@@ -698,8 +698,8 @@ class CUDASampler:
 class CUDAEnvironmentReset:
     """
     CUDA Environment Reset: Manages the env reset when the game is terminated
-    inside GPU. Therefore GPU can automatically resets and
-    restarts example_envs by itself.
+    inside GPU. With this, the GPU can automatically reset and
+    restart example_envs by itself.
 
     prerequisite: CUDAFunctionManager is initialized, and the default function list
     has been successfully launched

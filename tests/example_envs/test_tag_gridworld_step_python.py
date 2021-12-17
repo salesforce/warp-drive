@@ -23,7 +23,7 @@ class TestPyEnvTagGridWorld(unittest.TestCase):
     def test_step_case_1(self):
         # first step, assume got the spread agent distribution
         # and adversary distribution
-        # (used 100% so it is fixed for testing)
+        # (used 100%, so it is fixed for testing)
 
         self.env = tag_gridworld.TagGridWorld(
             num_taggers=4,
@@ -176,7 +176,7 @@ class TestPyEnvTagGridWorld(unittest.TestCase):
     def test_step_case_2(self):
         # first step, assume got the spread agent distribution
         # and adversary distribution
-        # (used 100% so it is fixed for testing)
+        # (used 100%, so it is fixed for testing)
 
         self.env = tag_gridworld.TagGridWorld(
             num_taggers=4,

@@ -40,7 +40,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Read the run configurations specific to each environment.
-    # Note: The run config yamls can be edited at warp_drive/training/run_configs
+    # Note: The run config yaml(s) can be edited at warp_drive/training/run_configs
     # ---------------------------------------------------------------------------
     assert args.env in [
         _TAG_CONTINUOUS,

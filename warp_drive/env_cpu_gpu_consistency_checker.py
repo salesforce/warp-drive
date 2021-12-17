@@ -151,7 +151,7 @@ class EnvironmentCPUvsGPU:
                 )
                 obs_list += [combined_obs_array]
 
-            obs_cpu = np.stack((obs_list), axis=0)
+            obs_cpu = np.stack(obs_list, axis=0)
 
             # GPU version of env
             if self.env_registry is not None and self.env_registry.has_env(
@@ -230,7 +230,7 @@ class EnvironmentCPUvsGPU:
                     )
                     actions_list += [combined_actions]
 
-                actions = np.stack((actions_list), axis=0)
+                actions = np.stack(actions_list, axis=0)
 
                 actions_data = DataFeed()
                 actions_data.add_data(name=_ACTIONS, data=actions)
@@ -266,8 +266,8 @@ class EnvironmentCPUvsGPU:
                     rew_list += [combined_rew_array]
                     done_list += [done]
 
-                obs_cpu = np.stack((obs_list), axis=0)
-                rew_cpu = np.stack((rew_list), axis=0)
+                obs_cpu = np.stack(obs_list, axis=0)
+                rew_cpu = np.stack(rew_list, axis=0)
 
                 done_cpu = {
                     "__all__": np.array([done["__all__"] for done in done_list])
@@ -295,7 +295,7 @@ class EnvironmentCPUvsGPU:
                 # GPU reset
                 env_gpu.reset_only_done_envs()
 
-                # Now, pull done flags and they should be set to 0 (False) again
+                # Now, pull done flags, and assert that they should be 0 (False) again
                 done_gpu = env_gpu.cuda_data_manager.pull_data_from_device("_done_")
                 assert done_gpu.sum() == 0
 

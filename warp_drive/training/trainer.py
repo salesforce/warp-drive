@@ -839,7 +839,7 @@ class Trainer:
                 [np.ones(array_shape) for _ in range(env.episode_length + 1)]
             )
 
-        for timestep in range(env.episode_length):
+        for timestep in range(env.episode_length + 1):
             # Update the episode states
             for state in list_of_states:
                 episode_states[state][

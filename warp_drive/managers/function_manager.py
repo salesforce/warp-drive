@@ -188,7 +188,7 @@ class CUDAFunctionManager:
         print(f"Successfully mkdir the binary folder {bin_path}")
 
         try:
-            arch = f"{Context.get_device().compute_capability():sm_%d%d}"
+            arch = "sm_%d%d" % Context.get_device().compute_capability()
             cmd = f"nvcc --fatbin -arch={arch} {main_file} -o {cubin_file}"
             with subprocess.Popen(
                 cmd, shell=True, stderr=subprocess.STDOUT

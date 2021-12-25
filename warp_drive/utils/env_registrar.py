@@ -1,3 +1,6 @@
+import logging
+
+
 class EnvironmentRegistrar:
     """
     Environment Registry Class
@@ -48,11 +51,11 @@ class EnvironmentRegistrar:
         if use_cuda is False:
             if name not in self._cpu_envs:
                 raise Exception(f"CPU environment {name} not found ")
-            print(f"return CPU environment {name} ")
+            logging.info(f"returning CPU environment {name} ")
             return self._cpu_envs[name]
         if name not in self._cuda_envs:
             raise Exception(f"CUDA environment {name} not found ")
-        print(f"return CUDA environment {name} ")
+        logging.info(f"returning CUDA environment {name} ")
         return self._cuda_envs[name]
 
     def add_cuda_env_src_path(self, name, cuda_env_src_path):
@@ -66,8 +69,8 @@ class EnvironmentRegistrar:
         """
         name = name.lower()
         if name in self._customized_cuda_env_src_paths:
-            print(
-                f"[WARNING]: EnvironmentRegistrar has already registered an "
+            logging.warning(
+                f"EnvironmentRegistrar has already registered an "
                 f"environment path called {name} but we will re-register it "
                 f"by overwriting the previous source code path"
             )

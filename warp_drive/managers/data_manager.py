@@ -4,6 +4,7 @@
 # For full license text, see the LICENSE file in the repo root
 # or https://opensource.org/licenses/BSD-3-Clause
 
+import logging
 from typing import Dict, Optional
 
 import numpy as np
@@ -243,7 +244,7 @@ class CUDADataManager:
         """
         assert isinstance(data, dict)
 
-        print("\nPushing data to device...")
+        logging.info("\nPushing data to device...")
         for key, content in data.items():
             assert (
                 key not in self._host_data
@@ -495,15 +496,14 @@ class CUDADataManager:
         return self._dtype[name]
 
     def _type_warning_helper(self, key: str, old: str, new: str, comment=None):
-        print(
-            f"[WARNING]: CUDADataManager casts the data '{key}' "
-            f"from type {old} to {new}"
+        logging.warning(
+            f"CUDADataManager casts the data '{key}' " f"from type {old} to {new}"
         )
         if comment:
-            print(comment)
+            logging.warning(comment)
 
     def _shape_info_helper(self, key: str, dtype: str, shape):
-        print(f"- {key:<80}: dtype={dtype:<10}, shape={shape}")
+        logging.info(f"- {key:<80}: dtype={dtype:<10}, shape={shape}")
 
     @property
     def host_data(self):

@@ -9,6 +9,7 @@ The Trainer, PerfStats and Metrics classes
 """
 
 import json
+import logging
 import os
 import random
 import time
@@ -279,7 +280,7 @@ class Trainer:
                     vf_loss_coeff=vf_loss_coeff,
                     entropy_coeff=entropy_coeff,
                 )
-                print(f"Initializing the A2C trainer for policy {policy}")
+                logging.info(f"Initializing the A2C trainer for policy {policy}")
             elif algorithm == "PPO":
                 # Proximal Policy Optimization
                 self.trainers[policy] = PPO(
@@ -290,7 +291,7 @@ class Trainer:
                     vf_loss_coeff=vf_loss_coeff,
                     entropy_coeff=entropy_coeff,
                 )
-                print(f"Initializing the PPO trainer for policy {policy}")
+                logging.info(f"Initializing the PPO trainer for policy {policy}")
             else:
                 raise NotImplementedError
 
@@ -333,7 +334,7 @@ class Trainer:
             try:
                 config = config[arg]
             except ValueError:
-                print("Missing configuration '{arg}'!")
+                logging.error("Missing configuration '{arg}'!")
         return config
 
     def train(self):
@@ -755,7 +756,9 @@ class Trainer:
         Load the model parameters if a checkpoint path is specified.
         """
         if ckpts_dict is None:
-            print("Loading trainer model checkpoints from the run configuration.")
+            logging.info(
+                "Loading trainer model checkpoints from the run configuration."
+            )
             for policy in self.policies:
                 ckpt_filepath = self.config["policy"][policy]["model"][
                     "model_ckpt_filepath"
@@ -820,7 +823,7 @@ class Trainer:
         assert isinstance(list_of_states, list)
         assert len(list_of_states) > 0
 
-        print(f"Fetching the episode states: {list_of_states} from the GPU.")
+        logging.info(f"Fetching the episode states: {list_of_states} from the GPU.")
         # Ensure env is reset before the start of training, and done flags are False
         self.cuda_envs.reset_all_envs()
         env = self.cuda_envs.env

@@ -8,6 +8,8 @@
 Consistency tests for comparing the cuda (gpu) / no cuda (cpu) version
 """
 
+import logging
+
 import numpy as np
 import torch
 from gym.spaces import Discrete, MultiDiscrete
@@ -106,8 +108,8 @@ class EnvironmentCPUvsGPU:
 
         self.env_configs = env_configs
         if use_gpu_testing_mode:
-            print(
-                f"enforce the num_envs = {num_envs} because you have "
+            logging.warning(
+                f"enforce num_envs = {num_envs} because you have "
                 f"use_gpu_testing_mode = True, where the cubin file"
                 f"supporting this testing mode assumes 2 parallel example_envs"
             )
@@ -208,14 +210,16 @@ class EnvironmentCPUvsGPU:
             # Consistency checks at the first reset
             # -------------------------------------
             obs_gpu = env_gpu.cuda_data_manager.pull_data_from_device(_OBSERVATIONS)
-            print("Running obs consistency check after first reset...")
+            logging.info("Running obs consistency check after first reset...")
             self.run_consistency_checks(
                 obs_cpu, obs_gpu, threshold_pct=consistency_threshold_pct
             )
 
-            # Consistency checks during step
-            # ------------------------------
-            print("Running obs/rew/done consistency check during env resets and steps")
+            # Consistency checks during subsequent steps and resets
+            # -----------------------------------------------------
+            logging.info(
+                "Running obs/rew/done consistency check during subsequent env steps and resets"
+            )
 
             # Test across multiple episodes
             for _ in range(self.num_episodes * env_gpu.episode_length):
@@ -339,4 +343,4 @@ class EnvironmentCPUvsGPU:
         assert (
             max_abs_diff < threshold_pct / 100.0
             or relative_max_abs_diff_pct < threshold_pct
-        )
+        ), "There are some inconsistencies between the cpu and gpu values!"

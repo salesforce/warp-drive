@@ -43,6 +43,6 @@ saving:
     metrics_log_freq: 100 # how often (in iterations) to log (and print) the metrics
     model_params_save_freq: 5000 # how often (in iterations) to save the model parameters
     basedir: "/tmp" # base folder used for saving
-    name: "tag_gridworld"
-    tag: "experiments" 
+    name: "tag_gridworld" # base folder used for saving
+    tag: "experiments" # experiment name
 

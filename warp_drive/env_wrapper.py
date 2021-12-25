@@ -8,6 +8,8 @@
 The env wrapper class
 """
 
+import logging
+
 import numpy as np
 
 from warp_drive.managers.data_manager import CUDADataManager
@@ -95,7 +97,7 @@ class EnvWrapper:
         self.reset_on_host = True
 
         if self.use_cuda:
-            print("USING CUDA...")
+            logging.info("USING CUDA...")
 
             assert isinstance(
                 self.env, CUDAEnvironmentContext
@@ -105,20 +107,20 @@ class EnvWrapper:
             assert num_envs >= 1
             self.n_envs = num_envs
 
-            print("Initializing the CUDA data manager...")
+            logging.info("Initializing the CUDA data manager...")
             self.cuda_data_manager = CUDADataManager(
                 num_agents=self.n_agents,
                 episode_length=self.episode_length,
                 num_envs=self.n_envs,
             )
 
-            print("Initializing the CUDA function manager...")
+            logging.info("Initializing the CUDA function manager...")
             self.cuda_function_manager = CUDAFunctionManager(
                 num_agents=int(self.cuda_data_manager.meta_info("n_agents")),
                 num_envs=int(self.cuda_data_manager.meta_info("n_envs")),
             )
 
-            print(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
+            logging.info(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
             if testing_mode:
                 self.cuda_function_manager.load_cuda_from_binary_file(
                     f"{_CUBIN_FILEPATH}/test_build.fatbin"

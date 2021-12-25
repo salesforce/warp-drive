@@ -1,3 +1,6 @@
+import logging
+
+
 class CUDAEnvironmentContext:
     """
     Environment Context class to manage APIs for the communication
@@ -25,5 +28,5 @@ class CUDAEnvironmentContext:
             self.cuda_step_function_feed = cuda_step_function_feed
             return True
         except Exception as err:
-            print(err)
+            logging.error(err)
             return False

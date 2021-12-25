@@ -4,6 +4,8 @@
 # For full license text, see the LICENSE file in the repo root
 # or https://opensource.org/licenses/BSD-3-Clause
 
+import logging
+
 import numpy as np
 from gym.spaces import Box, Dict, Discrete, MultiDiscrete
 
@@ -49,10 +51,12 @@ def create_and_push_data_placeholders(
             first_agent_id
         ]
         action_space[pol_mod_tag] = env_wrapper.env.action_space[first_agent_id]
-        print("-" * 40)
-        print(f"Observation space: {pol_mod_tag}", observation_space[pol_mod_tag])
-        print(f"Action space: {pol_mod_tag}", action_space[pol_mod_tag])
-        print("-" * 40)
+        logging.info("-" * 40)
+        logging.info(
+            f"Observation space shape: {pol_mod_tag} - {observation_space[pol_mod_tag]}"
+        )
+        logging.info(f"Action space: {pol_mod_tag} - {action_space[pol_mod_tag]}")
+        logging.info("-" * 40)
 
     # Reset the environment to obtain the obs dict
     obs = env_wrapper.env.reset()

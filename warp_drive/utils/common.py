@@ -4,6 +4,7 @@
 # For full license text, see the LICENSE file in the repo root
 # or https://opensource.org/licenses/BSD-3-Clause
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -41,9 +42,9 @@ def update_env_header(template_header_file, path=None, num_envs=1, num_agents=1)
     destination_header_file = "env_config.h"
 
     if os.path.exists(f"{destination_header_path}/{destination_header_file}"):
-        print(
+        logging.warning(
             f"the destination header file {destination_header_path}/"
-            f"{destination_header_file} exist, remove and rebuild "
+            f"{destination_header_file} already exists; remove and rebuild."
         )
         os.remove(f"{destination_header_path}/{destination_header_file}")
 
@@ -99,9 +100,9 @@ def update_env_runner(
     destination_runner_file = "env_runner.cu"
 
     if os.path.exists(f"{destination_runner_path}/{destination_runner_file}"):
-        print(
+        logging.warning(
             f"the destination runner file {destination_runner_path}/"
-            f"{destination_runner_file} exist, remove and rebuild "
+            f"{destination_runner_file} already exists; remove and rebuild."
         )
         os.remove(f"{destination_runner_path}/{destination_runner_file}")
 
@@ -111,25 +112,25 @@ def update_env_runner(
         and customized_env_registrar.get_cuda_env_src_path(env_name) is not None
     ):
         env_cuda = customized_env_registrar.get_cuda_env_src_path(env_name)
-        print(
-            f"Find the targeting environment source code "
+        logging.info(
+            f"Finding the targeting environment source code "
             f"from the customized environment directory: {env_cuda}"
         )
     elif get_default_env_directory(env_name) is not None:
         env_cuda = get_default_env_directory(env_name)
-        print(
-            f"Find the targeting environment source code "
+        logging.info(
+            f"Finding the targeting environment source code "
             f"from the default environment directory: {env_cuda}"
         )
 
     assert env_cuda is not None and isinstance(
         env_cuda, str
-    ), "Fail to find or validate the targeting environment"
+    ), "Failed to find or validate the targeting environment"
 
     runner_subs = {"ENV_CUDA": env_cuda}
     runner_content = ""
 
-    print(
+    logging.info(
         f"Building the targeting environment "
         f"with source code at: {runner_subs['ENV_CUDA']}"
     )

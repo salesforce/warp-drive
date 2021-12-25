@@ -4,6 +4,7 @@
 # For full license text, see the LICENSE file in the repo root
 # or https://opensource.org/licenses/BSD-3-Clause
 
+import logging
 import subprocess
 import time
 from typing import Optional
@@ -84,7 +85,7 @@ class CUDAFunctionManager:
 
         self._CUDA_module = SourceModule(code, no_extern_c=True)
 
-        print("Successfully build and load the source code")
+        logging.info("Successfully build and load the source code")
         if default_functions_included:
             self.initialize_default_functions()
 
@@ -102,7 +103,7 @@ class CUDAFunctionManager:
         ), "CUDA module has already been loaded, not allowed to load twice"
 
         self._CUDA_module = cuda_driver.module_from_file(cubin)
-        print(f"Successfully load the cubin_file from {cubin}")
+        logging.info(f"Successfully load the cubin_file from {cubin}")
         if default_functions_included:
             self.initialize_default_functions()
 
@@ -160,7 +161,7 @@ class CUDAFunctionManager:
             num_envs=self.grid[0],
             num_agents=self.block[0],
         )
-        print(
+        logging.debug(
             f"header file {header_path}/env_config.h has num_agents: "
             f"{self.block[0]} and num_envs: {self.grid[0]} "
             f"that are consistent with the block and the grid"
@@ -170,7 +171,7 @@ class CUDAFunctionManager:
         main_file = f"{header_path}/env_runner.cu"
         # cubin_file is the targeted compiled exe
         cubin_file = f"{bin_path}/env_runner.fatbin"
-        print(f"Compiling {main_file} -> {cubin_file}")
+        logging.info(f"Compiling {main_file} -> {cubin_file}")
 
         self._compile(main_file, cubin_file)
         self.load_cuda_from_binary_file(
@@ -185,10 +186,11 @@ class CUDAFunctionManager:
         ) as mkbin_process:
             if mkbin_process.wait() != 0:
                 raise Exception("make bin file failed ... ")
-        print(f"Successfully mkdir the binary folder {bin_path}")
+        logging.info(f"Successfully mkdir the binary folder {bin_path}")
 
         try:
-            arch = "sm_%d%d" % Context.get_device().compute_capability()
+            cc = Context.get_device().compute_capability()  # compute capability
+            arch = f"sm_{cc[0]}{cc[1]}"
             cmd = f"nvcc --fatbin -arch={arch} {main_file} -o {cubin_file}"
             with subprocess.Popen(
                 cmd, shell=True, stderr=subprocess.STDOUT
@@ -200,15 +202,15 @@ class CUDAFunctionManager:
                         f"try to build the fatbin hybrid version "
                         f"of virtual PTX + gpu binary ... "
                     )
-            print(f"Running cmd: {cmd}")
-            print(
+            logging.info(f"Running cmd: {cmd}")
+            logging.info(
                 f"Successfully build the cubin_file "
                 f"from {main_file} to {cubin_file}"
             )
             return
 
         except Exception as err:
-            print(err)
+            logging.error(err)
 
         arch_codes = [
             "-code=sm_37",
@@ -236,15 +238,15 @@ class CUDAFunctionManager:
                             f"{cmd} \n"
                             f"try to build the lower gpu-code version ... "
                         )
-                print(f"Running cmd: {cmd}")
-                print(
+                logging.info(f"Running cmd: {cmd}")
+                logging.info(
                     f"Successfully build the cubin_file "
                     f"from {main_file} to {cubin_file}"
                 )
                 build_success = True
                 break
             except Exception as err:
-                print(err)
+                logging.error(err)
 
         if not build_success:
             raise Exception("build failed ... ")
@@ -270,7 +272,7 @@ class CUDAFunctionManager:
         ]
         self.initialize_functions(default_func_names)
         self._default_functions_initialized = True
-        print(
+        logging.info(
             "Successfully initialize the default CUDA functions "
             "managed by the CUDAFunctionManager"
         )
@@ -287,13 +289,13 @@ class CUDAFunctionManager:
         for fname in func_names:
             assert fname not in self._cuda_functions
             assert fname not in self._cuda_function_names
-            print(
+            logging.info(
                 f"starting to load the cuda kernel function: {fname} "
                 f"from the CUDA module "
             )
             self._cuda_functions[fname] = self._CUDA_module.get_function(fname)
             self._cuda_function_names.append(fname)
-            print(
+            logging.info(
                 f"finished loading the cuda kernel function: {fname} "
                 f"from the CUDA module, "
             )
@@ -311,7 +313,7 @@ class CUDAFunctionManager:
             cuda_driver.memcpy_htod(
                 constant_on_device, data_manager.shared_constant(cname)
             )
-            print(
+            logging.info(
                 f"Successfully initialize the CUDA shared constant {cname} "
                 f"managed by the CUDAFunctionManager"
             )
@@ -440,7 +442,7 @@ class CUDALogController:
         """
         self._env_id = env_id
         self.last_valid_step = -1
-        print(f"reset log for env {self._env_id}")
+        logging.info(f"reset log for env {self._env_id}")
         self._reset_log_mask(data_manager)
         self.update_log(data_manager, step=0)
 
@@ -600,7 +602,9 @@ class CUDASampler:
         free = self._function_manager.get_function("free_random")
         free(block=self._block, grid=self._grid)
         self._random_initialized = False
-        print("CUDASampler has explicitly released the random states memory in CUDA")
+        logging.info(
+            "CUDASampler has explicitly released the random states memory in CUDA"
+        )
 
     def init_random(self, seed: Optional[int] = None):
         """
@@ -609,7 +613,7 @@ class CUDASampler:
         """
         if seed is None:
             seed = time.time()
-            print(
+            logging.info(
                 f"random seed is not provided, by default, "
                 f"using the current timestamp {seed} as seed"
             )

@@ -9,6 +9,7 @@ Example training script for the grid world and continuous versions of Tag.
 """
 
 import argparse
+import logging
 import os
 
 import torch
@@ -34,6 +35,9 @@ _TAG_GRIDWORLD = "tag_gridworld"
 
 if __name__ == "__main__":
 
+    # Set logger level e.g., DEBUG, INFO, WARNING, ERROR\n",
+    logging.getLogger().setLevel(logging.WARNING)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--env", "-e", type=str, help="Environment to train.")
 
@@ -48,8 +52,8 @@ if __name__ == "__main__":
     ], (
         f"Currently, the environment arguments supported "
         f"are ["
-        f"{_TAG_GRIDWORLD}, "
-        f"{_TAG_CONTINUOUS}"
+        f"{_TAG_GRIDWORLD},"
+        f" {_TAG_CONTINUOUS}"
         f"]"
     )
 

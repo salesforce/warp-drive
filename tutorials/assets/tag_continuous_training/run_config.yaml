@@ -25,7 +25,7 @@ env:
     step_reward_for_runner: 0.00
     edge_hit_penalty: -0.0
     end_of_game_reward_for_runner: 1.0
-    tagging_distance: 0.02
+    tagging_distance: 0.01
 
 # Trainer settings
 trainer:

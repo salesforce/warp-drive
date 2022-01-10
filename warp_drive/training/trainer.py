@@ -76,6 +76,7 @@ class Trainer:
         policy_tag_to_agent_id_map=None,
         create_separate_placeholders_for_each_policy=False,
         obs_dim_corresponding_to_num_agents="first",
+        verbose=True,
     ):
         """
         Args:
@@ -85,13 +86,13 @@ class Trainer:
                 a dictionary mapping policy tag to agent ids
             create_separate_placeholders_for_each_policy:
                 flag indicating whether there exist separate observations,
-                actions and rewards placeholders, as designed in the step
-                function. The placeholders will be used in the step() function
-                and during training.
+                actions and rewards placeholders, for each policy,
+                as designed in the step function. The placeholders will be
+                used in the step() function and during training.
                 When there's only a single policy, this flag will be False.
                 It can also be True when there are multiple policies, yet
-                all the agents have the same obs/action space, so we can
-                share the same placeholder.
+                all the agents have the same obs and action space shapes,
+                so we can share the same placeholder.
                 Defaults to "False"
             obs_dim_corresponding_to_num_agents:
                 indicative of which dimension in the observation corresponds
@@ -101,6 +102,8 @@ class Trainer:
                 (*feature_dim, num_agents). This is required in order for
                 WarpDrive to process the observations correctly.
                 Defaults to "first"
+            verbose:
+                if enabled, training metrics are printed to the screen.
         """
         assert env_wrapper is not None
         assert config is not None
@@ -147,6 +150,9 @@ class Trainer:
         if not os.path.isdir(self.save_dir):
             os.makedirs(self.save_dir, exist_ok=False)
 
+        # Flag to determine whether to print training metrics
+        self.verbose = verbose
+
         # Policies
         self.policy_tag_to_agent_id_map = policy_tag_to_agent_id_map
         self.policies = list(self._get_config(["policy"]).keys())
@@ -168,6 +174,7 @@ class Trainer:
 
         # Number of iterations algebra
         self.num_episodes = self._get_config(["trainer", "num_episodes"])
+        assert self.num_episodes > 0
         self.training_batch_size = self._get_config(["trainer", "train_batch_size"])
         self.num_envs = self._get_config(["trainer", "num_envs"])
 
@@ -201,7 +208,7 @@ class Trainer:
         self.current_timestep = {}
 
         self.total_steps = self.cuda_envs.episode_length * self.num_episodes
-        self.num_iters = self.total_steps // self.training_batch_size
+        self.num_iters = int(self.total_steps // self.training_batch_size)
 
         for policy in self.policies:
             self.current_timestep[policy] = 0
@@ -730,15 +737,16 @@ class Trainer:
         if len(metrics) > 0:
             perf_stats = self.perf_stats.get_perf_stats()
 
-            print("\n")
-            print("=" * 40)
-            print(
-                f"{'Iterations Completed':40}: "
-                f"{self.perf_stats.iters} / {self.num_iters}"
-            )
-            self.perf_stats.pretty_print(perf_stats)
-            self.metrics.pretty_print(metrics)
-            print("=" * 40, "\n")
+            if self.verbose:
+                print("\n")
+                print("=" * 40)
+                print(
+                    f"{'Iterations Completed':40}: "
+                    f"{self.perf_stats.iters} / {self.num_iters}"
+                )
+                self.perf_stats.pretty_print(perf_stats)
+                self.metrics.pretty_print(metrics)
+                print("=" * 40, "\n")
 
             # Log metrics and performance stats
             logs = {"Iterations Completed": self.perf_stats.iters}
@@ -746,7 +754,8 @@ class Trainer:
             logs.update({"Perf. Stats": perf_stats})
 
             results_filename = os.path.join(self.save_dir, "results.json")
-            print(f"Saving the results to the file '{results_filename}'")
+            if self.verbose:
+                print(f"Saving the results to the file '{results_filename}'")
             with open(results_filename, "a+", encoding="utf8") as fp:
                 json.dump(logs, fp)
                 fp.write("\n")
@@ -766,7 +775,8 @@ class Trainer:
                 self._load_model_checkpoint_helper(policy, ckpt_filepath)
         else:
             assert isinstance(ckpts_dict, dict)
-            print("Loading the provied trainer model checkpoints.")
+            if self.verbose:
+                print("Loading the provided trainer model checkpoints.")
             for policy, ckpt_filepath in ckpts_dict.items():
                 assert policy in self.policies
                 self._load_model_checkpoint_helper(policy, ckpt_filepath)
@@ -774,15 +784,17 @@ class Trainer:
     def _load_model_checkpoint_helper(self, policy, ckpt_filepath):
         if ckpt_filepath != "":
             assert os.path.isfile(ckpt_filepath), "Invalid model checkpoint path!"
-            print(
-                f"Loading the '{policy}' torch model "
-                f"from the previously saved checkpoint: '{ckpt_filepath}'"
-            )
+            if self.verbose:
+                print(
+                    f"Loading the '{policy}' torch model "
+                    f"from the previously saved checkpoint: '{ckpt_filepath}'"
+                )
             self.models[policy].load_state_dict(torch.load(ckpt_filepath))
 
             # Update the current timestep using the saved checkpoint filename
             timestep = int(ckpt_filepath.split(".state_dict")[0].split("_")[-1])
-            print(f"Updating the timestep for the '{policy}' model to {timestep}.")
+            if self.verbose:
+                print(f"Updating the timestep for the '{policy}' model to {timestep}.")
             self.current_timestep[policy] = timestep
 
     def save_model_checkpoint(self, iteration=0):
@@ -799,7 +811,10 @@ class Trainer:
                     self.save_dir,
                     f"{policy}_{self.current_timestep[policy]}.state_dict",
                 )
-                print(f"Saving the '{policy}' torch model to the file: '{filepath}'.")
+                if self.verbose:
+                    print(
+                        f"Saving the '{policy}' torch model to the file: '{filepath}'."
+                    )
 
                 torch.save(model.state_dict(), filepath)
 
@@ -807,7 +822,8 @@ class Trainer:
         # Delete the sample controller to clear
         # the random seeds defined in the CUDA memory heap
         del self.cuda_sample_controller
-        print("Trainer exits gracefully")
+        if self.verbose:
+            print("Trainer exits gracefully")
 
     def fetch_episode_states(
         self,

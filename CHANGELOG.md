@@ -1,5 +1,9 @@
 # Changelog
 
+# Release 1.3 (2022-01-10)
+- Auto-scaling to maximize the number of environment replicas and training batch size (on a single GPU)
+- Added Python logging
+
 # Release 1.2.2 (2021-12-16)
 - Added a trainer module to fetch environment states for an episode
 

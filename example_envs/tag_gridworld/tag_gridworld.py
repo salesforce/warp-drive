@@ -62,7 +62,7 @@ class TagGridWorld:
         """
         assert num_taggers > 0
         self.num_taggers = num_taggers
-        # there is one runner
+        # there is also (only) one runner
         self.num_agents = self.num_taggers + 1
 
         assert episode_length > 0
@@ -102,12 +102,15 @@ class TagGridWorld:
         self.starting_location_y = starting_location_y
 
         self.step_actions = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
-        # self.action_space = len(self.step_actions)
+
+        # Defining observation and action spaces
+        self.observation_space = None  # Note: this will be set via the env_wrapper
 
         self.action_space = {
             agent_id: spaces.Discrete(len(self.step_actions))
             for agent_id in range(self.num_agents)
         }
+
         # These will be set during reset (see below)
         self.timestep = None
         self.global_state = None

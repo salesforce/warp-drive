@@ -248,7 +248,7 @@ class TagContinuous(CUDAEnvironmentContext):
         self.global_state = None
 
         # Defining observation and action spaces
-        self.observation_space = None  # This will be set via the env_wrapper (in utils)
+        self.observation_space = None  # Note: this will be set via the env_wrapper
         self.action_space = {
             agent_id: spaces.MultiDiscrete(
                 (len(self.acceleration_actions), len(self.turn_actions))

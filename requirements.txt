@@ -3,5 +3,6 @@ matplotlib==3.2.1
 numpy>=1.18.1
 pycuda==2021.1
 pytest>=6.1.0
+pytorch-lightning
 pyyaml>=5.4
 torch>=1.9.0

@@ -218,7 +218,8 @@ class EnvironmentCPUvsGPU:
             # Consistency checks during subsequent steps and resets
             # -----------------------------------------------------
             logging.info(
-                "Running obs/rew/done consistency check during subsequent env steps and resets"
+                "Running obs/rew/done consistency check "
+                "during subsequent env steps and resets..."
             )
 
             # Test across multiple episodes

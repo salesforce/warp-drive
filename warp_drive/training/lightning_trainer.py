@@ -21,7 +21,7 @@ import numpy as np
 import torch
 import yaml
 from gym.spaces import Discrete, MultiDiscrete
-from pytorch_lightning import LightningModule
+from pytorch_lightning import LightningModule, LightningDataModule
 from torch import Tensor, nn
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -68,7 +68,7 @@ def recursive_merge_config_dicts(config, default_config):
     return config
 
 
-class WarpDriveTrainer(LightningModule):
+class WarpDrive(LightningModule):
     """
     The trainer object using PytorchLightning training APIs.
     """
@@ -80,6 +80,7 @@ class WarpDriveTrainer(LightningModule):
         policy_tag_to_agent_id_map=None,
         create_separate_placeholders_for_each_policy=False,
         obs_dim_corresponding_to_num_agents="first",
+        seed=None,
         **kwargs,
     ):
         """
@@ -109,7 +110,7 @@ class WarpDriveTrainer(LightningModule):
         """
         super().__init__()
         # Disable automatic optimization
-        self.automatic_optimization = False
+        # self.automatic_optimization = False
         self.avg_reward = {}
 
         assert env_wrapper is not None
@@ -118,6 +119,7 @@ class WarpDriveTrainer(LightningModule):
         assert len(policy_tag_to_agent_id_map) > 0  # at least one policy
         assert isinstance(create_separate_placeholders_for_each_policy, bool)
         assert obs_dim_corresponding_to_num_agents in ["first", "last"]
+        assert seed is not None
 
         self.cuda_envs = env_wrapper
 
@@ -189,13 +191,8 @@ class WarpDriveTrainer(LightningModule):
         self.function_manager = self.cuda_envs.cuda_function_manager
 
         # Seeding
-        seed = self.config["trainer"].get("seed", np.int32(time.time()))
         self.cuda_sample_controller = CUDASampler(self.cuda_envs.cuda_function_manager)
         self.cuda_sample_controller.init_random(seed)
-
-        torch.manual_seed(seed)
-        random.seed(seed)
-        np.random.seed(seed)
 
         # Define models
         self.models = {}
@@ -792,29 +789,41 @@ class WarpDriveTrainer(LightningModule):
 
     def configure_optimizers(self):
         # Define the optimizers and learning rate schedules
-        self.optimizers =[]
-        self.lr_schedules = []
+        optimizers = []
+        lr_schedules = []
 
         for policy in self.policies:
             # Initialize the (ADAM) optimizer
             policy_config = self._get_config(["policy", policy])
-            self.lr_schedules += [ParamScheduler(policy_config["lr"])]
+            lr_schedule = ParamScheduler(
+                policy_config["lr"],
+                timestep=self.current_timestep[policy],
+                timesteps_per_iteration=self.training_batch_size,
+            )
 
-            initial_lr = self.lr_schedules[policy].get_param_value(
+            initial_lr = lr_schedule.get_param_value(
                 timestep=self.current_timestep[policy]
             )
-            self.optimizers += [torch.optim.Adam(
+            optimizer = torch.optim.Adam(
                 self.models[policy].parameters(), lr=initial_lr
-            )]
-        return self.optimizers
+            )
+            lr_schedule.optimizer = optimizer
 
-    def training_step(self, batch: Tuple[Tensor, Tensor, Tensor, Tensor]):
+            lr_schedules += [{"scheduler": lr_schedule}]
+            optimizers += [optimizer]
+        return optimizers, lr_schedules
+
+    def training_step(
+        self, batch: Tuple[Tensor, Tensor, Tensor, Tensor], batch_idx, optimizer_idx
+    ):
         self.perf_stats.iters += 1
         iteration = self.perf_stats.iters
         start_event = torch.cuda.Event(enable_timing=True)
         end_event = torch.cuda.Event(enable_timing=True)
 
         start_event.record()
+        # self.train_dataloader()  # TODO: Is this necessary here?
+
         metrics_dict = {}
 
         # Flag for logging (which also happens after the last iteration)
@@ -823,76 +832,73 @@ class WarpDriveTrainer(LightningModule):
             or iteration == self.num_iters - 1
         )
 
-        for policy in batch:
-            actions_batch, rewards_batch, done_flags_batch, processed_obs_batch = batch[
-                policy
-            ]
+        # for policy in batch:
+        policy = self.policies_to_train[optimizer_idx]
 
-            probabilities_batch, value_functions_batch = self.models[policy](
-                obs=processed_obs_batch
+        actions_batch, rewards_batch, done_flags_batch, processed_obs_batch = batch[
+            policy
+        ]
+
+        probabilities_batch, value_functions_batch = self.models[policy](
+            obs=processed_obs_batch
+        )
+
+        # Loss and metrics computation
+        loss, metrics = self.trainers[policy].compute_loss_and_metrics(
+            self.current_timestep[policy],
+            actions_batch,
+            rewards_batch,
+            done_flags_batch,
+            probabilities_batch,
+            value_functions_batch,
+            perform_logging=logging_flag,
+        )
+
+        # Compute the gradient norm
+        grad_norm = 0.0
+        for param in list(
+            filter(lambda p: p.grad is not None, self.models[policy].parameters())
+        ):
+            grad_norm += param.grad.data.norm(2).item()
+
+        # Update the timestep and learning rate based on the schedule
+        self.current_timestep[policy] += self.training_batch_size
+
+        # # Loss backpropagation and optimization step
+        # self.optimizers[policy].zero_grad()
+        # loss.backward()
+
+        if self.clip_grad_norm[policy]:
+            nn.utils.clip_grad_norm_(
+                self.models[policy].parameters(), self.max_grad_norm[policy]
             )
 
-            # Loss and metrics computation
-            loss, metrics = self.trainers[policy].compute_loss_and_metrics(
-                self.current_timestep[policy],
-                actions_batch,
-                rewards_batch,
-                done_flags_batch,
-                probabilities_batch,
-                value_functions_batch,
-                perform_logging=logging_flag,
+        # self.optimizers[policy].step()
+
+        # Logging
+        if logging_flag:
+            metrics_dict[policy] = metrics
+            # Update the metrics dictionary
+            metrics_dict[policy].update(
+                {
+                    "Current timestep": self.current_timestep[policy],
+                    "Gradient norm": grad_norm,
+                    # "Learning rate": lr,
+                    "Mean episodic reward": self.episodic_reward_sum[policy].item()
+                    / (self.num_completed_episodes[policy] + _EPSILON),
+                }
+            )
+            self.avg_reward[policy] = self.episodic_reward_sum[policy].item() / (
+                self.num_completed_episodes[policy] + _EPSILON
             )
 
-            # Compute the gradient norm
-            grad_norm = 0.0
-            for param in list(
-                filter(lambda p: p.grad is not None, self.models[policy].parameters())
-            ):
-                grad_norm += param.grad.data.norm(2).item()
-
-            # Update the timestep and learning rate based on the schedule
-            self.current_timestep[policy] += self.training_batch_size
-            lr = self.lr_schedules[policy].get_param_value(
-                self.current_timestep[policy]
+            # Reset sum and counter
+            self.episodic_reward_sum[policy] = (
+                torch.tensor(0).type(torch.float32).cuda()
             )
-            for param_group in self.optimizers[policy].param_groups:
-                param_group["lr"] = lr
-
-            # Loss backpropagation and optimization step
-            self.optimizers[policy].zero_grad()
-            loss.backward()
-
-            if self.clip_grad_norm[policy]:
-                nn.utils.clip_grad_norm_(
-                    self.models[policy].parameters(), self.max_grad_norm[policy]
-                )
-
-            self.optimizers[policy].step()
-
-            # Logging
-            if logging_flag:
-                metrics_dict[policy] = metrics
-                # Update the metrics dictionary
-                metrics_dict[policy].update(
-                    {
-                        "Current timestep": self.current_timestep[policy],
-                        "Gradient norm": grad_norm,
-                        "Learning rate": lr,
-                        "Mean episodic reward": self.episodic_reward_sum[policy].item()
-                        / (self.num_completed_episodes[policy] + _EPSILON),
-                    }
-                )
-                self.avg_reward[policy] = self.episodic_reward_sum[policy].item() / (
-                    self.num_completed_episodes[policy] + _EPSILON
-                )
-
-                if self.avg_reward[policy] != 0:
-                    print(policy, self.avg_reward[policy])
-                # Reset sum and counter
-                self.episodic_reward_sum[policy] = (
-                    torch.tensor(0).type(torch.float32).cuda()
-                )
-                self.num_completed_episodes[policy] = 0
+            self.num_completed_episodes[policy] = 0
+        else:
+            self.avg_reward[policy] = None
 
         end_event.record()
         torch.cuda.synchronize()

@@ -21,7 +21,7 @@ import numpy as np
 import torch
 import yaml
 from gym.spaces import Discrete, MultiDiscrete
-from pytorch_lightning import LightningModule, LightningDataModule
+from pytorch_lightning import LightningModule, seed_everything
 from torch import Tensor, nn
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -68,7 +68,7 @@ def recursive_merge_config_dicts(config, default_config):
     return config
 
 
-class WarpDrive(LightningModule):
+class WarpDriveModel(LightningModule):
     """
     The trainer object using PytorchLightning training APIs.
     """
@@ -80,7 +80,6 @@ class WarpDrive(LightningModule):
         policy_tag_to_agent_id_map=None,
         create_separate_placeholders_for_each_policy=False,
         obs_dim_corresponding_to_num_agents="first",
-        seed=None,
         **kwargs,
     ):
         """
@@ -109,8 +108,6 @@ class WarpDrive(LightningModule):
                 Defaults to "first"
         """
         super().__init__()
-        # Disable automatic optimization
-        # self.automatic_optimization = False
         self.avg_reward = {}
 
         assert env_wrapper is not None
@@ -119,7 +116,6 @@ class WarpDrive(LightningModule):
         assert len(policy_tag_to_agent_id_map) > 0  # at least one policy
         assert isinstance(create_separate_placeholders_for_each_policy, bool)
         assert obs_dim_corresponding_to_num_agents in ["first", "last"]
-        assert seed is not None
 
         self.cuda_envs = env_wrapper
 
@@ -191,6 +187,8 @@ class WarpDrive(LightningModule):
         self.function_manager = self.cuda_envs.cuda_function_manager
 
         # Seeding
+        seed = self.config["trainer"].get("seed", np.int32(time.time()))
+        seed_everything(seed)
         self.cuda_sample_controller = CUDASampler(self.cuda_envs.cuda_function_manager)
         self.cuda_sample_controller.init_random(seed)
 
@@ -245,45 +243,7 @@ class WarpDrive(LightningModule):
         self.trainers = {}
         self.clip_grad_norm = {}
         self.max_grad_norm = {}
-        for policy in self.policies_to_train:
-            policy_config = self._get_config(["policy", policy])
-            algorithm = policy_config["algorithm"]
-            assert algorithm in ["A2C", "PPO"]
-            entropy_coeff = policy_config["entropy_coeff"]
-            vf_loss_coeff = policy_config["vf_loss_coeff"]
-            self.clip_grad_norm[policy] = policy_config["clip_grad_norm"]
-            if self.clip_grad_norm[policy]:
-                self.max_grad_norm[policy] = policy_config["max_grad_norm"]
-            normalize_advantage = policy_config["normalize_advantage"]
-            normalize_return = policy_config["normalize_return"]
-            gamma = policy_config["gamma"]
-
-            if algorithm == "PPO":
-                clip_param = policy_config["clip_param"]
-
-            if algorithm == "A2C":
-                # Advantage Actor-Critic
-                self.trainers[policy] = A2C(
-                    discount_factor_gamma=gamma,
-                    normalize_advantage=normalize_advantage,
-                    normalize_return=normalize_return,
-                    vf_loss_coeff=vf_loss_coeff,
-                    entropy_coeff=entropy_coeff,
-                )
-                logging.info(f"Initializing the A2C trainer for policy {policy}")
-            elif algorithm == "PPO":
-                # Proximal Policy Optimization
-                self.trainers[policy] = PPO(
-                    discount_factor_gamma=gamma,
-                    clip_param=clip_param,
-                    normalize_advantage=normalize_advantage,
-                    normalize_return=normalize_return,
-                    vf_loss_coeff=vf_loss_coeff,
-                    entropy_coeff=entropy_coeff,
-                )
-                logging.info(f"Initializing the PPO trainer for policy {policy}")
-            else:
-                raise NotImplementedError
+        self.initialize_trainers()
 
         # Push all the data and tensor arrays to the GPU
         # upon resetting environments for the very first time.
@@ -298,6 +258,54 @@ class WarpDrive(LightningModule):
         )
 
         # Register action placeholders
+        self.register_action_placeholders()
+
+        # Performance Stats
+        self.perf_stats = PerfStats()
+
+        # Metrics
+        self.metrics = Metrics()
+
+    def initialize_trainers(self):
+        for policy in self.policies_to_train:
+            policy_config = self._get_config(["policy", policy])
+            algorithm = policy_config["algorithm"]
+            assert algorithm in ["A2C", "PPO"]
+            entropy_coeff = policy_config["entropy_coeff"]
+            vf_loss_coeff = policy_config["vf_loss_coeff"]
+            self.clip_grad_norm[policy] = policy_config["clip_grad_norm"]
+            if self.clip_grad_norm[policy]:
+                self.max_grad_norm[policy] = policy_config["max_grad_norm"]
+            normalize_advantage = policy_config["normalize_advantage"]
+            normalize_return = policy_config["normalize_return"]
+            gamma = policy_config["gamma"]
+
+            if algorithm == "A2C":
+                # Advantage Actor-Critic
+                self.trainers[policy] = A2C(
+                    discount_factor_gamma=gamma,
+                    normalize_advantage=normalize_advantage,
+                    normalize_return=normalize_return,
+                    vf_loss_coeff=vf_loss_coeff,
+                    entropy_coeff=entropy_coeff,
+                )
+                logging.info(f"Initializing the A2C trainer for policy {policy}")
+            elif algorithm == "PPO":
+                clip_param = policy_config["clip_param"]
+                # Proximal Policy Optimization
+                self.trainers[policy] = PPO(
+                    discount_factor_gamma=gamma,
+                    clip_param=clip_param,
+                    normalize_advantage=normalize_advantage,
+                    normalize_return=normalize_return,
+                    vf_loss_coeff=vf_loss_coeff,
+                    entropy_coeff=entropy_coeff,
+                )
+                logging.info(f"Initializing the PPO trainer for policy {policy}")
+            else:
+                raise NotImplementedError
+
+    def register_action_placeholders(self):
         if self.create_separate_placeholders_for_each_policy:
             for policy in self.policies:
                 sample_agent_id = self.policy_tag_to_agent_id_map[policy][0]
@@ -310,12 +318,6 @@ class WarpDrive(LightningModule):
             action_space = self.cuda_envs.env.action_space[sample_agent_id]
 
             self._register_actions(action_space)
-
-        # Performance Stats
-        self.perf_stats = PerfStats()
-
-        # Metrics
-        self.metrics = Metrics()
 
     def _get_config(self, args):
         assert isinstance(args, (tuple, list))
@@ -763,11 +765,6 @@ class WarpDrive(LightningModule):
                 )
             )
 
-            # Policy evaluation for the entire batch
-            # probabilities_batch, value_functions_batch = self.models[policy](
-            #     obs=processed_obs_batch
-            # )
-
             dataset = TensorDataset(
                 actions_batch, rewards_batch, done_flags_batch, processed_obs_batch
             )
@@ -792,7 +789,7 @@ class WarpDrive(LightningModule):
         optimizers = []
         lr_schedules = []
 
-        for policy in self.policies:
+        for policy in self.policies_to_train:
             # Initialize the (ADAM) optimizer
             policy_config = self._get_config(["policy", policy])
             lr_schedule = ParamScheduler(
@@ -813,8 +810,19 @@ class WarpDrive(LightningModule):
             optimizers += [optimizer]
         return optimizers, lr_schedules
 
+    def configure_gradient_clipping(
+        self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm
+    ):
+        policy = self.policies_to_train[optimizer_idx]
+        if self.clip_grad_norm[policy]:
+            self.clip_gradients(
+                optimizer,
+                gradient_clip_val=self.max_grad_norm[policy],
+                gradient_clip_algorithm=gradient_clip_algorithm,
+            )
+
     def training_step(
-        self, batch: Tuple[Tensor, Tensor, Tensor, Tensor], batch_idx, optimizer_idx
+        self, batch: Tuple[Tensor, Tensor, Tensor, Tensor], batch_idx=0, optimizer_idx=0
     ):
         self.perf_stats.iters += 1
         iteration = self.perf_stats.iters
@@ -839,6 +847,7 @@ class WarpDrive(LightningModule):
             policy
         ]
 
+        # Policy evaluation for the entire batch
         probabilities_batch, value_functions_batch = self.models[policy](
             obs=processed_obs_batch
         )
@@ -864,14 +873,16 @@ class WarpDrive(LightningModule):
         # Update the timestep and learning rate based on the schedule
         self.current_timestep[policy] += self.training_batch_size
 
+        # Everything below is handled by Pytorch Lightning
+        # ------------------------------------------------
         # # Loss backpropagation and optimization step
         # self.optimizers[policy].zero_grad()
         # loss.backward()
 
-        if self.clip_grad_norm[policy]:
-            nn.utils.clip_grad_norm_(
-                self.models[policy].parameters(), self.max_grad_norm[policy]
-            )
+        # if self.clip_grad_norm[policy]:
+        #     nn.utils.clip_grad_norm_(
+        #         self.models[policy].parameters(), self.max_grad_norm[policy]
+        #     )
 
         # self.optimizers[policy].step()
 
@@ -917,55 +928,6 @@ class WarpDrive(LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no cover
         parser = argparse.ArgumentParser(parents=[parent_parser])
-        parser.add_argument("--env", type=str, default="CartPole-v0")
-        parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-        parser.add_argument(
-            "--lam", type=float, default=0.95, help="advantage discount factor"
-        )
-        parser.add_argument(
-            "--lr_actor",
-            type=float,
-            default=3e-4,
-            help="learning rate of actor network",
-        )
-        parser.add_argument(
-            "--lr_critic",
-            type=float,
-            default=1e-3,
-            help="learning rate of critic network",
-        )
-        parser.add_argument(
-            "--max_episode_len",
-            type=int,
-            default=1000,
-            help="capacity of the replay buffer",
-        )
-        parser.add_argument(
-            "--batch_size",
-            type=int,
-            default=512,
-            help="batch_size when training network",
-        )
-        parser.add_argument(
-            "--steps_per_epoch",
-            type=int,
-            default=2048,
-            help="how many action-state pairs to rollout for "
-            "trajectory collection per epoch",
-        )
-        parser.add_argument(
-            "--nb_optim_iters",
-            type=int,
-            default=4,
-            help="how many steps of gradient descent to perform on each batch",
-        )
-        parser.add_argument(
-            "--clip_ratio",
-            type=float,
-            default=0.2,
-            help="hyperparameter for clipping in the policy objective",
-        )
-
         return parser
 
 

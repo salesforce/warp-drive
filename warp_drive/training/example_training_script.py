@@ -128,10 +128,7 @@ if __name__ == "__main__":
     # Read the run configurations specific to each environment.
     # Note: The run config yaml(s) can be edited at warp_drive/training/run_configs
     # -----------------------------------------------------------------------------
-    assert args.env in [
-        _TAG_CONTINUOUS,
-        _TAG_GRIDWORLD,
-    ], (
+    assert args.env in [_TAG_CONTINUOUS, _TAG_GRIDWORLD], (
         f"Currently, the environment arguments supported "
         f"are ["
         f"{_TAG_GRIDWORLD},"

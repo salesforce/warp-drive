@@ -1,12 +1,12 @@
 # WarpDrive: Extremely Fast End-to-End Deep Multi-Agent Reinforcement Learning on a GPU
 
 WarpDrive is a flexible, lightweight, and easy-to-use open-source reinforcement learning (RL) 
-framework that implements end-to-end multi-agent RL on a single GPU (Graphics Processing Unit). 
+framework that implements end-to-end multi-agent RL on a single or multiple GPUs (Graphics Processing Unit). 
 
 Using the extreme parallelization capability of GPUs, WarpDrive enables orders-of-magnitude 
 faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, 
-and runs simulations across multiple agents and multiple environment replicas in parallel. 
-Together, this allows the user to run thousands of concurrent multi-agent simulations and train 
+and runs simulations across multiple agents and multiple environment replicas in parallel. WarpDrive also provides the auto scaling tools to achieve the optimal throughput per device (version 1.3) and to perform the distributed asynchronous training among multiple devices (version 1.4).
+Together, these allow the user to run thousands of concurrent multi-agent simulations and train 
 on extremely large batches of experience, achieving over 100x throughput over CPU-based counterparts.
 
 Our current release includes several multi-agent environments
@@ -57,9 +57,9 @@ node versus a single A100 GPU (using WarpDrive), for the Tag environment with 10
 
 
 ## Code Structure
-WarpDrive provides a CUDA + Python framework and quality-of-life tools so you can quickly build fast and flexible multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA step function at the CUDA environment layer, while the rest is a pure Python interface. We have step by step tutorials for you to master the workflow.
+WarpDrive provides a CUDA + Python framework and quality-of-life tools so you can quickly build fast, flexible and massively distributed multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA step function at the CUDA environment layer, while the rest is a pure Python interface. We have step by step tutorials for you to master the workflow.
 
-<img src="https://user-images.githubusercontent.com/31748898/132800991-e181bba6-b559-4b54-b7fe-461424765ebc.png" width="780" height="510"/>
+<img src="https://user-images.githubusercontent.com/31748898/150910647-f939a9b2-0b3f-41f1-a9da-6418a6485f1b.png" width="780" height="580"/>
 
 ## White Paper and Citing WarpDrive
 

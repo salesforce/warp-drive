@@ -806,8 +806,8 @@ class Trainer:
 
         if self.num_devices > 1:
             heartbeat_print = (
-                    "Iterations Completed: "
-                    + f"{self.perf_stats.iters} / {self.num_iters}: \n"
+                "Iterations Completed: "
+                + f"{self.perf_stats.iters} / {self.num_iters}: \n"
             )
             for policy in self.policies:
                 heartbeat_print += (
@@ -877,7 +877,8 @@ class Trainer:
                     )
                     if self.verbose:
                         verbose_print(
-                            f"Saving the '{policy}' torch model to the file: '{filepath}'.",
+                            f"Saving the '{policy}' torch model "
+                            f"to the file: '{filepath}'.",
                             self.device_id,
                         )
 

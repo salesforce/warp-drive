@@ -786,7 +786,7 @@ class CUDAEnvironmentReset:
                 data_manager, mode, undo_done_after_reset
             )
         else:
-            self.reset_when_done_random(data_manager, mode, undo_done_after_reset)
+            raise NotImplementedError
 
     def reset_when_done_deterministic(
         self,

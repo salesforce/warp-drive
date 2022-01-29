@@ -441,7 +441,7 @@ Once you are done building your environment, you may use the `env_cpu_gpu_consis
 # Learn More and Explore our Tutorials!
 
 And that's it for this tutorial. Good luck building your environments.
-Once you are done building, see our next [tutorial](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb) on training your environment with WarpDrive.
+Once you are done building, see our next [tutorial](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb) on training your environment with WarpDrive and the subsequent [tutorial](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md) on scaling up training.
 
 For your reference, all our tutorials are here:
 - [A simple end-to-end RL training example](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/simple-end-to-end-example.ipynb)
@@ -450,3 +450,4 @@ For your reference, all our tutorials are here:
 - [WarpDrive reset and log](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-3-warp_drive_reset_and_log.ipynb)
 - [Creating custom environments](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4-create_custom_environments.md)
 - [Training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb)
+- [Scaling Up training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md)

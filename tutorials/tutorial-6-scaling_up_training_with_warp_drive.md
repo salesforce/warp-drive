@@ -4,7 +4,7 @@ SPDX-License-Identifier: BSD-3-Clause. \
 For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause.
 
 # Introduction
-In this tutorial, we will describe how to scale up the training throughput (or environment steps per second) with WarpDrive. Specifically, the latest release (v1.5) of WarpDrive allows for
+In this tutorial, we will describe how to scale up the training throughput (or environment steps per second) with WarpDrive. Specifically, the latest release (v1.4) of WarpDrive allows for
 - maximally utilizing the GPU threads and memory
 - scaling to multiple GPUs
 With this capability, we essentially can gather maximally large batch sizes in the same time as before, thus yielding massive throughput gains.

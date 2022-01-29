@@ -48,6 +48,8 @@ class EnvWrapper:
         use_cuda=False,
         testing_mode=False,
         env_registry=None,
+        event_messenger=None,
+        process_id=0,
     ):
         """
         'env_obj': an environment object
@@ -62,6 +64,8 @@ class EnvWrapper:
         testing) or compile the .cu source code to create a .cubin and use that.
         'env_registry': EnvironmentRegistrar object
             it provides the customized env info (like src path) for the build
+        'event_messenger': multiprocessing Event to sync up the build
+            when using multiple processes
         """
         # Need to pass in an environment instance
         if env_obj is not None:
@@ -118,6 +122,7 @@ class EnvWrapper:
             self.cuda_function_manager = CUDAFunctionManager(
                 num_agents=int(self.cuda_data_manager.meta_info("n_agents")),
                 num_envs=int(self.cuda_data_manager.meta_info("n_envs")),
+                process_id=process_id,
             )
 
             logging.info(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
@@ -131,6 +136,7 @@ class EnvWrapper:
                     template_header_file="template_env_config.h",
                     template_runner_file="template_env_runner.cu",
                     customized_env_registrar=env_registry,
+                    event_messenger=event_messenger,
                 )
             self.cuda_function_feed = CUDAFunctionFeed(self.cuda_data_manager)
 

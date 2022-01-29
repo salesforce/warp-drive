@@ -11,7 +11,9 @@ Example training script for the grid world and continuous versions of Tag.
 import argparse
 import logging
 import os
+import sys
 
+import pycuda.driver as cuda_driver
 import torch
 import yaml
 
@@ -19,7 +21,8 @@ from example_envs.tag_continuous.tag_continuous import TagContinuous
 from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.trainer import Trainer
-from warp_drive.training.utils.auto_scaler import auto_scaling
+from warp_drive.training.utils.distributed_trainer import perform_distributed_training
+from warp_drive.training.utils.vertical_scaler import perform_auto_vertical_scaling
 from warp_drive.utils.common import get_project_root
 
 _ROOT_DIR = get_project_root()
@@ -27,12 +30,14 @@ _ROOT_DIR = get_project_root()
 _TAG_CONTINUOUS = "tag_continuous"
 _TAG_GRIDWORLD = "tag_gridworld"
 
-# Example usage (from the root folder):
-# >> python warp_drive/training/example_training_script.py --env tag_gridworld
+# Example usages (from the root folder):
+# >> python warp_drive/training/example_training_script.py -e tag_gridworld
 # >> python warp_drive/training/example_training_script.py --env tag_continuous
 
 
-def setup_trainer_and_train(run_configuration, verbose=True):
+def setup_trainer_and_train(
+    run_configuration, device_id=0, num_devices=1, event_messenger=None, verbose=True
+):
     """
     Create the environment wrapper, define the policy mapping to agent ids,
     and create the trainer object. Also, perform training.
@@ -50,10 +55,16 @@ def setup_trainer_and_train(run_configuration, verbose=True):
             CUDATagGridWorld(**run_configuration["env"]),
             num_envs=num_envs,
             use_cuda=True,
+            event_messenger=event_messenger,
+            process_id=device_id,
         )
     elif run_configuration["name"] == _TAG_CONTINUOUS:
         env_wrapper = EnvWrapper(
-            TagContinuous(**run_configuration["env"]), num_envs=num_envs, use_cuda=True
+            TagContinuous(**run_configuration["env"]),
+            num_envs=num_envs,
+            use_cuda=True,
+            event_messenger=event_messenger,
+            process_id=device_id,
         )
     else:
         raise NotImplementedError(
@@ -83,7 +94,7 @@ def setup_trainer_and_train(run_configuration, verbose=True):
             policy_name: list(env_wrapper.env.taggers) + list(env_wrapper.env.runners)
         }
     else:
-        # Using different policies for different(sets) of agents
+        # Using different policies for different (sets of) agents
         policy_tag_to_agent_id_map = {
             "tagger": list(env_wrapper.env.taggers),
             "runner": list(env_wrapper.env.runners),
@@ -98,6 +109,8 @@ def setup_trainer_and_train(run_configuration, verbose=True):
         env_wrapper=env_wrapper,
         config=run_configuration,
         policy_tag_to_agent_id_map=policy_tag_to_agent_id_map,
+        device_id=device_id,
+        num_devices=num_devices,
         verbose=verbose,
     )
 
@@ -111,16 +124,33 @@ def setup_trainer_and_train(run_configuration, verbose=True):
 
 if __name__ == "__main__":
 
+    num_gpus_available = cuda_driver.Device.count()
+    assert num_gpus_available >= 1, "The training script needs a GPU machine to run!"
+
     # Set logger level e.g., DEBUG, INFO, WARNING, ERROR\n",
     logging.getLogger().setLevel(logging.WARNING)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--env", "-e", type=str, help="Environment to train.")
+    parser.add_argument(
+        "--env",
+        "-e",
+        type=str,
+        help="the environment to train. This also refers to the"
+        "yaml file name in run_configs/.",
+    )
     parser.add_argument(
         "--auto_scale",
         "-a",
         action="store_true",
-        help="Perform auto (vertical) scaling.",
+        help="perform auto scaling.",
+    )
+    parser.add_argument(
+        "--num_gpus",
+        "-n",
+        type=int,
+        default=-1,
+        help="the number of GPU devices for (horizontal) scaling, "
+        "default=-1 (using configure setting)",
     )
 
     args = parser.parse_args()
@@ -128,25 +158,47 @@ if __name__ == "__main__":
     # Read the run configurations specific to each environment.
     # Note: The run config yaml(s) can be edited at warp_drive/training/run_configs
     # -----------------------------------------------------------------------------
-    assert args.env in [
-        _TAG_CONTINUOUS,
-        _TAG_GRIDWORLD,
-    ], (
-        f"Currently, the environment arguments supported "
-        f"are ["
-        f"{_TAG_GRIDWORLD},"
-        f" {_TAG_CONTINUOUS},"
-        f"]"
-    )
-
     config_path = os.path.join(
         _ROOT_DIR, "warp_drive", "training", "run_configs", f"{args.env}.yaml"
     )
+    if not os.path.exists(config_path):
+        raise ValueError(
+            "Invalid environment specified! The environment name should "
+            "match the name of the yaml file in training/run_configs/"
+        )
+
     with open(config_path, "r", encoding="utf8") as fp:
         run_config = yaml.safe_load(fp)
 
-    # Perform automatic (vertical) scaling to find the best training parameters.
     if args.auto_scale:
-        run_config = auto_scaling(setup_trainer_and_train, run_config)
+        # Automatic scaling
+        print("Performing Auto Scaling!\n")
+        # First, perform vertical scaling.
+        run_config = perform_auto_vertical_scaling(setup_trainer_and_train, run_config)
+        # Next, perform horizontal scaling.
+        # Set `num_gpus` to the maximum number of GPUs available
+        run_config["trainer"]["num_gpus"] = num_gpus_available
+        print(f"We will be using {num_gpus_available} GPU(s) for training.")
+    elif args.num_gpus >= 1:
+        # Set the appropriate num_gpus configuration parameter
+        if args.num_gpus <= num_gpus_available:
+            print(f"We have successfully found {args.num_gpus} GPUs!")
+            run_config["trainer"]["num_gpus"] = args.num_gpus
+        else:
+            print(
+                f"You requested for {args.num_gpus} GPUs, but we were only able to "
+                f"find {num_gpus_available} GPU(s)! \nDo you wish to continue? [Y/n]"
+            )
+            if input() != "Y":
+                print("Terminating program.")
+                sys.exit()
+            else:
+                run_config["trainer"]["num_gpus"] = num_gpus_available
+    elif "num_gpus" not in run_config["trainer"]:
+        run_config["trainer"]["num_gpus"] = 1
 
-    setup_trainer_and_train(run_config)
+    print(f"Training with {run_config['trainer']['num_gpus']} GPU(s).")
+    if run_config["trainer"]["num_gpus"] > 1:
+        perform_distributed_training(setup_trainer_and_train, run_config)
+    else:
+        setup_trainer_and_train(run_config)

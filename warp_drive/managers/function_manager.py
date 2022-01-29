@@ -5,6 +5,7 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 
 import logging
+import os
 import subprocess
 import time
 from typing import Optional
@@ -51,12 +52,13 @@ class CUDAFunctionManager:
 
     """
 
-    def __init__(self, num_agents: int = 1, num_envs: int = 1):
+    def __init__(self, num_agents: int = 1, num_envs: int = 1, process_id: int = 0):
         """
         :param num_agents: total number of agents for each env,
             it defines the default block size
         :param num_envs: number of example_envs in parallel,
             it defines the default grid size
+        :param process_id: device ID
         """
         self._CUDA_module = None
 
@@ -65,6 +67,7 @@ class CUDAFunctionManager:
         self._cuda_function_names = []
         self._num_agents = int(num_agents)
         self._num_envs = int(num_envs)
+        self._process_id = process_id
         self._block = (self._num_agents, 1, 1)
         self._grid = (self._num_envs, 1)
         self._default_functions_initialized = False
@@ -115,6 +118,7 @@ class CUDAFunctionManager:
         template_path: Optional[str] = None,
         default_functions_included: bool = True,
         customized_env_registrar: Optional[EnvironmentRegistrar] = None,
+        event_messenger=None,
     ):
         """
         Compile a template source code, so self.num_agents and self.num_envs
@@ -134,59 +138,89 @@ class CUDAFunctionManager:
         :param default_functions_included: load default function lists
         :param customized_env_registrar: CustomizedEnvironmentRegistrar object
             it provides the customized env info (e.g., source code path)for the build
+        :param event_messenger: multiprocessing Event to sync up the build
+        when using multiple processes
         """
-        # 'bin_path' is the designated cuda exe binary path that warp_drive
-        # is built into; 'header_path' is the designated cuda main source code path
-        # that warp_drive is trying to build.
-        # DO NOT CHANGE THEM!
-        bin_path = f"{get_project_root()}/warp_drive/cuda_bin"
-        header_path = f"{get_project_root()}/warp_drive/cuda_includes"
-        if template_path is None:
-            template_path = f"{get_project_root()}/warp_drive/cuda_includes"
-        update_env_header(
-            template_header_file=template_header_file,
-            path=template_path,
-            num_agents=self._num_agents,
-            num_envs=self._num_envs,
-        )
-        update_env_runner(
-            template_runner_file=template_runner_file,
-            path=template_path,
-            env_name=env_name,
-            customized_env_registrar=customized_env_registrar,
-        )
-        check_env_header(
-            header_file="env_config.h",
-            path=header_path,
-            num_envs=self.grid[0],
-            num_agents=self.block[0],
-        )
-        logging.debug(
-            f"header file {header_path}/env_config.h has num_agents: "
-            f"{self.block[0]} and num_envs: {self.grid[0]} "
-            f"that are consistent with the block and the grid"
-        )
 
-        # main_file is the source code
-        main_file = f"{header_path}/env_runner.cu"
         # cubin_file is the targeted compiled exe
+        bin_path = f"{get_project_root()}/warp_drive/cuda_bin"
         cubin_file = f"{bin_path}/env_runner.fatbin"
-        logging.info(f"Compiling {main_file} -> {cubin_file}")
 
-        self._compile(main_file, cubin_file)
+        # Only process 0 is taking care of the compilation
+        if self._process_id > 0:
+            assert event_messenger is not None, (
+                "Event messenger is required to sync up "
+                "the compilation status among processes."
+            )
+            event_messenger.wait(timeout=12)
+
+            if not event_messenger.is_set():
+                raise Exception(
+                    f"Process {self._process_id} fails to get "
+                    f"the successful compilation message ... "
+                )
+
+        else:
+            # 'bin_path' is the designated cuda exe binary path that warp_drive
+            # is built into; 'header_path' is the designated cuda main source code path
+            # that warp_drive is trying to build.
+            # DO NOT CHANGE THEM!
+            header_path = f"{get_project_root()}/warp_drive/cuda_includes"
+            if template_path is None:
+                template_path = f"{get_project_root()}/warp_drive/cuda_includes"
+            update_env_header(
+                template_header_file=template_header_file,
+                path=template_path,
+                num_agents=self._num_agents,
+                num_envs=self._num_envs,
+            )
+            update_env_runner(
+                template_runner_file=template_runner_file,
+                path=template_path,
+                env_name=env_name,
+                customized_env_registrar=customized_env_registrar,
+            )
+            check_env_header(
+                header_file="env_config.h",
+                path=header_path,
+                num_envs=self.grid[0],
+                num_agents=self.block[0],
+            )
+            logging.debug(
+                f"header file {header_path}/env_config.h has num_agents: "
+                f"{self.block[0]} and num_envs: {self.grid[0]} "
+                f"that are consistent with the block and the grid"
+            )
+
+            # main_file is the source code
+            main_file = f"{header_path}/env_runner.cu"
+
+            logging.info(f"Compiling {main_file} -> {cubin_file}")
+
+            self._compile(main_file, cubin_file)
+
+            if event_messenger is not None:
+                event_messenger.set()
+
         self.load_cuda_from_binary_file(
             cubin=cubin_file, default_functions_included=default_functions_included
         )
 
-    def _compile(self, main_file, cubin_file):
+    @staticmethod
+    def _compile(main_file, cubin_file):
+
         bin_path = f"{get_project_root()}/warp_drive/cuda_bin"
         mkbin = f"mkdir -p {bin_path}"
+
         with subprocess.Popen(
             mkbin, shell=True, stderr=subprocess.STDOUT
         ) as mkbin_process:
             if mkbin_process.wait() != 0:
                 raise Exception("make bin file failed ... ")
         logging.info(f"Successfully mkdir the binary folder {bin_path}")
+
+        if os.path.exists(f"{cubin_file}"):
+            os.remove(f"{cubin_file}")
 
         try:
             cc = Context.get_device().compute_capability()  # compute capability
@@ -428,7 +462,7 @@ class CUDALogController:
         """
         assert (
             step > self.last_valid_step
-        ), "update_log is trying to update the exisiting timestep"
+        ), "update_log is trying to update the existing timestep"
         self._log_one_step(data_manager, step, self._env_id)
         self._update_log_mask(data_manager, step)
 
@@ -509,7 +543,7 @@ class CUDALogController:
             elif "int" in dtype:
                 log_func = log_func_in_int
             else:
-                raise Exception(f"unknow dtype: {dtype}")
+                raise Exception(f"unknown dtype: {dtype}")
             log_func(
                 data_manager.device_data(f"{name}_for_log"),
                 data_manager.device_data(name),
@@ -679,9 +713,8 @@ class CUDASampler:
             grid=self._grid,
         )
 
-    def assign(
-        self, data_manager: CUDADataManager, actions: np.ndarray, action_name: str
-    ):
+    @staticmethod
+    def assign(data_manager: CUDADataManager, actions: np.ndarray, action_name: str):
         """
         Assign action to the action array directly. T
         his may be used for env testing or debugging purpose.
@@ -805,7 +838,7 @@ class CUDAEnvironmentReset:
                 elif "int" in dtype:
                     reset_func = self.reset_func_in_int_3d
                 else:
-                    raise Exception(f"unknow dtype: {dtype}")
+                    raise Exception(f"unknown dtype: {dtype}")
                 reset_func(
                     data_manager.device_data(name),
                     data_manager.device_data(f"{name}_at_reset"),
@@ -822,7 +855,7 @@ class CUDAEnvironmentReset:
                 elif "int" in dtype:
                     reset_func = self.reset_func_in_int_2d
                 else:
-                    raise Exception(f"unknow dtype: {dtype}")
+                    raise Exception(f"unknown dtype: {dtype}")
                 reset_func(
                     data_manager.device_data(name),
                     data_manager.device_data(f"{name}_at_reset"),

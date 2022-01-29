@@ -145,7 +145,7 @@ class PPO:
                 "Min. rewards": rewards_batch.min().item(),
                 "Mean value function": value_functions_batch.mean().item(),
                 "Mean advantages": advantages_batch.mean().item(),
-                "Mean (normalized) advantages": normalized_advantages_batch.mean().item(),
+                "Mean (norm.) advantages": normalized_advantages_batch.mean().item(),
                 "Mean (discounted) returns": returns_batch.mean().item(),
                 "Mean normalized returns": normalized_returns_batch.mean().item(),
                 "Mean entropy": mean_entropy.item(),
@@ -163,13 +163,13 @@ class PPO:
             )
             for idx, _ in enumerate(std_over_agent_per_action):
                 std_action = {
-                    f"Std. of sampled action_{idx} over agents": std_over_agent_per_action[
+                    f"Std. of action_{idx} over agents": std_over_agent_per_action[
                         idx
                     ].item(),
-                    f"Std. of sampled action_{idx} over envs": std_over_env_per_action[
+                    f"Std. of action_{idx} over envs": std_over_env_per_action[
                         idx
                     ].item(),
-                    f"Std. of sampled action_{idx} over time": std_over_time_per_action[
+                    f"Std. of action_{idx} over time": std_over_time_per_action[
                         idx
                     ].item(),
                 }

@@ -495,14 +495,16 @@ class CUDADataManager:
         assert name in self._dtype
         return self._dtype[name]
 
-    def _type_warning_helper(self, key: str, old: str, new: str, comment=None):
+    @staticmethod
+    def _type_warning_helper(key: str, old: str, new: str, comment=None):
         logging.warning(
             f"CUDADataManager casts the data '{key}' " f"from type {old} to {new}"
         )
         if comment:
             logging.warning(comment)
 
-    def _shape_info_helper(self, key: str, dtype: str, shape):
+    @staticmethod
+    def _shape_info_helper(key: str, dtype: str, shape):
         logging.info(f"- {key:<80}: dtype={dtype:<10}, shape={shape}")
 
     @property

@@ -19,6 +19,7 @@ import torch
 import yaml
 from gym.spaces import Discrete, MultiDiscrete
 from torch import nn
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 from warp_drive.managers.function_manager import CUDASampler
 from warp_drive.training.algorithms.a2c import A2C
@@ -63,6 +64,12 @@ def recursive_merge_config_dicts(config, default_config):
     return config
 
 
+def verbose_print(message, device_id=None):
+    if device_id is None:
+        device_id = 0
+    print(f"[Device {device_id}]: {message} ")
+
+
 class Trainer:
     """
     The trainer object. Contains modules train(), save_model_checkpoint() and
@@ -76,6 +83,8 @@ class Trainer:
         policy_tag_to_agent_id_map=None,
         create_separate_placeholders_for_each_policy=False,
         obs_dim_corresponding_to_num_agents="first",
+        device_id=0,
+        num_devices=1,
         verbose=True,
     ):
         """
@@ -102,6 +111,9 @@ class Trainer:
                 (*feature_dim, num_agents). This is required in order for
                 WarpDrive to process the observations correctly.
                 Defaults to "first"
+            device_id: device ID
+            num_devices: number of GPU devices in the train, if more than one,
+                will use the distributed training pipeline among num_devices.
             verbose:
                 if enabled, training metrics are printed to the screen.
         """
@@ -150,8 +162,18 @@ class Trainer:
         if not os.path.isdir(self.save_dir):
             os.makedirs(self.save_dir, exist_ok=False)
 
+        # Save the run configuration
+        config_filename = os.path.join(self.save_dir, "run_config.json")
+        with open(config_filename, "a+", encoding="utf8") as fp:
+            json.dump(self.config, fp)
+            fp.write("\n")
+
         # Flag to determine whether to print training metrics
         self.verbose = verbose
+
+        # Number of GPU devices in the train
+        self.num_devices = num_devices
+        self.device_id = device_id
 
         # Policies
         self.policy_tag_to_agent_id_map = policy_tag_to_agent_id_map
@@ -185,8 +207,10 @@ class Trainer:
         self.data_manager = self.cuda_envs.cuda_data_manager
         self.function_manager = self.cuda_envs.cuda_function_manager
 
-        # Seeding
-        seed = self.config["trainer"].get("seed", np.int32(time.time()))
+        # Seeding (device_id is included for distributed training)
+        seed = (
+            self.config["trainer"].get("seed", np.int32(time.time())) + self.device_id
+        )
         self.cuda_sample_controller = CUDASampler(self.cuda_envs.cuda_function_manager)
         self.cuda_sample_controller.init_random(seed)
 
@@ -214,7 +238,7 @@ class Trainer:
             self.current_timestep[policy] = 0
             policy_model_config = self._get_config(["policy", policy, "model"])
             if policy_model_config["type"] == "fully_connected":
-                self.models[policy] = FullyConnected(
+                model = FullyConnected(
                     self.cuda_envs,
                     policy_model_config["fc_dims"],
                     policy,
@@ -225,6 +249,8 @@ class Trainer:
             else:
                 raise NotImplementedError
 
+            self.models[policy] = model
+
         # Load the model parameters (if model checkpoints are specified)
         # Note: Loading the model checkpoint may also update the current timestep!
         self.load_model_checkpoint()
@@ -232,6 +258,11 @@ class Trainer:
         for policy in self.policies:
             # Push the models to the GPU
             self.models[policy].cuda()
+            # If distributed train, sync model using DDP
+            if self.num_devices > 1:
+                self.models[policy] = DDP(
+                    self.models[policy], device_ids=[self.device_id]
+                )
 
             # Initialize the (ADAM) optimizer
             policy_config = self._get_config(["policy", policy])
@@ -740,6 +771,7 @@ class Trainer:
             if self.verbose:
                 print("\n")
                 print("=" * 40)
+                print(f"Device: {self.device_id}")
                 print(
                     f"{'Iterations Completed':40}: "
                     f"{self.perf_stats.iters} / {self.num_iters}"
@@ -753,12 +785,36 @@ class Trainer:
             logs.update(metrics)
             logs.update({"Perf. Stats": perf_stats})
 
-            results_filename = os.path.join(self.save_dir, "results.json")
+            if self.num_devices > 1:
+                fn = f"results_device_{self.device_id}.json"
+            else:
+                fn = "results.json"
+            results_filename = os.path.join(self.save_dir, fn)
             if self.verbose:
-                print(f"Saving the results to the file '{results_filename}'")
+                verbose_print(
+                    f"Saving the results to the file '{results_filename}'",
+                    self.device_id,
+                )
             with open(results_filename, "a+", encoding="utf8") as fp:
                 json.dump(logs, fp)
                 fp.write("\n")
+            self._heartbeat_check_printout(metrics)
+
+    def _heartbeat_check_printout(self, metrics, check=False):
+        if check is False:
+            return
+
+        if self.num_devices > 1:
+            heartbeat_print = (
+                    "Iterations Completed: "
+                    + f"{self.perf_stats.iters} / {self.num_iters}: \n"
+            )
+            for policy in self.policies:
+                heartbeat_print += (
+                    f"policy '{policy}' - Mean episodic reward: "
+                    f"{metrics[policy]['Mean episodic reward']} \n"
+                )
+            verbose_print(heartbeat_print, self.device_id)
 
     def load_model_checkpoint(self, ckpts_dict=None):
         """
@@ -776,7 +832,9 @@ class Trainer:
         else:
             assert isinstance(ckpts_dict, dict)
             if self.verbose:
-                print("Loading the provided trainer model checkpoints.")
+                verbose_print(
+                    "Loading the provided trainer model checkpoints.", self.device_id
+                )
             for policy, ckpt_filepath in ckpts_dict.items():
                 assert policy in self.policies
                 self._load_model_checkpoint_helper(policy, ckpt_filepath)
@@ -785,45 +843,52 @@ class Trainer:
         if ckpt_filepath != "":
             assert os.path.isfile(ckpt_filepath), "Invalid model checkpoint path!"
             if self.verbose:
-                print(
+                verbose_print(
                     f"Loading the '{policy}' torch model "
-                    f"from the previously saved checkpoint: '{ckpt_filepath}'"
+                    f"from the previously saved checkpoint: '{ckpt_filepath}'",
+                    self.device_id,
                 )
             self.models[policy].load_state_dict(torch.load(ckpt_filepath))
 
             # Update the current timestep using the saved checkpoint filename
             timestep = int(ckpt_filepath.split(".state_dict")[0].split("_")[-1])
             if self.verbose:
-                print(f"Updating the timestep for the '{policy}' model to {timestep}.")
+                verbose_print(
+                    f"Updating the timestep for the '{policy}' model to {timestep}.",
+                    self.device_id,
+                )
             self.current_timestep[policy] = timestep
 
     def save_model_checkpoint(self, iteration=0):
         """
         Save the model parameters
         """
-        # Save model checkpoints if specified (and also for the last iteration)
-        if (
-            iteration % self.config["saving"]["model_params_save_freq"] == 0
-            or iteration == self.num_iters - 1
-        ):
-            for policy, model in self.models.items():
-                filepath = os.path.join(
-                    self.save_dir,
-                    f"{policy}_{self.current_timestep[policy]}.state_dict",
-                )
-                if self.verbose:
-                    print(
-                        f"Saving the '{policy}' torch model to the file: '{filepath}'."
+        # If multiple devices, save the synced-up model only for device id 0
+        if self.device_id == 0:
+            # Save model checkpoints if specified (and also for the last iteration)
+            if (
+                iteration % self.config["saving"]["model_params_save_freq"] == 0
+                or iteration == self.num_iters - 1
+            ):
+                for policy, model in self.models.items():
+                    filepath = os.path.join(
+                        self.save_dir,
+                        f"{policy}_{self.current_timestep[policy]}.state_dict",
                     )
+                    if self.verbose:
+                        verbose_print(
+                            f"Saving the '{policy}' torch model to the file: '{filepath}'.",
+                            self.device_id,
+                        )
 
-                torch.save(model.state_dict(), filepath)
+                    torch.save(model.state_dict(), filepath)
 
     def graceful_close(self):
         # Delete the sample controller to clear
         # the random seeds defined in the CUDA memory heap
         del self.cuda_sample_controller
         if self.verbose:
-            print("Trainer exits gracefully")
+            verbose_print("Trainer exits gracefully", self.device_id)
 
     def fetch_episode_states(
         self,
@@ -920,7 +985,8 @@ class PerfStats:
             "Mean steps per sec (total)": self.steps / self.total_time,
         }
 
-    def pretty_print(self, stats):
+    @staticmethod
+    def pretty_print(stats):
         print("=" * 40)
         print("Speed performance stats")
         print("=" * 40)

@@ -93,6 +93,7 @@ Familiarize yourself with WarpDrive by running these tutorials on Colab!
   environment in CUDA C, and integrate it with WarpDrive.
 - [Training with WarpDrive](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb): Explains how to train your environment on the
   GPU.
+- [Scaling Up training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md): Explains how to scale up the training throughput on a single GPU and/or across multiple GPUs.
 
 Note: You may also run these [tutorials](www.github.com/salesforce/warp-drive/blob/master/tutorials) *locally*, but you will need a GPU machine with nvcc compiler installed 
 and a compatible Nvidia GPU driver. You will also need [Jupyter](https://jupyter.org). 

@@ -1,5 +1,8 @@
 # Changelog
 
+# Release 1.4 (2022-01-29)
+- Added multi-GPU support 
+
 # Release 1.3 (2022-01-10)
 - Auto-scaling to maximize the number of environment replicas and training batch size (on a single GPU)
 - Added Python logging

@@ -57,7 +57,7 @@ node versus a single A100 GPU (using WarpDrive), for the Tag environment with 10
 
 
 ## Code Structure
-WarpDrive provides a CUDA + Python framework and quality-of-life tools so you can quickly build fast, flexible and massively distributed multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA step function at the CUDA environment layer, while the rest is a pure Python interface. We have step by step tutorials for you to master the workflow.
+WarpDrive provides a CUDA + Python framework and quality-of-life tools, so you can quickly build fast, flexible and massively distributed multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA step function at the CUDA environment layer, while the rest is a pure Python interface. We have step-by-step tutorials for you to master the workflow.
 
 <img src="https://user-images.githubusercontent.com/31748898/151683116-299943b9-4e70-4a7b-8feb-16a3a351ca91.png" width="780" height="580"/>
 

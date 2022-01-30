@@ -1,12 +1,12 @@
 # WarpDrive: Extremely Fast End-to-End Deep Multi-Agent Reinforcement Learning on a GPU
 
 WarpDrive is a flexible, lightweight, and easy-to-use open-source reinforcement learning (RL) 
-framework that implements end-to-end multi-agent RL on a single GPU (Graphics Processing Unit). 
+framework that implements end-to-end multi-agent RL on a single or multiple GPUs (Graphics Processing Unit). 
 
 Using the extreme parallelization capability of GPUs, WarpDrive enables orders-of-magnitude 
 faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, 
-and runs simulations across multiple agents and multiple environment replicas in parallel. 
-Together, this allows the user to run thousands of concurrent multi-agent simulations and train 
+and runs simulations across multiple agents and multiple environment replicas in parallel. WarpDrive also provides the auto scaling tools to achieve the optimal throughput per device (version 1.3) and to perform the distributed asynchronous training among multiple GPU devices (version 1.4).
+Together, these allow the user to run thousands of concurrent multi-agent simulations and train 
 on extremely large batches of experience, achieving over 100x throughput over CPU-based counterparts.
 
 Our current release includes several multi-agent environments
@@ -57,9 +57,9 @@ node versus a single A100 GPU (using WarpDrive), for the Tag environment with 10
 
 
 ## Code Structure
-WarpDrive provides a CUDA + Python framework and quality-of-life tools so you can quickly build fast and flexible multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA step function at the CUDA environment layer, while the rest is a pure Python interface. We have step by step tutorials for you to master the workflow.
+WarpDrive provides a CUDA + Python framework and quality-of-life tools so you can quickly build fast, flexible and massively distributed multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA step function at the CUDA environment layer, while the rest is a pure Python interface. We have step by step tutorials for you to master the workflow.
 
-<img src="https://user-images.githubusercontent.com/31748898/132800991-e181bba6-b559-4b54-b7fe-461424765ebc.png" width="780" height="510"/>
+<img src="https://user-images.githubusercontent.com/31748898/151683116-299943b9-4e70-4a7b-8feb-16a3a351ca91.png" width="780" height="580"/>
 
 ## White Paper and Citing WarpDrive
 
@@ -93,6 +93,7 @@ Familiarize yourself with WarpDrive by running these tutorials on Colab!
   environment in CUDA C, and integrate it with WarpDrive.
 - [Training with WarpDrive](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb): Explains how to train your environment on the
   GPU.
+- [Scaling Up training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md): Explains how to scale up the training throughput on a single GPU and/or across multiple GPUs.
 
 Note: You may also run these [tutorials](www.github.com/salesforce/warp-drive/blob/master/tutorials) *locally*, but you will need a GPU machine with nvcc compiler installed 
 and a compatible Nvidia GPU driver. You will also need [Jupyter](https://jupyter.org). 

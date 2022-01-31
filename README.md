@@ -102,8 +102,8 @@ See [https://jupyter.readthedocs.io/en/latest/install.html](https://jupyter.read
 You can find full reference documentation [here](http://opensource.salesforce.com/warp-drive/).
 
 ## Real-World Problems and Collaborations
-There are interesting projects that utilize WarpDrive, for example
-- [AI Economist Covid Environment with WarpDrive](https://github.com/salesforce/ai-economist/blob/master/tutorials/multi_agent_gpu_training_with_warp_drive.ipynb): We train two-level multi-agent economic simulations built using [AI-Economist Foundation](https://github.com/salesforce/ai-economist) and train it using WarpDrive. We specifically consider the COVID-19 and economy simulation in this example.
+
+- [AI Economist Covid Environment with WarpDrive](https://github.com/salesforce/ai-economist/blob/master/tutorials/multi_agent_gpu_training_with_warp_drive.ipynb): We train two-level multi-agent economic simulations using [AI-Economist Foundation](https://github.com/salesforce/ai-economist) and train it using WarpDrive. We specifically consider the COVID-19 and economy simulation in this example.
 - [Pytorch Lightning Trainer with WarpDrive](): Coming soon ...
 
 ## Installation Instructions

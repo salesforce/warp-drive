@@ -101,6 +101,11 @@ See [https://jupyter.readthedocs.io/en/latest/install.html](https://jupyter.read
 
 You can find full reference documentation [here](http://opensource.salesforce.com/warp-drive/).
 
+## Real-World Problems and Collaborations
+
+- [AI Economist Covid Environment with WarpDrive](https://github.com/salesforce/ai-economist/blob/master/tutorials/multi_agent_gpu_training_with_warp_drive.ipynb): We train two-level multi-agent economic simulations using [AI-Economist Foundation](https://github.com/salesforce/ai-economist) and train it using WarpDrive. We specifically consider the COVID-19 and economy simulation in this example.
+- [Pytorch Lightning Trainer with WarpDrive](): Coming soon ...
+
 ## Installation Instructions
 
 To get started, you'll need to have **Python 3.7+** and the **nvcc** compiler installed 
@@ -110,7 +115,7 @@ CUDA (which includes nvcc) can be installed by following Nvidia's instructions h
 
 ### Docker Image
 
-You can refer to the [example Dockerfile](https://github.com/salesforce/warp-drive/blob/master/Dockerfile) to configure your system. 
+You can refer to the [example Dockerfile](https://github.com/salesforce/warp-drive/blob/master/Dockerfile) for V100 GPU to configure your system. 
 In particular, we suggest you visit [Nvidia Docker Hub](https://hub.docker.com/r/nvidia/cuda) to download the CUDA and cuDNN images compatible with your system.
 You should be able to use the command line utility to monitor the NVIDIA GPU devices in your system:
 ```pyfunctiontypecomment

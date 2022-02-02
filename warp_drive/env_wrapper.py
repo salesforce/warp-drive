@@ -66,6 +66,7 @@ class EnvWrapper:
             it provides the customized env info (like src path) for the build
         'event_messenger': multiprocessing Event to sync up the build
             when using multiple processes
+        'process_id': id of the process running WarpDrive
         """
         # Need to pass in an environment instance
         if env_obj is not None:

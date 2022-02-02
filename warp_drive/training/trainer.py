@@ -85,6 +85,7 @@ class Trainer:
         obs_dim_corresponding_to_num_agents="first",
         device_id=0,
         num_devices=1,
+        results_dir=None,
         verbose=True,
     ):
         """
@@ -114,11 +115,15 @@ class Trainer:
             device_id: device ID
             num_devices: number of GPU devices in the train, if more than one,
                 will use the distributed training pipeline among num_devices.
+            results_dir: (optional) name of the directory to save results into.
             verbose:
                 if enabled, training metrics are printed to the screen.
         """
         assert env_wrapper is not None
         assert config is not None
+        if policy_tag_to_agent_id_map is None:
+            logging.info("Using a shared policy across all agents.")
+            policy_tag_to_agent_id_map = {"shared": list(range(env_wrapper.n_agents))}
         assert isinstance(policy_tag_to_agent_id_map, dict)
         assert len(policy_tag_to_agent_id_map) > 0  # at least one policy
         assert isinstance(create_separate_placeholders_for_each_policy, bool)
@@ -149,18 +154,19 @@ class Trainer:
             self.config["saving"], default_config["saving"]
         )
 
-        # Note: experiment name reflects run create time.
-        experiment_name = f"{time.time():10.0f}"
+        if results_dir is None:
+            # Use the current time as the name for the results directory.
+            results_dir = f"{time.time():10.0f}"
 
         # Directory to save model checkpoints and metrics
         self.save_dir = os.path.join(
             self._get_config(["saving", "basedir"]),
             self._get_config(["saving", "name"]),
             self._get_config(["saving", "tag"]),
-            experiment_name,
+            results_dir,
         )
         if not os.path.isdir(self.save_dir):
-            os.makedirs(self.save_dir, exist_ok=False)
+            os.makedirs(self.save_dir, exist_ok=True)
 
         # Save the run configuration
         config_filename = os.path.join(self.save_dir, "run_config.json")
@@ -341,8 +347,8 @@ class Trainer:
         create_and_push_data_placeholders(
             self.cuda_envs,
             self.policy_tag_to_agent_id_map,
-            self.training_batch_size_per_env,
             self.create_separate_placeholders_for_each_policy,
+            self.training_batch_size_per_env,
         )
 
         # Register action placeholders
@@ -509,7 +515,7 @@ class Trainer:
             action_dim = action_space.nvec
         else:
             raise NotImplementedError(
-                "Action spaces can be of type" "Discrete or MultiDiscrete"
+                "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"
             )
         if len(action_dim) == 1:
             self.cuda_sample_controller.register_actions(
@@ -556,7 +562,7 @@ class Trainer:
             )
             self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                 name=f"{_ACTIONS}_batch" + suffix
-            )[batch_index] = actions
+            )[batch_index, :, :, num_action_types - 1] = actions
 
         else:
             for action_idx, probs in enumerate(probabilities):

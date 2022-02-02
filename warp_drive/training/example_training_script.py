@@ -36,7 +36,12 @@ _TAG_GRIDWORLD = "tag_gridworld"
 
 
 def setup_trainer_and_train(
-    run_configuration, device_id=0, num_devices=1, event_messenger=None, verbose=True
+    run_configuration,
+    device_id=0,
+    num_devices=1,
+    event_messenger=None,
+    results_dir=None,
+    verbose=True,
 ):
     """
     Create the environment wrapper, define the policy mapping to agent ids,
@@ -111,6 +116,7 @@ def setup_trainer_and_train(
         policy_tag_to_agent_id_map=policy_tag_to_agent_id_map,
         device_id=device_id,
         num_devices=num_devices,
+        results_dir=results_dir,
         verbose=verbose,
     )
 

@@ -1,3 +1,5 @@
+import time
+
 from warp_drive.training.utils.child_process import (
     DeviceContextProcessWrapper,
     event_messenger,
@@ -13,6 +15,8 @@ def perform_distributed_training(setup_trainer_and_train, config):
 
     procs = []
 
+    # Use the current time as the name for the results directory.
+    results_dir = f"{time.time():10.0f}"
     for device_id in range(num_devices):
         proc = DeviceContextProcessWrapper(
             target=setup_trainer_and_train,
@@ -21,6 +25,7 @@ def perform_distributed_training(setup_trainer_and_train, config):
                 "device_id": device_id,
                 "num_devices": num_devices,
                 "event_messenger": e,
+                "results_dir": results_dir,
                 "verbose": (device_id == 0),
             },
         )

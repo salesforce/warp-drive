@@ -28,8 +28,8 @@ def all_equal(iterable):
 def create_and_push_data_placeholders(
     env_wrapper,
     policy_tag_to_agent_id_map,
-    training_batch_size_per_env=1,
     create_separate_placeholders_for_each_policy=False,
+    training_batch_size_per_env=1,
 ):
     """
     Create observations, sampled_actions, rewards and done flags placeholders
@@ -37,234 +37,199 @@ def create_and_push_data_placeholders(
     roll-outs as well as training.
     """
     assert env_wrapper is not None
+    if policy_tag_to_agent_id_map is None:
+        logging.info("Using a shared policy across all agents.")
+        policy_tag_to_agent_id_map = {"shared": list(range(env_wrapper.n_agents))}
     assert isinstance(policy_tag_to_agent_id_map, dict)
     assert len(policy_tag_to_agent_id_map) > 0  # at least one policy
     assert training_batch_size_per_env > 0
 
-    observation_space = {}
-    action_space = {}
-    # Define the action spaces for each policy
-    for pol_mod_tag in policy_tag_to_agent_id_map:
-        first_agent_id = policy_tag_to_agent_id_map[pol_mod_tag][0]
-
-        observation_space[pol_mod_tag] = env_wrapper.env.observation_space[
-            first_agent_id
-        ]
-        action_space[pol_mod_tag] = env_wrapper.env.action_space[first_agent_id]
-        logging.info("-" * 40)
-        logging.info(
-            f"Observation space shape: {pol_mod_tag} - {observation_space[pol_mod_tag]}"
-        )
-        logging.info(f"Action space: {pol_mod_tag} - {action_space[pol_mod_tag]}")
-        logging.info("-" * 40)
-
     # Reset the environment to obtain the obs dict
-    obs = env_wrapper.env.reset()
     num_envs = env_wrapper.n_envs
+    obs = [env_wrapper.env.reset() for _ in range(num_envs)]
 
-    tensor_feed = DataFeed()
-    # Use the DataFeed class to add the observations, actions
-    # and rewards placeholder arrays.
-    # These arrays will be written to during the environment step().
+    # Assert all the relevant agents' obs and action spaces are identical
     if create_separate_placeholders_for_each_policy:
         # This scenario requires that we have multiple policy tags.
         # Also, if the obs/action spaces for the agents are different,
         # we will need to use this scenario to push obs actions and
         # rewards placeholders for each policy separately.
-
         assert len(policy_tag_to_agent_id_map) > 1
-        # Create separate observations, sampled_actions and rewards placeholders
-        # for each policy.
         for pol_mod_tag in policy_tag_to_agent_id_map:
-            assert pol_mod_tag in obs
-
-            # For the observations placeholders set save_copy_and_apply_at_reset=True,
-            # so that a copy of the initial observation values will be saved and
-            # applied at every reset.
-            # Also note that we add the "num_envs" dimension to the placeholders since
-            # we will be running multiple replicas of the environment concurrently.
-            if isinstance(obs[pol_mod_tag], (list, np.ndarray)):
-                observations_placeholder = np.stack(
-                    [obs[pol_mod_tag] for _ in range(num_envs)], axis=0
-                )
-                tensor_feed.add_data(
-                    name=f"{_OBSERVATIONS}_{pol_mod_tag}",
-                    data=observations_placeholder,
-                    save_copy_and_apply_at_reset=True,
-                )
-            elif isinstance(obs[pol_mod_tag], dict):
-                for key in obs[pol_mod_tag]:
-                    observations_placeholder = np.stack(
-                        [obs[pol_mod_tag][key] for _ in range(num_envs)], axis=0
-                    )
-                    tensor_feed.add_data(
-                        name=f"{_OBSERVATIONS}_{pol_mod_tag}_{key}",
-                        data=observations_placeholder,
-                        save_copy_and_apply_at_reset=True,
-                    )
-            else:
-                raise NotImplementedError("obs may be an array-type or a dictionary")
-
-            tensor_feed = _create_and_push_data_placeholders_helper(
-                num_envs,
-                len(policy_tag_to_agent_id_map[pol_mod_tag]),
+            relevant_agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
+            _validate_obs_action_spaces(relevant_agent_ids, env_wrapper)
+            # Create separate observations, sampled_actions and rewards placeholders
+            # for each policy.
+            _create_and_push_data_placeholders_helper(
+                obs,
+                env_wrapper,
+                policy_tag_to_agent_id_map,
                 training_batch_size_per_env,
-                action_space[pol_mod_tag],
-                tensor_feed,
                 suffix=f"_{pol_mod_tag}",
             )
+            _log_obs_action_spaces(pol_mod_tag, relevant_agent_ids[0], env_wrapper)
     else:
         # When there's only a single policy, this scenario will be used!
         # It can also be used only when there are multiple policies, yet
         # all the agents have the same obs/action space!
+        relevant_agent_ids = list(range(env_wrapper.n_agents))
+        _validate_obs_action_spaces(relevant_agent_ids, env_wrapper)
+        _create_and_push_data_placeholders_helper(
+            obs,
+            env_wrapper,
+            policy_tag_to_agent_id_map,
+            training_batch_size_per_env,
+        )
+        for pol_mod_tag in policy_tag_to_agent_id_map:
+            agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
+            _log_obs_action_spaces(pol_mod_tag, agent_ids[0], env_wrapper)
 
-        # Assert all observation spaces are of the same type
-        observation_types = [
-            type(obs_space) for obs_space in observation_space.values()
+
+def _validate_obs_action_spaces(agent_ids, env_wrapper):
+    """
+    Validate the observation and action space type and dimensions
+    """
+    # Assert all the relevant agents' obs spaces are identical
+    obs_spaces = [env_wrapper.env.observation_space[agent_id] for agent_id in agent_ids]
+    observation_types = [type(obs_space) for obs_space in obs_spaces]
+    assert all_equal(observation_types)
+    first_agent_obs_space = obs_spaces[0]
+    if isinstance(first_agent_obs_space, Box):
+        observation_shapes = tuple(obs_space.shape for obs_space in obs_spaces)
+        assert all_equal(observation_shapes)
+    elif isinstance(first_agent_obs_space, Dict):
+        observation_keys = [tuple(obs_space.keys()) for obs_space in obs_spaces]
+        assert all_equal(observation_keys)
+        observation_value_shapes = [
+            tuple(val.shape for val in obs_space.values()) for obs_space in obs_spaces
         ]
-        assert all_equal(observation_types)
+        assert all_equal(observation_value_shapes)
+    else:
+        raise NotImplementedError(
+            "Only 'Box' or 'Dict' type observation spaces are supported!"
+        )
+    # Assert all the relevant agents' action spaces are identical
+    action_spaces = [env_wrapper.env.action_space[agent_id] for agent_id in agent_ids]
+    action_types = [type(action_space) for action_space in action_spaces]
+    assert all_equal(action_types)
+    first_agent_action_space = action_spaces[0]
+    if isinstance(first_agent_action_space, MultiDiscrete):
+        action_dims = [tuple(act_space.nvec) for act_space in action_spaces]
+    elif isinstance(first_agent_action_space, Discrete):
+        action_dims = [tuple([act_space.n]) for act_space in action_spaces]
+    else:
+        raise NotImplementedError(
+            "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"
+        )
+    assert all_equal(action_dims)
 
-        # Also assert all observation spaces are of the same shape
-        first_agent_observation_space = list(observation_space.values())[0]
 
-        if isinstance(first_agent_observation_space, Box):
-            observation_shapes = [
-                obs_space.shape for obs_space in observation_space.values()
-            ]
-            assert all_equal(observation_shapes)
-        elif isinstance(first_agent_observation_space, Dict):
-            observation_shape_keys = [
-                tuple([obs_space.spaces.keys])
-                for obs_space in observation_space.values()
-            ]
-            assert all_equal(observation_shape_keys)
-            observation_shape_values = [
-                tuple([obs_space.spaces.values])
-                for obs_space in observation_space.values()
-            ]
-            assert all_equal(observation_shape_values)
-        else:
-            raise NotImplementedError(
-                "Observation spaces can be of type 'Box' or 'Dict'"
+def _log_obs_action_spaces(pol_mod_tag, agent_id, env_wrapper):
+    observation_space = env_wrapper.env.observation_space[agent_id]
+    action_space = env_wrapper.env.action_space[agent_id]
+    logging.info("-" * 40)
+    if isinstance(observation_space, Box):
+        logging.info(
+            f"Observation space shape: {pol_mod_tag} - {observation_space.shape}"
+        )
+    elif isinstance(observation_space, Dict):
+        for key in observation_space:
+            logging.info(
+                f"Observation space shape ({key}): "
+                f"{pol_mod_tag} - {observation_space[key].shape}"
             )
+    else:
+        raise NotImplementedError(
+            "Only 'Box' or 'Dict' type observation spaces are supported!"
+        )
+    logging.info(f"Action space: {pol_mod_tag} - {action_space}")
+    logging.info("-" * 40)
 
-        # Assert all action spaces are of the same type
-        action_types = [type(act_space) for act_space in action_space.values()]
-        assert all_equal(action_types)
 
-        # Also assert all action spaces are of the same dimension
-        first_agent_action_space = list(action_space.values())[0]
+def _create_and_push_data_placeholders_helper(
+    obs,
+    env_wrapper,
+    policy_tag_to_agent_id_map,
+    training_batch_size_per_env,
+    suffix="",
+):
+    """
+    Helper function to create and push obs, actions rewards
+    and done flags placeholders
+    """
+    # Use the DataFeed class to add the observations, actions
+    # and rewards placeholder arrays.
+    # These arrays will be written to during the environment step().
+    tensor_feed = DataFeed()
 
-        if isinstance(first_agent_action_space, MultiDiscrete):
-            action_dims = [tuple(act_space.nvec) for act_space in action_space.values()]
-        elif isinstance(first_agent_action_space, Discrete):
-            action_dims = [tuple([act_space.n]) for act_space in action_space.values()]
-        else:
-            raise NotImplementedError(
-                "Action spaces can be of type 'Discrete' or 'MultiDiscrete'"
-            )
-        assert all_equal(action_dims)
+    # Push observations to the device
+    if suffix == "":
+        agent_ids = list(range(env_wrapper.n_agents))
+        first_agent_id = agent_ids[0]
+    else:
+        pol_tag = suffix.split("_")[1]
+        agent_ids = sorted(policy_tag_to_agent_id_map[pol_tag])
+        first_agent_id = agent_ids[0]
 
-        # Observations
-        first_policy = list(observation_space.keys())[0]
-        first_agent_id = policy_tag_to_agent_id_map[first_policy][0]
+    num_envs = env_wrapper.n_envs
+    assert len(obs) == num_envs
+    first_env_id = 0
 
-        if isinstance(obs[first_agent_id], (list, np.ndarray)):
+    if isinstance(obs[first_env_id][first_agent_id], (list, np.ndarray)):
+        observations_placeholder = np.stack(
+            [
+                np.array([obs[env_id][agent_id] for agent_id in agent_ids])
+                for env_id in range(num_envs)
+            ],
+            axis=0,
+        )
+        tensor_feed.add_data(
+            name=f"{_OBSERVATIONS}" + suffix,
+            data=observations_placeholder,
+            save_copy_and_apply_at_reset=True,
+        )
+    elif isinstance(obs[first_env_id][first_agent_id], dict):
+        for key in obs[first_env_id][first_agent_id]:
             observations_placeholder = np.stack(
                 [
-                    np.array([obs[agent_id] for agent_id in sorted(obs.keys())])
-                    for _ in range(num_envs)
+                    np.array([obs[env_id][agent_id][key] for agent_id in agent_ids])
+                    for env_id in range(num_envs)
                 ],
                 axis=0,
             )
             tensor_feed.add_data(
-                name=f"{_OBSERVATIONS}",
+                name=f"{_OBSERVATIONS}" + suffix + f"_{key}",
                 data=observations_placeholder,
                 save_copy_and_apply_at_reset=True,
             )
-        elif isinstance(obs[first_agent_id], dict):
-            for key in obs[first_agent_id]:
-                observations_placeholder = np.stack(
-                    [
-                        np.array(
-                            [obs[agent_id][key] for agent_id in sorted(obs.keys())]
-                        )
-                        for _ in range(num_envs)
-                    ],
-                    axis=0,
-                )
-                tensor_feed.add_data(
-                    name=f"{_OBSERVATIONS}_{key}",
-                    data=observations_placeholder,
-                    save_copy_and_apply_at_reset=True,
-                )
-        else:
-            raise NotImplementedError("obs may be an array-type or a dictionary")
+    else:
+        raise NotImplementedError("Only array or dict type observations are supported!")
 
-        tensor_feed = _create_and_push_data_placeholders_helper(
-            num_envs,
-            env_wrapper.n_agents,
-            training_batch_size_per_env,
-            first_agent_action_space,
-            tensor_feed,
-        )
-
-    # Done flags placeholders for the roll-out batch
-    done_flags_placeholder = env_wrapper.cuda_data_manager.pull_data_from_device(
-        "_done_"
-    )
-    tensor_feed.add_data(
-        name=f"{_DONE_FLAGS}_batch",
-        data=np.zeros(
-            (training_batch_size_per_env,) + done_flags_placeholder.shape,
-            dtype=np.int32,
-        ),
-    )
-
-    # Push all the placeholders to the device (GPU)
-    env_wrapper.cuda_data_manager.push_data_to_device(
-        tensor_feed, torch_accessible=True
-    )
-
-
-def _create_and_push_data_placeholders_helper(
-    num_envs,
-    num_agents,
-    training_batch_size_per_env,
-    action_space,
-    tensor_feed,
-    suffix="",
-):
-    # Helper function to create and push actions and rewards placeholders
-
-    # Sampled actions
+    # Push sampled actions to the device
+    action_space = env_wrapper.env.action_space[first_agent_id]
     if isinstance(action_space, MultiDiscrete):
         action_dim = action_space.nvec
     elif isinstance(action_space, Discrete):
         action_dim = [action_space.n]
     else:
         raise NotImplementedError(
-            "Action spaces can be of type 'Discrete' or 'MultiDiscrete'"
+            "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"
         )
 
     num_action_types = len(action_dim)
+    num_agents = len(agent_ids)
 
+    sampled_actions_placeholder = np.zeros(
+        (num_envs, num_agents),
+        dtype=np.int32,
+    )
     if isinstance(action_space, Discrete):
         assert num_action_types == 1
-        sampled_actions_placeholder = np.zeros(
-            (num_envs, num_agents, num_action_types),
-            dtype=np.int32,
-        )
         tensor_feed.add_data(name=_ACTIONS + suffix, data=sampled_actions_placeholder)
     elif isinstance(action_space, MultiDiscrete):
         # Add separate placeholders for a MultiDiscrete action space.
         # This is required since our sampler will be invoked for each
         # action dimension separately.
-
-        sampled_actions_placeholder = np.zeros(
-            (num_envs, num_agents),
-            dtype=np.int32,
-        )
         assert num_action_types > 1
         for action_idx in range(num_action_types):
             tensor_feed.add_data(
@@ -296,7 +261,7 @@ def _create_and_push_data_placeholders_helper(
         ),
     )
 
-    # Rewards
+    # Push rewards to the device
     rewards_placeholder = np.zeros((num_envs, num_agents), dtype=np.float32)
     tensor_feed.add_data(name=_REWARDS + suffix, data=rewards_placeholder)
     tensor_feed.add_data(
@@ -304,4 +269,19 @@ def _create_and_push_data_placeholders_helper(
         data=np.zeros((training_batch_size_per_env,) + rewards_placeholder.shape),
     )
 
-    return tensor_feed
+    # Push done flags placeholders for the roll-out batch to the device
+    done_flags_placeholder = env_wrapper.cuda_data_manager.pull_data_from_device(
+        "_done_"
+    )
+    tensor_feed.add_data(
+        name=f"{_DONE_FLAGS}_batch",
+        data=np.zeros(
+            (training_batch_size_per_env,) + done_flags_placeholder.shape,
+            dtype=np.int32,
+        ),
+    )
+
+    # Push all the placeholders to the device (GPU)
+    env_wrapper.cuda_data_manager.push_data_to_device(
+        tensor_feed, torch_accessible=True
+    )

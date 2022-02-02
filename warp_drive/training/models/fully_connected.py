@@ -219,9 +219,15 @@ class FullyConnected(nn.Module):
 
         # Compute the action probabilities and the value function estimate
         # Apply action mask to the logits as well.
+        output_dims = [ph.out_features for ph in self.policy_head]
+        action_masks = []
+        start = 0
+        for dim in output_dims:
+            action_masks += [self.action_mask[..., start:start+dim]]
+            start = start + dim
         action_probs = [
-            func.softmax(apply_logit_mask(ph(logits), self.action_mask), dim=-1)
-            for ph in self.policy_head
+            func.softmax(apply_logit_mask(ph(logits), action_masks[idx]), dim=-1)
+            for idx, ph in enumerate(self.policy_head)
         ]
         vals = self.vf_head(logits)[..., 0]
 

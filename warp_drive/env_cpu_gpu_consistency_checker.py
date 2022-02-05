@@ -100,6 +100,9 @@ class EnvironmentCPUvsGPU:
             Makefile will automate this build.
         :param env_registry: EnvironmentRegistrar object
             it provides the customized env info (like src path) for the build
+        :param env_wrapper: Allows for the user to provide their own EnvWrapper.
+            e.g.,https://github.com/salesforce/ai-economist/blob/master/
+                 ai_economist/foundation/env_wrapper.py
         :param policy_tag_to_agent_id_map:
             a dictionary mapping policy tag to agent ids
         :param create_separate_placeholders_for_each_policy:
@@ -228,7 +231,7 @@ class EnvironmentCPUvsGPU:
             # Test across multiple episodes
             for _ in range(self.num_episodes * env_gpu.episode_length):
                 actions_list_of_dicts = generate_random_actions(
-                    env_cpu[env_id], self.num_envs, seed
+                    env_gpu.env, self.num_envs, seed
                 )
 
                 # Push the actions to the device (GPU)

@@ -151,7 +151,7 @@ class EnvironmentCPUvsGPU:
         for scenario in self.env_configs:
             env_config = self.env_configs[scenario]
 
-            print(f"Running {scenario}...")
+            print(f"Performing the consistency checks for scenario: {scenario}...")
 
             # Env Reset
             # CPU version of env
@@ -216,20 +216,21 @@ class EnvironmentCPUvsGPU:
 
             # Consistency checks after the first reset
             # ----------------------------------------
-            logging.info("Running obs consistency check after the first reset...")
+            print("Running obs consistency check after the first reset...")
             self._run_obs_consistency_checks(
-                obs_cpu, env_gpu, threshold_pct=consistency_threshold_pct
+                obs_cpu, env_gpu, threshold_pct=consistency_threshold_pct, time="reset"
             )
+            print("DONE")
 
             # Consistency checks during subsequent steps and resets
             # -----------------------------------------------------
-            logging.info(
+            print(
                 "Running obs/rew/done consistency check "
                 "during subsequent env steps and resets..."
             )
 
             # Test across multiple episodes
-            for _ in range(self.num_episodes * env_gpu.episode_length):
+            for timestep in range(self.num_episodes * env_gpu.episode_length):
                 actions_list_of_dicts = generate_random_actions(
                     env_gpu.env, self.num_envs, seed
                 )
@@ -278,10 +279,17 @@ class EnvironmentCPUvsGPU:
                 )
 
                 self._run_obs_consistency_checks(
-                    obs_list, env_gpu, threshold_pct=consistency_threshold_pct
+                    obs_list,
+                    env_gpu,
+                    threshold_pct=consistency_threshold_pct,
+                    time=timestep,
                 )
                 self._run_consistency_checks(
-                    rew_cpu, rew_gpu, threshold_pct=consistency_threshold_pct
+                    rew_cpu,
+                    rew_gpu,
+                    threshold_pct=consistency_threshold_pct,
+                    time=timestep,
+                    key="reward",
                 )
                 assert all(done_cpu["__all__"] == (done_gpu > 0))
 
@@ -303,7 +311,10 @@ class EnvironmentCPUvsGPU:
                 if env_reset:
                     # Run obs consistency checks when any env was reset
                     self._run_obs_consistency_checks(
-                        obs_list, env_gpu, threshold_pct=consistency_threshold_pct
+                        obs_list,
+                        env_gpu,
+                        threshold_pct=consistency_threshold_pct,
+                        time=timestep,
                     )
 
             print(
@@ -382,7 +393,8 @@ class EnvironmentCPUvsGPU:
         assert sorted(list(obs_cpu.keys())) == sorted(list(obs_gpu.keys()))
         return obs_cpu, obs_gpu
 
-    def _run_obs_consistency_checks(self, obs, env_gpu, threshold_pct):
+    def _run_obs_consistency_checks(self, obs, env_gpu, threshold_pct, time=None):
+        assert time is not None
         if self.create_separate_placeholders_for_each_policy:
             assert len(self.policy_tag_to_agent_id_map) > 1
             for pol_mod_tag in self.policy_tag_to_agent_id_map:
@@ -393,28 +405,62 @@ class EnvironmentCPUvsGPU:
                     suffix=f"_{pol_mod_tag}",
                 )
                 for key, val in obs_cpu.items():
-                    self._run_consistency_checks(val, obs_gpu[key], threshold_pct)
+                    self._run_consistency_checks(
+                        val,
+                        obs_gpu[key],
+                        threshold_pct,
+                        time=time,
+                        key=f"observation ({key})",
+                    )
         else:
             obs_cpu, obs_gpu = self._get_cpu_gpu_obs(
                 obs, env_gpu, self.policy_tag_to_agent_id_map
             )
             for key, val in obs_cpu.items():
-                self._run_consistency_checks(val, obs_gpu[key], threshold_pct)
+                self._run_consistency_checks(
+                    val,
+                    obs_gpu[key],
+                    threshold_pct,
+                    time=time,
+                    key=f"observation ({key})",
+                )
 
     @staticmethod
-    def _run_consistency_checks(cpu_value, gpu_value, threshold_pct=1):
+    def _run_consistency_checks(
+        cpu_value, gpu_value, threshold_pct=1, time=None, key=None
+    ):
         """
         Perform consistency checks between the cpu and gpu values.
         The default threshold is 2 decimal places (1 %).
         """
+        assert time is not None
+        assert key is not None
         epsilon = 1e-10  # a small number for preventing indeterminate divisions
-        max_abs_diff = np.max(np.abs(cpu_value - gpu_value))
-        relative_max_abs_diff_pct = (
-            np.max(np.abs((cpu_value - gpu_value) / (epsilon + cpu_value))) * 100.0
+        abs_diff = np.abs(cpu_value - gpu_value)
+        relative_abs_diff_pct = (
+            np.abs((cpu_value - gpu_value) / (epsilon + cpu_value))
+        ) * 100.0
+        # Assert that the absolute difference is smaller than the threshold
+        # or the relative absolute difference percentage is smaller than the threshold
+        # (when the values are high)
+        is_consistent = np.logical_or(
+            abs_diff < threshold_pct / 100.0, relative_abs_diff_pct < threshold_pct
         )
-        # Assert that the max absolute difference is smaller than the threshold
-        # or the relative_max_abs_diff_pct is smaller (when the values are high)
-        assert (
-            max_abs_diff < threshold_pct / 100.0
-            or relative_max_abs_diff_pct < threshold_pct
-        ), "There are some inconsistencies between the cpu and gpu values!"
+        try:
+            assert is_consistent.all()
+        except AssertionError as e:
+            mismatched_indices = np.where(np.logical_not(is_consistent))
+            for index in zip(*mismatched_indices):
+                env_idx = index[0]
+                agent_idx = index[1]
+                feature_idx = index[2:]
+                logging.error(
+                    f"Discrepancy found at timestep {time} in {key} "
+                    f"for env index: {env_idx}, "
+                    f"agent index: {agent_idx} & "
+                    f"feature index: {feature_idx};\n"
+                    f"cpu(gpu) value: {cpu_value[index]}({gpu_value[index]})\n"
+                )
+            raise AssertionError(
+                "There are some inconsistencies between the cpu and gpu values!"
+            ) from e

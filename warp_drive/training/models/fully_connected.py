@@ -223,8 +223,8 @@ class FullyConnected(nn.Module):
         action_masks = [None for _ in range(len(output_dims))]
         if self.action_mask is not None:
             start = 0
-            for dim in output_dims:
-                action_masks += [self.action_mask[..., start:start+dim]]
+            for idx, dim in enumerate(output_dims):
+                action_masks[idx] = self.action_mask[..., start : start + dim]
                 start = start + dim
         action_probs = [
             func.softmax(apply_logit_mask(ph(logits), action_masks[idx]), dim=-1)

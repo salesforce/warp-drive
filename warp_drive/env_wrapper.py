@@ -33,10 +33,10 @@ class EnvWrapper:
     This wrapper determines whether the environment reset and steps happen on the
     CPU or the GPU, and proceeds accordingly.
     If the environment runs on the CPU, the reset() and step() calls also occur on
-    the CPU
+    the CPU.
     If the environment runs on the GPU, only the first reset() happens on the CPU,
     all the relevant data is copied over the GPU after, and the subsequent steps
-    all happen on the GPU
+    all happen on the GPU.
     """
 
     def __init__(
@@ -59,9 +59,9 @@ class EnvWrapper:
             an environment from the registry
         'use_cuda': if True, step through the environment on the GPU, else on the CPU
         'num_envs': the number of parallel environments to instantiate. Note: this is
-        only relevant when use_cuda is True
+            only relevant when use_cuda is True
         'testing_mode': a flag used to determine whether to simply load the .cubin (when
-        testing) or compile the .cu source code to create a .cubin and use that.
+            testing) or compile the .cu source code to create a .cubin and use that.
         'env_registry': EnvironmentRegistrar object
             it provides the customized env info (like src path) for the build
         'event_messenger': multiprocessing Event to sync up the build
@@ -85,9 +85,13 @@ class EnvWrapper:
         assert self.env.name
         self.name = self.env.name
 
-        # Determine observation and action spaces
-        obs = self.env.reset()
+        # Add observation space to the env
+        obs = self.obs_at_reset()
         self.env.observation_space = recursive_obs_dict_to_spaces_dict(obs)
+        # Ensure the observation and action spaces share the same keys
+        assert set(self.env.observation_space.keys()) == set(
+            self.env.action_space.keys()
+        )
 
         # CUDA-specific initializations
         # -----------------------------
@@ -101,6 +105,8 @@ class EnvWrapper:
         # the device (GPU)
         self.reset_on_host = True
 
+        # Steps specific to GPU runs
+        # --------------------------
         if self.use_cuda:
             logging.info("USING CUDA...")
 
@@ -126,8 +132,8 @@ class EnvWrapper:
                 process_id=process_id,
             )
 
-            logging.info(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
             if testing_mode:
+                logging.info(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
                 self.cuda_function_manager.load_cuda_from_binary_file(
                     f"{_CUBIN_FILEPATH}/test_build.fatbin"
                 )
@@ -170,13 +176,12 @@ class EnvWrapper:
                 sets self.reset_on_host = False
             else:
                 calls device hard reset managed by the CUDAResetter
-
         """
         self.env.timestep = 0
 
         if self.reset_on_host:
             # Produce observation
-            obs = self.env.reset()
+            obs = self.obs_at_reset()
         else:
             assert self.use_cuda
 
@@ -250,9 +255,15 @@ class EnvWrapper:
             self.env.step()
             result = None  # Do not return anything
         else:
-            assert actions is not None
+            assert actions is not None, "Please provide actions to step with."
             result = self.env.step(actions)
         return result
+
+    def obs_at_reset(self):
+        """
+        Calls the (Python) env to reset and return the initial state
+        """
+        return self.env.reset()
 
     def reset(self):
         """

@@ -16,7 +16,10 @@ from gym.spaces import Discrete, MultiDiscrete
 from gym.utils import seeding
 
 from warp_drive.env_wrapper import EnvWrapper
-from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
+from warp_drive.training.utils.data_loader import (
+    create_and_push_data_placeholders,
+    get_obs,
+)
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
 
@@ -25,12 +28,17 @@ _OBSERVATIONS = Constants.OBSERVATIONS
 _ACTIONS = Constants.ACTIONS
 _REWARDS = Constants.REWARDS
 
+_EPSILON = 1e-10  # a small number for preventing indeterminate divisions
+
+# Set logger level e.g., DEBUG, INFO, WARNING, ERROR\n",
+logging.getLogger().setLevel(logging.ERROR)
+
 
 def generate_random_actions(env, num_envs, seed=None):
     """
     Generate random actions for each agent and each env.
     """
-    agent_ids = sorted(list(env.action_space.keys()))
+    agent_ids = list(env.action_space.keys())
     if seed is not None:
         np_random = seeding.np_random(seed)[0]
     else:
@@ -79,6 +87,7 @@ class EnvironmentCPUvsGPU:
         env_wrapper=EnvWrapper,
         policy_tag_to_agent_id_map=None,
         create_separate_placeholders_for_each_policy=False,
+        obs_dim_corresponding_to_num_agents="first",
     ):
         """
         :param cpu_env_class: cpu env class to test, for example, TagGridWorld
@@ -115,7 +124,15 @@ class EnvironmentCPUvsGPU:
             all the agents have the same obs and action space shapes,
             so we can share the same placeholder.
             Defaults to "False"
-
+        :param obs_dim_corresponding_to_num_agents:
+            indicative of which dimension in the observation corresponds
+            to the number of agents, as designed in the step function.
+            It may be "first" or "last". In other words,
+            observations may be shaped (num_agents, *feature_dim) or
+            (*feature_dim, num_agents). This is required in order for
+            WarpDrive to process the observations correctly. This is only
+            relevant when a single obs key corresponds to multiple agents.
+            Defaults to "first".
         """
         if dual_mode_env_class is not None:
             self.cpu_env_class = dual_mode_env_class
@@ -141,6 +158,7 @@ class EnvironmentCPUvsGPU:
         self.create_separate_placeholders_for_each_policy = (
             create_separate_placeholders_for_each_policy
         )
+        self.obs_dim_corresponding_to_num_agents = obs_dim_corresponding_to_num_agents
 
     def test_env_reset_and_step(self, consistency_threshold_pct=1, seed=None):
         """
@@ -166,9 +184,11 @@ class EnvironmentCPUvsGPU:
                         self.cpu_env_class.name, use_cuda=False
                     )(**env_config)
                 else:
-                    env_cpu[env_id] = self.cpu_env_class(**env_config)
+                    env_cpu[env_id] = self.env_wrapper(
+                        env_obj=self.cpu_env_class(**env_config), use_cuda=False
+                    )
                 if self.use_gpu_testing_mode:
-                    assert env_cpu[env_id].num_agents == 5
+                    assert env_cpu[env_id].n_agents == 5
 
                 # obs will be a dict of {agent_id: agent_specific_obs}
                 # agent_specific_obs could itself be a dictionary or an array
@@ -201,6 +221,7 @@ class EnvironmentCPUvsGPU:
                 env_gpu,
                 self.policy_tag_to_agent_id_map,
                 self.create_separate_placeholders_for_each_policy,
+                self.obs_dim_corresponding_to_num_agents,
             )
 
             # if the environment has explicit definition about
@@ -245,6 +266,7 @@ class EnvironmentCPUvsGPU:
                 else:
                     self._push_actions_to_device(actions_list_of_dicts, env_gpu)
 
+                # Step through all the environments (CPU)
                 obs_list = []
                 rew_list = []
                 done_list = []
@@ -253,25 +275,17 @@ class EnvironmentCPUvsGPU:
                     obs, rew, done, _ = env_cpu[env_id].step(
                         actions_list_of_dicts[env_id]
                     )
-
                     obs_list += [obs]
-
-                    combined_rew_array = np.stack(
-                        [rew[key] for key in sorted(rew.keys())], axis=0
-                    )
-                    rew_list += [combined_rew_array]
+                    rew_list += [rew]
                     done_list += [done]
-
-                rew_cpu = np.stack(rew_list, axis=0)
 
                 done_cpu = {
                     "__all__": np.array([done["__all__"] for done in done_list])
                 }
 
-                # Step through all the environments
+                # Step through all the environments (GPU)
                 env_gpu.step_all_envs()
 
-                rew_gpu = env_gpu.cuda_data_manager.pull_data_from_device(_REWARDS)
                 done_gpu = (
                     env_gpu.cuda_data_manager.data_on_device_via_torch("_done_")
                     .cpu()
@@ -284,12 +298,11 @@ class EnvironmentCPUvsGPU:
                     threshold_pct=consistency_threshold_pct,
                     time=timestep,
                 )
-                self._run_consistency_checks(
-                    rew_cpu,
-                    rew_gpu,
+                self._run_rew_consistency_checks(
+                    rew_list,
+                    env_gpu,
                     threshold_pct=consistency_threshold_pct,
                     time=timestep,
-                    key="reward",
                 )
                 assert all(done_cpu["__all__"] == (done_gpu > 0))
 
@@ -329,7 +342,7 @@ class EnvironmentCPUvsGPU:
                 agent_ids = list(range(env_gpu.n_agents))
             else:
                 policy = suffix.split("_")[1]
-                agent_ids = sorted(self.policy_tag_to_agent_id_map[policy])
+                agent_ids = self.policy_tag_to_agent_id_map[policy]
 
             combined_actions = np.stack(
                 [action_dict[agent_id] for agent_id in agent_ids], axis=0
@@ -344,28 +357,32 @@ class EnvironmentCPUvsGPU:
             actions
         )
 
-    def _get_cpu_gpu_obs(self, obs, env_gpu, policy_tag_to_agent_id_map, suffix=""):
+    def _get_cpu_gpu_obs(
+        self,
+        obs,
+        env_gpu,
+        policy_tag_to_agent_id_map,
+        obs_dim_corresponding_to_num_agents="first",
+        suffix="",
+    ):
+        first_env_id = 0
+
         if suffix == "":
-            agent_ids = list(range(env_gpu.n_agents))
+            agent_ids = sorted(list(obs[first_env_id].keys()))
             first_agent_id = agent_ids[0]
         else:
             pol_tag = suffix.split("_")[1]
-            agent_ids = sorted(policy_tag_to_agent_id_map[pol_tag])
+            agent_ids = policy_tag_to_agent_id_map[pol_tag]
             first_agent_id = agent_ids[0]
 
         num_envs = env_gpu.n_envs
-        first_env_id = 0
 
         if isinstance(obs[first_env_id][first_agent_id], (list, np.ndarray)):
-            obs_cpu = {
-                "obs": np.stack(
-                    [
-                        np.array([obs[env_id][agent_id] for agent_id in agent_ids])
-                        for env_id in range(num_envs)
-                    ],
-                    axis=0,
-                )
-            }
+            agent_obs_for_all_envs = [
+                get_obs(obs[env_id], agent_ids, obs_dim_corresponding_to_num_agents)
+                for env_id in range(num_envs)
+            ]
+            obs_cpu = {"obs": np.stack(agent_obs_for_all_envs, axis=0)}
             obs_gpu = {
                 "obs": env_gpu.cuda_data_manager.pull_data_from_device(
                     f"{_OBSERVATIONS}" + suffix
@@ -375,18 +392,24 @@ class EnvironmentCPUvsGPU:
             obs_cpu = {}
             obs_gpu = {}
             for key in obs[first_env_id][first_agent_id]:
-                obs_cpu[key] = np.stack(
-                    [
-                        np.array([obs[env_id][agent_id][key] for agent_id in agent_ids])
-                        for env_id in range(num_envs)
-                    ],
-                    axis=0,
-                )
+                agent_obs_for_all_envs = [
+                    get_obs(
+                        obs[env_id],
+                        agent_ids,
+                        obs_dim_corresponding_to_num_agents,
+                        key=key,
+                    )
+                    for env_id in range(num_envs)
+                ]
+                obs_cpu[key] = np.stack(agent_obs_for_all_envs, axis=0)
                 obs_gpu[key] = env_gpu.cuda_data_manager.pull_data_from_device(
                     f"{_OBSERVATIONS}" + suffix + f"_{key}"
                 )
+
         else:
-            raise ValueError("obs may be an array-type or a dictionary")
+            raise NotImplementedError(
+                "Only array or dict type observations are supported!"
+            )
 
         assert isinstance(obs_cpu, dict)
         assert isinstance(obs_gpu, dict)
@@ -398,11 +421,13 @@ class EnvironmentCPUvsGPU:
         if self.create_separate_placeholders_for_each_policy:
             assert len(self.policy_tag_to_agent_id_map) > 1
             for pol_mod_tag in self.policy_tag_to_agent_id_map:
+                suffix = f"_{pol_mod_tag}"
                 obs_cpu, obs_gpu = self._get_cpu_gpu_obs(
                     obs,
                     env_gpu,
                     self.policy_tag_to_agent_id_map,
-                    suffix=f"_{pol_mod_tag}",
+                    self.obs_dim_corresponding_to_num_agents,
+                    suffix=suffix,
                 )
                 for key, val in obs_cpu.items():
                     self._run_consistency_checks(
@@ -410,11 +435,14 @@ class EnvironmentCPUvsGPU:
                         obs_gpu[key],
                         threshold_pct,
                         time=time,
-                        key=f"observation ({key})",
+                        key=f"observation{suffix} ({key})",
                     )
         else:
             obs_cpu, obs_gpu = self._get_cpu_gpu_obs(
-                obs, env_gpu, self.policy_tag_to_agent_id_map
+                obs,
+                env_gpu,
+                self.policy_tag_to_agent_id_map,
+                self.obs_dim_corresponding_to_num_agents,
             )
             for key, val in obs_cpu.items():
                 self._run_consistency_checks(
@@ -424,6 +452,65 @@ class EnvironmentCPUvsGPU:
                     time=time,
                     key=f"observation ({key})",
                 )
+
+    def _get_cpu_gpu_rew(self, rew, env_gpu, policy_tag_to_agent_id_map, suffix=""):
+        if suffix == "":
+            agent_ids = list(range(env_gpu.n_agents))
+            first_agent_id = agent_ids[0]
+        else:
+            pol_tag = suffix.split("_")[1]
+            agent_ids = policy_tag_to_agent_id_map[pol_tag]
+            first_agent_id = agent_ids[0]
+
+        num_envs = env_gpu.n_envs
+        first_env_id = 0
+
+        assert isinstance(
+            rew[first_env_id][first_agent_id], (float, int, np.floating, np.integer)
+        )
+
+        rew_cpu = np.stack(
+            [
+                np.array([rew[env_id][agent_id] for agent_id in agent_ids])
+                for env_id in range(num_envs)
+            ],
+            axis=0,
+        )
+        rew_gpu = env_gpu.cuda_data_manager.pull_data_from_device(
+            f"{_REWARDS}" + suffix
+        )
+
+        return rew_cpu, rew_gpu
+
+    def _run_rew_consistency_checks(self, rew, env_gpu, threshold_pct, time=None):
+        assert time is not None
+        if self.create_separate_placeholders_for_each_policy:
+            assert len(self.policy_tag_to_agent_id_map) > 1
+            for pol_mod_tag in self.policy_tag_to_agent_id_map:
+                rew_cpu, rew_gpu = self._get_cpu_gpu_rew(
+                    rew,
+                    env_gpu,
+                    self.policy_tag_to_agent_id_map,
+                    suffix=f"_{pol_mod_tag}",
+                )
+                self._run_consistency_checks(
+                    rew_cpu,
+                    rew_gpu,
+                    threshold_pct,
+                    time=time,
+                    key="reward",
+                )
+        else:
+            rew_cpu, rew_gpu = self._get_cpu_gpu_rew(
+                rew, env_gpu, self.policy_tag_to_agent_id_map
+            )
+            self._run_consistency_checks(
+                rew_cpu,
+                rew_gpu,
+                threshold_pct,
+                time=time,
+                key="reward",
+            )
 
     @staticmethod
     def _run_consistency_checks(
@@ -435,10 +522,9 @@ class EnvironmentCPUvsGPU:
         """
         assert time is not None
         assert key is not None
-        epsilon = 1e-10  # a small number for preventing indeterminate divisions
         abs_diff = np.abs(cpu_value - gpu_value)
         relative_abs_diff_pct = (
-            np.abs((cpu_value - gpu_value) / (epsilon + cpu_value))
+            np.abs((cpu_value - gpu_value) / (_EPSILON + cpu_value))
         ) * 100.0
         # Assert that the absolute difference is smaller than the threshold
         # or the relative absolute difference percentage is smaller than the threshold

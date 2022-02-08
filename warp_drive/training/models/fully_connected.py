@@ -21,6 +21,8 @@ _OBSERVATIONS = Constants.OBSERVATIONS
 _PROCESSED_OBSERVATIONS = Constants.PROCESSED_OBSERVATIONS
 _ACTION_MASK = Constants.ACTION_MASK
 
+_LARGE_NEG_NUM = -1e20
+
 
 def apply_logit_mask(logits, mask=None):
     """
@@ -30,7 +32,7 @@ def apply_logit_mask(logits, mask=None):
     if mask is None:
         return logits
 
-    logit_mask = torch.ones_like(logits) * -10000000
+    logit_mask = torch.ones_like(logits) * _LARGE_NEG_NUM
     logit_mask = logit_mask * (1 - mask)
     return logits + logit_mask
 
@@ -90,7 +92,9 @@ class FullyConnected(nn.Module):
 
         # policy network (list of heads)
         policy_heads = [None for _ in range(len(action_space))]
+        self.output_dims = []  # Network output dimension(s)
         for idx, act_space in enumerate(action_space):
+            self.output_dims += [act_space]
             policy_heads[idx] = nn.Linear(fc_dims[-1], act_space)
         self.policy_head = nn.ModuleList(policy_heads)
 
@@ -174,6 +178,7 @@ class FullyConnected(nn.Module):
 
                 if key == _ACTION_MASK:
                     self.action_mask = self.reshape_and_flatten_obs(obs)
+                    assert self.action_mask.shape[-1] == sum(self.output_dims)
                 else:
                     obs_dict[key] = obs
 
@@ -219,11 +224,10 @@ class FullyConnected(nn.Module):
 
         # Compute the action probabilities and the value function estimate
         # Apply action mask to the logits as well.
-        output_dims = [ph.out_features for ph in self.policy_head]
-        action_masks = [None for _ in range(len(output_dims))]
+        action_masks = [None for _ in range(len(self.output_dims))]
         if self.action_mask is not None:
             start = 0
-            for idx, dim in enumerate(output_dims):
+            for idx, dim in enumerate(self.output_dims):
                 action_masks[idx] = self.action_mask[..., start : start + dim]
                 start = start + dim
         action_probs = [

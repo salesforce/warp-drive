@@ -26,27 +26,46 @@ def all_equal(iterable):
 
 
 def create_and_push_data_placeholders(
-    env_wrapper,
-    policy_tag_to_agent_id_map,
+    env_wrapper=None,
+    policy_tag_to_agent_id_map=None,
     create_separate_placeholders_for_each_policy=False,
+    obs_dim_corresponding_to_num_agents="first",
     training_batch_size_per_env=1,
 ):
     """
     Create observations, sampled_actions, rewards and done flags placeholders
     and push to the device; this is required for generating environment
     roll-outs as well as training.
+    env_wrapper: the wrapped environment object.
+    policy_tag_to_agent_id_map:
+        a dictionary mapping policy tag to agent ids.
+    create_separate_placeholders_for_each_policy:
+        flag indicating whether there exist separate observations,
+        actions and rewards placeholders, for each policy,
+        as designed in the step function. The placeholders will be
+        used in the step() function and during training.
+        When there's only a single policy, this flag will be False.
+        It can also be True when there are multiple policies, yet
+        all the agents have the same obs and action space shapes,
+        so we can share the same placeholder.
+        Defaults to "False".
+    training_batch_size_per_env: the training batch size for each env.
+    obs_dim_corresponding_to_num_agents:
+        indicative of which dimension in the observation corresponds
+        to the number of agents, as designed in the step function.
+        It may be "first" or "last". In other words,
+        observations may be shaped (num_agents, *feature_dim) or
+        (*feature_dim, num_agents). This is required in order for
+        WarpDrive to process the observations correctly. This is only
+        relevant when a single obs key corresponds to multiple agents.
+        Defaults to "first".
     """
     assert env_wrapper is not None
-    if policy_tag_to_agent_id_map is None:
-        logging.info("Using a shared policy across all agents.")
-        policy_tag_to_agent_id_map = {"shared": list(range(env_wrapper.n_agents))}
-    assert isinstance(policy_tag_to_agent_id_map, dict)
-    assert len(policy_tag_to_agent_id_map) > 0  # at least one policy
+    assert env_wrapper.use_cuda
+    policy_tag_to_agent_id_map = _validate_policy_tag_to_agent_id_map(
+        env_wrapper, policy_tag_to_agent_id_map
+    )
     assert training_batch_size_per_env > 0
-
-    # Reset the environment to obtain the obs dict
-    num_envs = env_wrapper.n_envs
-    obs = [env_wrapper.env.reset() for _ in range(num_envs)]
 
     # Assert all the relevant agents' obs and action spaces are identical
     if create_separate_placeholders_for_each_policy:
@@ -57,13 +76,14 @@ def create_and_push_data_placeholders(
         assert len(policy_tag_to_agent_id_map) > 1
         for pol_mod_tag in policy_tag_to_agent_id_map:
             relevant_agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
-            _validate_obs_action_spaces(relevant_agent_ids, env_wrapper)
+            if len(relevant_agent_ids) > 1:
+                _validate_obs_action_spaces(relevant_agent_ids, env_wrapper)
             # Create separate observations, sampled_actions and rewards placeholders
             # for each policy.
             _create_and_push_data_placeholders_helper(
-                obs,
                 env_wrapper,
                 policy_tag_to_agent_id_map,
+                obs_dim_corresponding_to_num_agents,
                 training_batch_size_per_env,
                 suffix=f"_{pol_mod_tag}",
             )
@@ -73,11 +93,12 @@ def create_and_push_data_placeholders(
         # It can also be used only when there are multiple policies, yet
         # all the agents have the same obs/action space!
         relevant_agent_ids = list(range(env_wrapper.n_agents))
-        _validate_obs_action_spaces(relevant_agent_ids, env_wrapper)
+        if len(relevant_agent_ids) > 1:
+            _validate_obs_action_spaces(relevant_agent_ids, env_wrapper)
         _create_and_push_data_placeholders_helper(
-            obs,
             env_wrapper,
             policy_tag_to_agent_id_map,
+            obs_dim_corresponding_to_num_agents,
             training_batch_size_per_env,
         )
         for pol_mod_tag in policy_tag_to_agent_id_map:
@@ -85,9 +106,36 @@ def create_and_push_data_placeholders(
             _log_obs_action_spaces(pol_mod_tag, agent_ids[0], env_wrapper)
 
 
+def _validate_policy_tag_to_agent_id_map(env_wrapper, policy_tag_to_agent_id_map):
+    # Reset the environment to obtain the obs dict
+    obs = env_wrapper.obs_at_reset()
+    if policy_tag_to_agent_id_map is None:
+        logging.info("Using a shared policy across all agents.")
+        policy_tag_to_agent_id_map = {"shared": sorted(list(obs.keys()))}
+    assert isinstance(policy_tag_to_agent_id_map, dict)
+    assert len(policy_tag_to_agent_id_map) > 0  # at least one policy
+    for key in policy_tag_to_agent_id_map:
+        assert isinstance(policy_tag_to_agent_id_map[key], (list, tuple, np.ndarray))
+    # Ensure that each agent is only mapped to one policy
+    agent_id_to_policy_map = {}
+    for pol_tag, agent_ids in policy_tag_to_agent_id_map.items():
+        for agent_id in agent_ids:
+            assert (
+                agent_id not in agent_id_to_policy_map
+            ), f"{agent_id} is mapped to multiple policies!"
+            agent_id_to_policy_map[agent_id] = pol_tag
+    # Ensure that every agent is mapped to a policy
+    for agent_id in obs:
+        assert (
+            agent_id in agent_id_to_policy_map
+        ), f"{agent_id} is not mapped to any policy!"
+    return policy_tag_to_agent_id_map
+
+
 def _validate_obs_action_spaces(agent_ids, env_wrapper):
     """
-    Validate the observation and action space type and dimensions
+    Validate that the observation and action spaces for all the agent ids
+    are of the same type and have the same shapes
     """
     # Assert all the relevant agents' obs spaces are identical
     obs_spaces = [env_wrapper.env.observation_space[agent_id] for agent_id in agent_ids]
@@ -147,9 +195,9 @@ def _log_obs_action_spaces(pol_mod_tag, agent_id, env_wrapper):
 
 
 def _create_and_push_data_placeholders_helper(
-    obs,
     env_wrapper,
     policy_tag_to_agent_id_map,
+    obs_dim_corresponding_to_num_agents,
     training_batch_size_per_env,
     suffix="",
 ):
@@ -162,44 +210,45 @@ def _create_and_push_data_placeholders_helper(
     # These arrays will be written to during the environment step().
     tensor_feed = DataFeed()
 
-    # Push observations to the device
-    if suffix == "":
-        agent_ids = list(range(env_wrapper.n_agents))
-        first_agent_id = agent_ids[0]
-    else:
-        pol_tag = suffix.split("_")[1]
-        agent_ids = sorted(policy_tag_to_agent_id_map[pol_tag])
-        first_agent_id = agent_ids[0]
-
     num_envs = env_wrapper.n_envs
+    obs = [env_wrapper.obs_at_reset() for _ in range(num_envs)]
     assert len(obs) == num_envs
     first_env_id = 0
 
+    # Push observations to the device
+    if suffix == "":
+        agent_ids = sorted(list(obs[0].keys()))
+        first_agent_id = agent_ids[0]
+    else:
+        pol_tag = suffix.split("_")[1]
+        agent_ids = policy_tag_to_agent_id_map[pol_tag]
+        first_agent_id = agent_ids[0]
+
     if isinstance(obs[first_env_id][first_agent_id], (list, np.ndarray)):
-        observations_placeholder = np.stack(
-            [
-                np.array([obs[env_id][agent_id] for agent_id in agent_ids])
-                for env_id in range(num_envs)
-            ],
-            axis=0,
-        )
+        agent_obs_for_all_envs = [
+            get_obs(obs[env_id], agent_ids, obs_dim_corresponding_to_num_agents)
+            for env_id in range(num_envs)
+        ]
+        stacked_obs = np.stack(agent_obs_for_all_envs, axis=0)
+
         tensor_feed.add_data(
             name=f"{_OBSERVATIONS}" + suffix,
-            data=observations_placeholder,
+            data=stacked_obs,
             save_copy_and_apply_at_reset=True,
         )
     elif isinstance(obs[first_env_id][first_agent_id], dict):
         for key in obs[first_env_id][first_agent_id]:
-            observations_placeholder = np.stack(
-                [
-                    np.array([obs[env_id][agent_id][key] for agent_id in agent_ids])
-                    for env_id in range(num_envs)
-                ],
-                axis=0,
-            )
+            agent_obs_for_all_envs = [
+                get_obs(
+                    obs[env_id], agent_ids, obs_dim_corresponding_to_num_agents, key=key
+                )
+                for env_id in range(num_envs)
+            ]
+            stacked_obs = np.stack(agent_obs_for_all_envs, axis=0)
+
             tensor_feed.add_data(
                 name=f"{_OBSERVATIONS}" + suffix + f"_{key}",
-                data=observations_placeholder,
+                data=stacked_obs,
                 save_copy_and_apply_at_reset=True,
             )
     else:
@@ -270,18 +319,33 @@ def _create_and_push_data_placeholders_helper(
     )
 
     # Push done flags placeholders for the roll-out batch to the device
-    done_flags_placeholder = env_wrapper.cuda_data_manager.pull_data_from_device(
-        "_done_"
-    )
-    tensor_feed.add_data(
-        name=f"{_DONE_FLAGS}_batch",
-        data=np.zeros(
-            (training_batch_size_per_env,) + done_flags_placeholder.shape,
-            dtype=np.int32,
-        ),
-    )
+    # (if not already pushed)
+    name = f"{_DONE_FLAGS}_batch"
+    if not env_wrapper.cuda_data_manager.is_data_on_device(name):
+        done_flags_placeholder = env_wrapper.cuda_data_manager.pull_data_from_device(
+            "_done_"
+        )
+        tensor_feed.add_data(
+            name=name,
+            data=np.zeros(
+                (training_batch_size_per_env,) + done_flags_placeholder.shape,
+                dtype=np.int32,
+            ),
+        )
 
     # Push all the placeholders to the device (GPU)
     env_wrapper.cuda_data_manager.push_data_to_device(
         tensor_feed, torch_accessible=True
     )
+
+
+def get_obs(obs, agent_ids, obs_dim_corresponding_to_num_agents="first", key=None):
+    if key is not None:
+        agent_obs = np.array([obs[agent_id][key] for agent_id in agent_ids])
+    else:
+        agent_obs = np.array([obs[agent_id] for agent_id in agent_ids])
+
+    if obs_dim_corresponding_to_num_agents == "last" and len(agent_ids) > 1:
+        return np.swapaxes(agent_obs, 0, -1)
+
+    return agent_obs

@@ -6,6 +6,8 @@
 
 #include "random.h"
 
+__constant__ float kEps = 1.0e-8;
+
 
 // init kernel randomness seed
 // used as random seed for sampling with given distribution
@@ -32,7 +34,7 @@ __device__ int search_index(float* distr, float p, int l, int r) {
 
   while (left <= right) {
     mid = left + (right - left) / 2;
-    if (abs(distr[mid] - p) < 0.000001) {
+    if (abs(distr[mid] - p) < kEps) {
       return mid - l;
     } else if (distr[mid] < p) {
       left = mid + 1;

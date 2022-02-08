@@ -131,7 +131,7 @@ def setup_trainer_and_train(
 if __name__ == "__main__":
 
     num_gpus_available = cuda_driver.Device.count()
-    assert num_gpus_available >= 1, "The training script needs a GPU machine to run!"
+    assert num_gpus_available > 0, "The training script needs a GPU machine to run!"
 
     # Set logger level e.g., DEBUG, INFO, WARNING, ERROR\n",
     logging.getLogger().setLevel(logging.WARNING)

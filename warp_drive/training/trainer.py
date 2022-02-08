@@ -90,10 +90,10 @@ class Trainer:
     ):
         """
         Args:
-            env_wrapper: the wrapped environment object
-            config: the experiment run configuration
+            env_wrapper: the wrapped environment object.
+            config: the experiment run configuration.
             policy_tag_to_agent_id_map:
-                a dictionary mapping policy tag to agent ids
+                a dictionary mapping policy tag to agent ids.
             create_separate_placeholders_for_each_policy:
                 flag indicating whether there exist separate observations,
                 actions and rewards placeholders, for each policy,
@@ -103,15 +103,16 @@ class Trainer:
                 It can also be True when there are multiple policies, yet
                 all the agents have the same obs and action space shapes,
                 so we can share the same placeholder.
-                Defaults to "False"
+                Defaults to "False".
             obs_dim_corresponding_to_num_agents:
                 indicative of which dimension in the observation corresponds
                 to the number of agents, as designed in the step function.
                 It may be "first" or "last". In other words,
                 observations may be shaped (num_agents, *feature_dim) or
                 (*feature_dim, num_agents). This is required in order for
-                WarpDrive to process the observations correctly.
-                Defaults to "first"
+                WarpDrive to process the observations correctly. This is only
+                relevant when a single obs key corresponds to multiple agents.
+                Defaults to "first".
             device_id: device ID
             num_devices: number of GPU devices in the train, if more than one,
                 will use the distributed training pipeline among num_devices.
@@ -120,14 +121,11 @@ class Trainer:
                 if enabled, training metrics are printed to the screen.
         """
         assert env_wrapper is not None
+        assert env_wrapper.use_cuda
         assert config is not None
-        if policy_tag_to_agent_id_map is None:
-            logging.info("Using a shared policy across all agents.")
-            policy_tag_to_agent_id_map = {"shared": list(range(env_wrapper.n_agents))}
-        assert isinstance(policy_tag_to_agent_id_map, dict)
-        assert len(policy_tag_to_agent_id_map) > 0  # at least one policy
         assert isinstance(create_separate_placeholders_for_each_policy, bool)
         assert obs_dim_corresponding_to_num_agents in ["first", "last"]
+        self.obs_dim_corresponding_to_num_agents = obs_dim_corresponding_to_num_agents
 
         self.cuda_envs = env_wrapper
 
@@ -209,17 +207,40 @@ class Trainer:
         self.training_batch_size_per_env = self.training_batch_size // self.num_envs
         assert self.training_batch_size_per_env > 0
 
-        self.block = self.cuda_envs.cuda_function_manager.block
-        self.data_manager = self.cuda_envs.cuda_data_manager
-        self.function_manager = self.cuda_envs.cuda_function_manager
+        # Push all the data and tensor arrays to the GPU
+        # upon resetting environments for the very first time.
+        self.cuda_envs.reset_all_envs()
+
+        # Create and push data placeholders to the device
+        create_and_push_data_placeholders(
+            self.cuda_envs,
+            self.policy_tag_to_agent_id_map,
+            self.create_separate_placeholders_for_each_policy,
+            self.obs_dim_corresponding_to_num_agents,
+            self.training_batch_size_per_env,
+        )
+
+        self.cuda_sample_controller = CUDASampler(self.cuda_envs.cuda_function_manager)
+
+        # Register action placeholders
+        if self.create_separate_placeholders_for_each_policy:
+            for policy in self.policies:
+                sample_agent_id = self.policy_tag_to_agent_id_map[policy][0]
+                action_space = self.cuda_envs.env.action_space[sample_agent_id]
+
+                self._register_actions(action_space, suffix=f"_{policy}")
+        else:
+            sample_policy = self.policies[0]
+            sample_agent_id = self.policy_tag_to_agent_id_map[sample_policy][0]
+            action_space = self.cuda_envs.env.action_space[sample_agent_id]
+
+            self._register_actions(action_space)
 
         # Seeding (device_id is included for distributed training)
         seed = (
             self.config["trainer"].get("seed", np.int32(time.time())) + self.device_id
         )
-        self.cuda_sample_controller = CUDASampler(self.cuda_envs.cuda_function_manager)
         self.cuda_sample_controller.init_random(seed)
-
         torch.manual_seed(seed)
         random.seed(seed)
         np.random.seed(seed)
@@ -242,20 +263,7 @@ class Trainer:
 
         for policy in self.policies:
             self.current_timestep[policy] = 0
-            policy_model_config = self._get_config(["policy", policy, "model"])
-            if policy_model_config["type"] == "fully_connected":
-                model = FullyConnected(
-                    self.cuda_envs,
-                    policy_model_config["fc_dims"],
-                    policy,
-                    self.policy_tag_to_agent_id_map,
-                    create_separate_placeholders_for_each_policy,
-                    obs_dim_corresponding_to_num_agents,
-                )
-            else:
-                raise NotImplementedError
-
-            self.models[policy] = model
+            self._initialize_policy_model(policy)
 
         # Load the model parameters (if model checkpoints are specified)
         # Note: Loading the model checkpoint may also update the current timestep!
@@ -271,8 +279,8 @@ class Trainer:
                 )
 
             # Initialize the (ADAM) optimizer
-            policy_config = self._get_config(["policy", policy])
-            self.lr_schedules[policy] = ParamScheduler(policy_config["lr"])
+            lr_config = self._get_config(["policy", policy, "lr"])
+            self.lr_schedules[policy] = ParamScheduler(lr_config)
             initial_lr = self.lr_schedules[policy].get_param_value(
                 timestep=self.current_timestep[policy]
             )
@@ -295,81 +303,70 @@ class Trainer:
         self.clip_grad_norm = {}
         self.max_grad_norm = {}
         for policy in self.policies_to_train:
-            algorithm = self._get_config(["policy", policy, "algorithm"])
-            assert algorithm in ["A2C", "PPO"]
-            entropy_coeff = self._get_config(["policy", policy, "entropy_coeff"])
-            vf_loss_coeff = self._get_config(["policy", policy, "vf_loss_coeff"])
-            self.clip_grad_norm[policy] = self._get_config(
-                ["policy", policy, "clip_grad_norm"]
-            )
-            if self.clip_grad_norm[policy]:
-                self.max_grad_norm[policy] = self._get_config(
-                    ["policy", policy, "max_grad_norm"]
-                )
-            normalize_advantage = self._get_config(
-                ["policy", policy, "normalize_advantage"]
-            )
-            normalize_return = self._get_config(["policy", policy, "normalize_return"])
-            gamma = policy_config["gamma"]
-
-            if algorithm == "PPO":
-                clip_param = self._get_config(["policy", policy, "clip_param"])
-
-            if algorithm == "A2C":
-                # Advantage Actor-Critic
-                self.trainers[policy] = A2C(
-                    discount_factor_gamma=gamma,
-                    normalize_advantage=normalize_advantage,
-                    normalize_return=normalize_return,
-                    vf_loss_coeff=vf_loss_coeff,
-                    entropy_coeff=entropy_coeff,
-                )
-                logging.info(f"Initializing the A2C trainer for policy {policy}")
-            elif algorithm == "PPO":
-                # Proximal Policy Optimization
-                self.trainers[policy] = PPO(
-                    discount_factor_gamma=gamma,
-                    clip_param=clip_param,
-                    normalize_advantage=normalize_advantage,
-                    normalize_return=normalize_return,
-                    vf_loss_coeff=vf_loss_coeff,
-                    entropy_coeff=entropy_coeff,
-                )
-                logging.info(f"Initializing the PPO trainer for policy {policy}")
-            else:
-                raise NotImplementedError
-
-        # Push all the data and tensor arrays to the GPU
-        # upon resetting environments for the very first time.
-        self.cuda_envs.reset_all_envs()
-
-        # Create and push data placeholders to the device
-        create_and_push_data_placeholders(
-            self.cuda_envs,
-            self.policy_tag_to_agent_id_map,
-            self.create_separate_placeholders_for_each_policy,
-            self.training_batch_size_per_env,
-        )
-
-        # Register action placeholders
-        if self.create_separate_placeholders_for_each_policy:
-            for policy in self.policies:
-                sample_agent_id = self.policy_tag_to_agent_id_map[policy][0]
-                action_space = self.cuda_envs.env.action_space[sample_agent_id]
-
-                self._register_actions(action_space, suffix=f"_{policy}")
-        else:
-            sample_policy = self.policies[0]
-            sample_agent_id = self.policy_tag_to_agent_id_map[sample_policy][0]
-            action_space = self.cuda_envs.env.action_space[sample_agent_id]
-
-            self._register_actions(action_space)
+            self._initialize_policy_algorithm(policy)
 
         # Performance Stats
         self.perf_stats = PerfStats()
 
         # Metrics
         self.metrics = Metrics()
+
+    def _initialize_policy_algorithm(self, policy):
+        algorithm = self._get_config(["policy", policy, "algorithm"])
+        assert algorithm in ["A2C", "PPO"]
+        entropy_coeff = self._get_config(["policy", policy, "entropy_coeff"])
+        vf_loss_coeff = self._get_config(["policy", policy, "vf_loss_coeff"])
+        self.clip_grad_norm[policy] = self._get_config(
+            ["policy", policy, "clip_grad_norm"]
+        )
+        if self.clip_grad_norm[policy]:
+            self.max_grad_norm[policy] = self._get_config(
+                ["policy", policy, "max_grad_norm"]
+            )
+        normalize_advantage = self._get_config(
+            ["policy", policy, "normalize_advantage"]
+        )
+        normalize_return = self._get_config(["policy", policy, "normalize_return"])
+        gamma = self._get_config(["policy", policy, "gamma"])
+        if algorithm == "A2C":
+            # Advantage Actor-Critic
+            self.trainers[policy] = A2C(
+                discount_factor_gamma=gamma,
+                normalize_advantage=normalize_advantage,
+                normalize_return=normalize_return,
+                vf_loss_coeff=vf_loss_coeff,
+                entropy_coeff=entropy_coeff,
+            )
+            logging.info(f"Initializing the A2C trainer for policy {policy}")
+        elif algorithm == "PPO":
+            # Proximal Policy Optimization
+            clip_param = self._get_config(["policy", policy, "clip_param"])
+            self.trainers[policy] = PPO(
+                discount_factor_gamma=gamma,
+                clip_param=clip_param,
+                normalize_advantage=normalize_advantage,
+                normalize_return=normalize_return,
+                vf_loss_coeff=vf_loss_coeff,
+                entropy_coeff=entropy_coeff,
+            )
+            logging.info(f"Initializing the PPO trainer for policy {policy}")
+        else:
+            raise NotImplementedError
+
+    def _initialize_policy_model(self, policy):
+        policy_model_config = self._get_config(["policy", policy, "model"])
+        if policy_model_config["type"] == "fully_connected":
+            model = FullyConnected(
+                self.cuda_envs,
+                policy_model_config["fc_dims"],
+                policy,
+                self.policy_tag_to_agent_id_map,
+                self.create_separate_placeholders_for_each_policy,
+                self.obs_dim_corresponding_to_num_agents,
+            )
+        else:
+            raise NotImplementedError
+        self.models[policy] = model
 
     def _get_config(self, args):
         assert isinstance(args, (tuple, list))

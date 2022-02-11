@@ -6,7 +6,7 @@ from warp_drive.training.utils.child_process import (
 )
 
 
-def perform_distributed_training(setup_trainer_and_train, config):
+def perform_distributed_training(setup_trainer_and_train, config, results_dir=None):
     # Perform distributed training. Create a new process for each trainer.
     assert config["trainer"]["num_gpus"] > 1
     num_devices = config["trainer"]["num_gpus"]
@@ -15,8 +15,10 @@ def perform_distributed_training(setup_trainer_and_train, config):
 
     procs = []
 
-    # Use the current time as the name for the results directory.
-    results_dir = f"{time.time():10.0f}"
+    if results_dir is None:
+        # Use the current time as the name for the results directory.
+        results_dir = f"{time.time():10.0f}"
+
     for device_id in range(num_devices):
         proc = DeviceContextProcessWrapper(
             target=setup_trainer_and_train,

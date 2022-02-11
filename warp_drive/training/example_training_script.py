@@ -12,6 +12,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 
 import pycuda.driver as cuda_driver
 import torch
@@ -40,7 +41,7 @@ def setup_trainer_and_train(
     device_id=0,
     num_devices=1,
     event_messenger=None,
-    results_dir=None,
+    results_directory=None,
     verbose=True,
 ):
     """
@@ -116,7 +117,7 @@ def setup_trainer_and_train(
         policy_tag_to_agent_id_map=policy_tag_to_agent_id_map,
         device_id=device_id,
         num_devices=num_devices,
-        results_dir=results_dir,
+        results_dir=results_directory,
         verbose=verbose,
     )
 
@@ -158,8 +159,16 @@ if __name__ == "__main__":
         help="the number of GPU devices for (horizontal) scaling, "
         "default=-1 (using configure setting)",
     )
+    parser.add_argument(
+        "--results_dir", type=str, help="name of the directory to save results into."
+    )
 
     args = parser.parse_args()
+    assert args.env is not None, (
+        "No env specified. Please use the '-e'- or '--env' option "
+        "to specify an environment. The environment name should "
+        "match the name of the yaml file in training/run_configs/."
+    )
 
     # Read the run configurations specific to each environment.
     # Note: The run config yaml(s) can be edited at warp_drive/training/run_configs
@@ -170,7 +179,7 @@ if __name__ == "__main__":
     if not os.path.exists(config_path):
         raise ValueError(
             "Invalid environment specified! The environment name should "
-            "match the name of the yaml file in training/run_configs/"
+            "match the name of the yaml file in training/run_configs/."
         )
 
     with open(config_path, "r", encoding="utf8") as fp:
@@ -203,8 +212,13 @@ if __name__ == "__main__":
     elif "num_gpus" not in run_config["trainer"]:
         run_config["trainer"]["num_gpus"] = 1
 
+    if args.results_dir is not None:
+        results_dir = args.results_dir
+    else:
+        results_dir = f"{time.time():10.0f}"
+
     print(f"Training with {run_config['trainer']['num_gpus']} GPU(s).")
     if run_config["trainer"]["num_gpus"] > 1:
-        perform_distributed_training(setup_trainer_and_train, run_config)
+        perform_distributed_training(setup_trainer_and_train, run_config, results_dir)
     else:
-        setup_trainer_and_train(run_config)
+        setup_trainer_and_train(run_config, results_directory=results_dir)

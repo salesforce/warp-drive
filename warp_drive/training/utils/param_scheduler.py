@@ -74,7 +74,7 @@ class ParamScheduler:
         else:
             raise NotImplementedError
         self.schedule = schedule
-        
+
         self.optimizer = optimizer
 
     def get_param_value(self, timestep):

@@ -31,6 +31,7 @@ def create_and_push_data_placeholders(
     create_separate_placeholders_for_each_policy=False,
     obs_dim_corresponding_to_num_agents="first",
     training_batch_size_per_env=1,
+    push_data_batch_placeholders=True,
 ):
     """
     Create observations, sampled_actions, rewards and done flags placeholders
@@ -48,8 +49,7 @@ def create_and_push_data_placeholders(
         It can also be True when there are multiple policies, yet
         all the agents have the same obs and action space shapes,
         so we can share the same placeholder.
-        Defaults to "False".
-    training_batch_size_per_env: the training batch size for each env.
+        Defaults to False.
     obs_dim_corresponding_to_num_agents:
         indicative of which dimension in the observation corresponds
         to the number of agents, as designed in the step function.
@@ -59,6 +59,10 @@ def create_and_push_data_placeholders(
         WarpDrive to process the observations correctly. This is only
         relevant when a single obs key corresponds to multiple agents.
         Defaults to "first".
+    training_batch_size_per_env: the training batch size for each env.
+    push_data_batch_placeholders: an optional flag to push placeholders
+        for the batches of actions, rewards and the done flags.
+        Defaults to True.
     """
     assert env_wrapper is not None
     assert env_wrapper.use_cuda
@@ -85,6 +89,7 @@ def create_and_push_data_placeholders(
                 policy_tag_to_agent_id_map,
                 obs_dim_corresponding_to_num_agents,
                 training_batch_size_per_env,
+                push_data_batch_placeholders,
                 suffix=f"_{pol_mod_tag}",
             )
             _log_obs_action_spaces(pol_mod_tag, relevant_agent_ids[0], env_wrapper)
@@ -100,6 +105,7 @@ def create_and_push_data_placeholders(
             policy_tag_to_agent_id_map,
             obs_dim_corresponding_to_num_agents,
             training_batch_size_per_env,
+            push_data_batch_placeholders,
         )
         for pol_mod_tag in policy_tag_to_agent_id_map:
             agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
@@ -199,6 +205,7 @@ def _create_and_push_data_placeholders_helper(
     policy_tag_to_agent_id_map,
     obs_dim_corresponding_to_num_agents,
     training_batch_size_per_env,
+    push_data_batch_placeholders,
     suffix="",
 ):
     """
@@ -297,41 +304,44 @@ def _create_and_push_data_placeholders_helper(
             "Action spaces can be of type 'Discrete' or 'MultiDiscrete'"
         )
 
-    tensor_feed.add_data(
-        name=f"{_ACTIONS}_batch" + suffix,
-        data=np.zeros(
-            (training_batch_size_per_env,)
-            + (
-                num_envs,
-                num_agents,
-            )
-            + (num_action_types,),
-            dtype=np.int32,
-        ),
-    )
+    if push_data_batch_placeholders:
+        tensor_feed.add_data(
+            name=f"{_ACTIONS}_batch" + suffix,
+            data=np.zeros(
+                (training_batch_size_per_env,)
+                + (
+                    num_envs,
+                    num_agents,
+                )
+                + (num_action_types,),
+                dtype=np.int32,
+            ),
+        )
 
     # Push rewards to the device
     rewards_placeholder = np.zeros((num_envs, num_agents), dtype=np.float32)
     tensor_feed.add_data(name=_REWARDS + suffix, data=rewards_placeholder)
-    tensor_feed.add_data(
-        name=f"{_REWARDS}_batch" + suffix,
-        data=np.zeros((training_batch_size_per_env,) + rewards_placeholder.shape),
-    )
-
-    # Push done flags placeholders for the roll-out batch to the device
-    # (if not already pushed)
-    name = f"{_DONE_FLAGS}_batch"
-    if not env_wrapper.cuda_data_manager.is_data_on_device(name):
-        done_flags_placeholder = env_wrapper.cuda_data_manager.pull_data_from_device(
-            "_done_"
-        )
+    if push_data_batch_placeholders:
         tensor_feed.add_data(
-            name=name,
-            data=np.zeros(
-                (training_batch_size_per_env,) + done_flags_placeholder.shape,
-                dtype=np.int32,
-            ),
+            name=f"{_REWARDS}_batch" + suffix,
+            data=np.zeros((training_batch_size_per_env,) + rewards_placeholder.shape),
         )
+
+    if push_data_batch_placeholders:
+        # Push done flags placeholders for the roll-out batch to the device
+        # (if not already pushed)
+        name = f"{_DONE_FLAGS}_batch"
+        if not env_wrapper.cuda_data_manager.is_data_on_device(name):
+            done_flags_placeholder = (
+                env_wrapper.cuda_data_manager.pull_data_from_device("_done_")
+            )
+            tensor_feed.add_data(
+                name=name,
+                data=np.zeros(
+                    (training_batch_size_per_env,) + done_flags_placeholder.shape,
+                    dtype=np.int32,
+                ),
+            )
 
     # Push all the placeholders to the device (GPU)
     env_wrapper.cuda_data_manager.push_data_to_device(

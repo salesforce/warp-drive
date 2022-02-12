@@ -902,7 +902,7 @@ class WarpDriveModel(LightningModule):
             )
             self.num_completed_episodes[policy] = 0
 
-            self._log_metrics(metrics)
+            self._log_metrics({policy: metrics})
         else:
             avg_reward = None
 

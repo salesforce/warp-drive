@@ -82,7 +82,7 @@ class EnvironmentCPUvsGPU:
         env_configs=None,
         num_envs=3,
         num_episodes=2,
-        use_gpu_testing_mode=True,
+        use_gpu_testing_mode=False,
         env_registry=None,
         env_wrapper=EnvWrapper,
         policy_tag_to_agent_id_map=None,
@@ -204,15 +204,22 @@ class EnvironmentCPUvsGPU:
             else:
                 # if not registered, we use the brutal force
                 env_obj = self.cuda_env_class(**env_config)
-            env_gpu = self.env_wrapper(
-                env_obj=env_obj,
-                env_name=self.cuda_env_class.name,
-                env_config=env_config,
-                num_envs=self.num_envs,
-                use_cuda=True,
-                testing_mode=self.use_gpu_testing_mode,
-                env_registry=self.env_registry,
-            )
+            kwargs = {
+                "env_obj": env_obj,
+                "env_name": self.cuda_env_class.name,
+                "env_config": env_config,
+                "num_envs": self.num_envs,
+                "use_cuda": True,
+                "env_registry": self.env_registry
+            }
+            # Testing mode
+            if self.use_gpu_testing_mode:
+                kwargs.update(
+                    {
+                        "testing_mode": self.use_gpu_testing_mode
+                    }
+                )
+            env_gpu = self.env_wrapper(**kwargs)
             env_gpu.reset_all_envs()
 
             # Push obs, sampled actions, rewards and done flags placeholders

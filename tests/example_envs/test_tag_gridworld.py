@@ -8,7 +8,6 @@ import unittest
 
 from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld, TagGridWorld
 from warp_drive.env_cpu_gpu_consistency_checker import EnvironmentCPUvsGPU
-from warp_drive.utils.env_registrar import env_registry
 
 # Env configs for testing
 env_configs = {
@@ -51,7 +50,6 @@ class MyTestCase(unittest.TestCase):
             num_envs=2,
             num_episodes=2,
             use_gpu_testing_mode=True,
-            env_registry=env_registry,
         )
 
     def test_env_consistency(self):

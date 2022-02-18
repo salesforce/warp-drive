@@ -121,12 +121,11 @@ def generate_tag_env_rollout_animation(
     label.set_color("#666666")
 
     def animate(i):
-        start = max(i - 1, 0)
         for idx, line in enumerate(lines):
             line.set_data_3d(
-                episode_states["loc_x"][start:i, idx] / env.grid_length,
-                episode_states["loc_y"][start:i, idx] / env.grid_length,
-                np.zeros((i - start,)),
+                episode_states["loc_x"][i:i+1, idx] / env.grid_length,
+                episode_states["loc_y"][i:i+1, idx] / env.grid_length,
+                np.zeros((1)),
             )
 
             still_in_game = episode_states["still_in_the_game"][i, idx]
@@ -139,9 +138,9 @@ def generate_tag_env_rollout_animation(
 
         n_runners_alive = episode_states["still_in_the_game"][i].sum() - env.num_taggers
         label.set_text(_get_label(i, n_runners_alive, init_num_runners).lower())
-
+                
     ani = animation.FuncAnimation(
-        fig, animate, np.arange(1, env.episode_length), interval=1000.0 / fps
+        fig, animate, np.arange(0, env.episode_length+1), interval=1000.0 / fps
     )
     plt.close()
 

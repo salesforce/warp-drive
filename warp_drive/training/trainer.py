@@ -929,7 +929,7 @@ class Trainer:
                 [np.ones(array_shape) for _ in range(env.episode_length + 1)]
             )
 
-        for timestep in range(env.episode_length + 1):
+        for timestep in range(env.episode_length):
             # Update the episode states
             for state in list_of_states:
                 episode_states[state][
@@ -950,7 +950,7 @@ class Trainer:
             if env.cuda_data_manager.pull_data_from_device("_done_")[env_id]:
                 for state in list_of_states:
                     episode_states[state][
-                        timestep
+                        timestep + 1
                     ] = self.cuda_envs.cuda_data_manager.pull_data_from_device(state)[
                         env_id
                     ]

@@ -5,7 +5,11 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 
 """
-The PytorchLightning-based Trainer, PerfStats and Metrics classes
+The Pytorch Lightning-based Trainer, PerfStats and Metrics classes
+Pytorch Lightning: https://www.pytorchlightning.ai/
+
+Here, we integrate the WarpDrive trainer with the Pytorch Lightning framework,
+which greatly reduces the trainer boilerplate code, and improves training flexibility.
 """
 
 import argparse
@@ -92,9 +96,10 @@ class WarpDriveDataset(Dataset):
         return self.batch_size
 
 
-class WarpDriveModel(LightningModule):
+class WarpDriveModule(LightningModule):
     """
-    The trainer object using PytorchLightning training APIs.
+    The trainer object using Pytorch Lightning training APIs.
+    Pytorch Lightning: https://www.pytorchlightning.ai/
     """
 
     def __init__(
@@ -628,7 +633,9 @@ class WarpDriveModel(LightningModule):
 
     def graceful_close(self):
         # Delete the sample controller to clear
-        # the random seeds defined in the CUDA memory heap
+        # the random seeds defined in the CUDA memory heap.
+        # Warning: Not closing gracefully could lead to a memory leak.
+
         del self.cuda_sample_controller
         if self.verbose:
             verbose_print("Trainer exits gracefully")
@@ -956,7 +963,7 @@ class PerfStatsCallback(Callback):
         for k, v in stats.items():
             print(f"{k:40}: {v:10.2f}")
 
-    # PytorchLightning hooks
+    # Pytorch Lightning hooks
     def on_batch_start(self, trainer=None, pl_module=None):
         assert trainer is not None
         assert pl_module is not None

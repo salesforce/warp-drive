@@ -98,7 +98,7 @@ data_dict.add_data(
 )
 ```
 
-Note: the data feed object also supports pushing multiple arrays at once via the `add_data_list()` API, see the [Tag (GridWorld)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py) code for an example. 
+**Note**: for convenience, the data feed object also supports pushing multiple arrays at once via the `add_data_list()` API, see the [Tag (GridWorld)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py#L337) code for an example. 
 
 An important point to note is that CUDA C always uses **32-bit precision**, so it's good to cast all the numpy arrays used in the Python simulation to 32-bit precision as well, before you push them.
 
@@ -138,7 +138,7 @@ grid=self.cuda_function_manager.grid,
 ```
 Note that `n_agents` and `episode_length` are part of the meta information for the data manager, so they can be directly referenced from therein. In particular, the `block` and `grid` arguments are essential to have the CUDA implementation determine how many threads and blocks to activate and use for the environment simulation.
 
-WarpDrive also supports feeding multiple arguments at once via the `CUDAFunctionFeed` class, see the [Tag (GridWorld)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py) code for an example.
+WarpDrive also supports feeding multiple arguments at once via the `CUDAFunctionFeed` class, see the [Tag (GridWorld)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py#L355) code for an example.
 
 ## 3. Write the *step()* method in CUDA C
 
@@ -201,7 +201,7 @@ be pushed to the GPU. Second, the step-function should call
 the cuda step with the data arrays that the CUDA C step
 function should have access to.
 
-In general, we can use just a single (dual-mode) environment class that can run both the Python and the CUDA C modes of the environment code on a GPU. The `use_cuda` flag enables switching between those modes. Note that the environment class will need to subclass `CUDAEnvironmentContext`, which essentially adds attributes to the environment (such as the `cuda_data_manager` and `cuda_function_manager`) that are required for running on a GPU. Please refer to the [Tag (Continuous)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous.py) for a detailed working example.
+In general, we can use just a single (*dual-mode*) environment class that can run both the Python and the CUDA C modes of the environment code on a GPU. The `use_cuda` flag enables switching between those modes. Note that the environment class will need to subclass `CUDAEnvironmentContext`, which essentially adds attributes to the environment (such as the `cuda_data_manager` and `cuda_function_manager`) that are required for running on a GPU. This also means that the environment itself can be stepped through only on a GPU. Please refer to the [Tag (Continuous)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous.py) for a detailed working example.
 
 ```python
 """
@@ -240,7 +240,7 @@ class MyDualModeEnvironment(CUDAEnvironmentContext):
             return obs, rew, done, info
 ```
 
-Alternatively, if you wish to run the Python environment in a CPU-only hardware (where WarpDrive cannot be installed), we suggest you treat the environment class as a base class and move the code augmentations needed for WarpDrive to a derived class. Accordingly, you can run the Python environment without having to install WarpDrive, while the CUDA C mode of the environment can run on a GPU with WarpDrive installed. Please refer to [Tag (GridWorld)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py) for a detailed working example.
+Alternatively, if you wish to run the Python environment in a CPU-only hardware (where WarpDrive cannot be installed), we suggest you treat the environment class as a base class (e.g. [Tag (GridWorld)](https://github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py#L23)) and move the code augmentations needed for WarpDrive to a derived class (e.g. [Tag (GridWorld)](https://github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py#L318)) Accordingly, you can run the Python environment without having to install WarpDrive, while the CUDA C mode of the environment will need to run only on a GPU (with WarpDrive installed).
 
 ```python
 """
@@ -338,7 +338,7 @@ Now, inside the EnvWrapper, function managers will be able to feed the `self.num
 
 Given the environment is implemented in both Python and CUDA C (for running on the CPU and GPU, respectively), please use **EnvironmentCPUvsGPU** class to test the consistency of your implementation. The module will instantiate two separate environment objects (with the `use_cuda` flag set to True and False), step through `num_episodes` episodes (with the same actions) and determine if there are inconsistencies in terms of the generated states, rewards or done flags. 
 
-Here is an example for the dual mode environment class. Please refer to [Tag (Continuous)](https://www.github.com/salesforce/warp-drive/blob/master/tests/example_envs/test_tag_continuous.py) for a detailed working example.
+Here is an example for the dual mode environment class. Please refer the to [Tag (Continuous) test](https://www.github.com/salesforce/warp-drive/blob/master/tests/example_envs/test_tag_continuous.py) for a detailed working example.
 
 ```python
 from warp_drive.env_cpu_gpu_consistency_checker import EnvironmentCPUvsGPU
@@ -365,7 +365,7 @@ testing_class = EnvironmentCPUvsGPU(
 testing_class.test_env_reset_and_step()
 ```
 
-And the following is an example for the parent-child environment classes. It is actually the same as the dual mode, the only difference is that `EnvironmentCPUvsGPU` will take two corresponding classes. Please refer to [Tag (GridWorld)](https://www.github.com/salesforce/warp-drive/blob/master/tests/example_envs/test_tag_gridworld.py) for a detailed working example.
+And the following is an example for the parent-child environment classes. It is actually the same as the dual mode, the only difference is that `EnvironmentCPUvsGPU` will take two corresponding classes. Please refer to the [Tag (GridWorld) test](https://www.github.com/salesforce/warp-drive/blob/master/tests/example_envs/test_tag_gridworld.py) for a detailed working example.
 
 ```python
 from warp_drive.env_cpu_gpu_consistency_checker import EnvironmentCPUvsGPU
@@ -392,6 +392,15 @@ testing_class = EnvironmentCPUvsGPU(
 
 testing_class.test_env_reset_and_step()
 ```
+
+The `EnvironmentCPUvsGPU` class also takes in a few optional arguments that will need to be correctly set, if required.
+- `use_gpu_testing_mode`: a flag to determine whether to simply load the cuda binaries (.cubin) or compile the cuda source code (.cu) each time to create a binary.` Defaults to False.
+- `env_registry`: the EnvironmentRegistrar object. It provides the customized env info (like src path) for the build.
+- `env_wrapper`: allows for the user to provide their own EnvWrapper.
+- `policy_tag_to_agent_id_map`: a dictionary mapping policy tag to agent ids.
+- `create_separate_placeholders_for_each_policy`: a flag indicating whether there exist separate observations, actions and rewards placeholders, for each policy, as designed in the step function. The placeholders will be used in the step() function and during training. When there's only a single policy, this flag will be False. It can also be True when there are multiple policies, yet all the agents have the same obs and action space shapes, so we can share the same placeholder. Defaults to False.
+- `obs_dim_corresponding_to_num_agents`: this is indicative of which dimension in the observation corresponds to the number of agents, as designed in the step function. It may be "first" or "last". In other words, observations may be shaped (num_agents, *feature_dim) or (*feature_dim, num_agents). This is required in order for WarpDrive to process the observations correctly. This is only relevant when a single obs key corresponds to multiple agents. Defaults to "first".
+
 
 ## 7. Unittest WarpDrive
 

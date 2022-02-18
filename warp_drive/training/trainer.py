@@ -83,8 +83,8 @@ class Trainer:
         policy_tag_to_agent_id_map=None,
         create_separate_placeholders_for_each_policy=False,
         obs_dim_corresponding_to_num_agents="first",
-        device_id=0,
         num_devices=1,
+        device_id=0,
         results_dir=None,
         verbose=True,
     ):
@@ -95,7 +95,7 @@ class Trainer:
             policy_tag_to_agent_id_map:
                 a dictionary mapping policy tag to agent ids.
             create_separate_placeholders_for_each_policy:
-                flag indicating whether there exist separate observations,
+                a flag indicating whether there exist separate observations,
                 actions and rewards placeholders, for each policy,
                 as designed in the step function. The placeholders will be
                 used in the step() function and during training.
@@ -113,12 +113,13 @@ class Trainer:
                 WarpDrive to process the observations correctly. This is only
                 relevant when a single obs key corresponds to multiple agents.
                 Defaults to "first".
-            device_id: device ID
-            num_devices: number of GPU devices in the train, if more than one,
-                will use the distributed training pipeline among num_devices.
+            num_devices: number of GPU devices used for (distributed) training.
+                Defaults to 1.
+            device_id: device ID. This is set in the context of multi-GPU training.
             results_dir: (optional) name of the directory to save results into.
             verbose:
-                if enabled, training metrics are printed to the screen.
+                if False, training metrics are not printed to the screen.
+                Defaults to True.
         """
         assert env_wrapper is not None
         assert env_wrapper.use_cuda

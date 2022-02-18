@@ -100,16 +100,16 @@ class EnvironmentCPUvsGPU:
         :param num_episodes: number of episodes in the test
             hint: number >=2 is recommended
             since it can fully test the reset
-        :param use_gpu_testing_mode: determine whether to simply load the
-            discrete_and_continuous_tag_envs.cubin or compile the .cu source
-            code to create a .cubin.
-            If use_gpu_testing_mode = True: do not forget to
-            include your testing env into discrete_and_continuous_tag_envs.cu
-            and build it. This is the recommended flow because the
-            Makefile will automate this build.
-        :param env_registry: EnvironmentRegistrar object
+        :param use_gpu_testing_mode: a flag to determine whether to simply load
+            the cuda binaries (.cubin) or compile the cuda source code (.cu)
+            each time to create a binary.`
+            Defaults to False.
+            If use_gpu_testing_mode is True, do not forget to
+            include your testing env into warp_drive/cuda_includes/test_build.cu,
+            and the Makefile will automate this build.
+        :param env_registry: the EnvironmentRegistrar object;
             it provides the customized env info (like src path) for the build
-        :param env_wrapper: Allows for the user to provide their own EnvWrapper.
+        :param env_wrapper: allows for the user to provide their own EnvWrapper.
             e.g.,https://github.com/salesforce/ai-economist/blob/master/
                  ai_economist/foundation/env_wrapper.py
         :param policy_tag_to_agent_id_map:
@@ -123,7 +123,7 @@ class EnvironmentCPUvsGPU:
             It can also be True when there are multiple policies, yet
             all the agents have the same obs and action space shapes,
             so we can share the same placeholder.
-            Defaults to "False"
+            Defaults to False
         :param obs_dim_corresponding_to_num_agents:
             indicative of which dimension in the observation corresponds
             to the number of agents, as designed in the step function.

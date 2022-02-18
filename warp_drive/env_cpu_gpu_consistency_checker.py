@@ -210,15 +210,11 @@ class EnvironmentCPUvsGPU:
                 "env_config": env_config,
                 "num_envs": self.num_envs,
                 "use_cuda": True,
-                "env_registry": self.env_registry
+                "env_registry": self.env_registry,
             }
             # Testing mode
             if self.use_gpu_testing_mode:
-                kwargs.update(
-                    {
-                        "testing_mode": self.use_gpu_testing_mode
-                    }
-                )
+                kwargs.update({"testing_mode": self.use_gpu_testing_mode})
             env_gpu = self.env_wrapper(**kwargs)
             env_gpu.reset_all_envs()
 

@@ -889,7 +889,8 @@ class Trainer:
 
     def graceful_close(self):
         # Delete the sample controller to clear
-        # the random seeds defined in the CUDA memory heap
+        # the random seeds defined in the CUDA memory heap.
+        # Warning: Not closing gracefully could lead to a memory leak.
         del self.cuda_sample_controller
         if self.verbose:
             verbose_print("Trainer exits gracefully", self.device_id)

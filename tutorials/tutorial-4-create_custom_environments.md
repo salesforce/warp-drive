@@ -427,7 +427,7 @@ const int kThisAgentArrayIdx = kEnvId * kNumAgents + kThisAgentId;
 ```
 and this index can be reused across different contexts.
 
-Note: to facilitate simulation development, we also created a `get_flattened_array_index` helper function to provide the flattened array index; please see [Tag (GridWorld)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld.py) for a working example. 
+Note: to facilitate simulation development, we also created a `get_flattened_array_index` helper function to provide the flattened array index; please see [Tag (GridWorld)](https://github.com/salesforce/warp-drive/blob/master/example_envs/tag_gridworld/tag_gridworld_step.cu#L151) for a working example. 
 
 ## __syncthreads
 

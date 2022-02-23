@@ -16,6 +16,7 @@ import argparse
 import json
 import logging
 import os
+import sys
 import time
 from collections import OrderedDict
 from typing import Callable, Iterable, Tuple
@@ -34,7 +35,7 @@ from warp_drive.training.algorithms.a2c import A2C
 from warp_drive.training.algorithms.ppo import PPO
 from warp_drive.training.models.fully_connected import FullyConnected
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
-from warp_drive.training.utils.param_scheduler import ParamScheduler
+from warp_drive.training.utils.param_scheduler import LRScheduler, ParamScheduler
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.constants import Constants
 
@@ -88,8 +89,8 @@ class WarpDriveDataset(Dataset):
         self.batch_size = batch_size
         self.data_dict = None  # this will be set later (see below)
 
-    def __getitem__(self, index=0) -> Iterable:
-        self.data_dict = self.generate_data(index)
+    def __getitem__(self, batch_index=0) -> Iterable:
+        self.data_dict = self.generate_data(batch_index=batch_index)
         return self.data_dict
 
     def __len__(self):
@@ -219,6 +220,7 @@ class WarpDriveModule(LightningModule):
             assert len(self.policies) > 1
 
         # Number of iterations algebra
+        self.iters = 0  # iteration counter
         self.num_episodes = self._get_config(["trainer", "num_episodes"])
         assert self.num_episodes > 0
         self.training_batch_size = self._get_config(["trainer", "train_batch_size"])
@@ -375,7 +377,7 @@ class WarpDriveModule(LightningModule):
                 logging.error("Missing configuration '{arg}'!")
         return config
 
-    def _evaluate_policies(self):
+    def _evaluate_policies(self, batch_index=0):
         """
         Perform the policy evaluation (forward pass through the models)
         and compute action probabilities
@@ -383,7 +385,7 @@ class WarpDriveModule(LightningModule):
         probabilities = {}
         for policy in self.policies:
             probabilities[policy], _ = self.models[policy](
-                batch_index=0, batch_size=self.training_batch_size_per_env
+                batch_index=batch_index, batch_size=self.training_batch_size_per_env
             )
 
         # Combine probabilities across policies if there are multiple policies,
@@ -558,10 +560,7 @@ class WarpDriveModule(LightningModule):
         if len(metrics) > 0:
 
             if self.verbose:
-                print("\n")
-                print("=" * 40)
                 self.metrics.pretty_print(metrics)
-                print("=" * 40, "\n")
 
             results_filename = os.path.join(self.save_dir, "results.json")
             if self.verbose:
@@ -702,14 +701,14 @@ class WarpDriveModule(LightningModule):
 
         return episode_states
 
-    def _generate_rollout(self, start_event, end_event):
+    def _generate_rollout(self, start_event, end_event, batch_index=0):
         """
         Perform a forward pass through the model(s) and step through the environment.
         """
 
         # Evaluate policies to compute action probabilities
         start_event.record()
-        probabilities = self._evaluate_policies()
+        probabilities = self._evaluate_policies(batch_index=batch_index)
         end_event.record()
         torch.cuda.synchronize()
 
@@ -747,7 +746,7 @@ class WarpDriveModule(LightningModule):
         end_event = torch.cuda.Event(enable_timing=True)
 
         # Evaluate policies and run step functions
-        self._generate_rollout(start_event, end_event)
+        self._generate_rollout(start_event, end_event, batch_index=batch_index)
 
         # Fetch the actions and rewards batches for all agents
         if not self.create_separate_placeholders_for_each_policy:
@@ -808,22 +807,22 @@ class WarpDriveModule(LightningModule):
 
         for policy in self.policies_to_train:
             # Initialize the (ADAM) optimizer
-            policy_config = self._get_config(["policy", policy])
-            lr_schedule = ParamScheduler(
-                policy_config["lr"],
-                init_timestep=self.current_timestep[policy],
-                timesteps_per_iteration=self.training_batch_size,
-            )
-
-            initial_lr = lr_schedule.get_param_value(
-                timestep=self.current_timestep[policy]
-            )
+            lr_schedule = self._get_config(["policy", policy, "lr"])
+            init_timestep = self.current_timestep[policy]
+            initial_lr = ParamScheduler(lr_schedule).get_param_value(init_timestep)
             optimizer = torch.optim.Adam(
                 self.models[policy].parameters(), lr=initial_lr
             )
-            lr_schedule.optimizer = optimizer
 
-            lr_schedules += [{"scheduler": lr_schedule}]
+            # Initialize the learning rate scheduler
+            lr_scheduler = LRScheduler(
+                lr_schedule,
+                optimizer,
+                init_timestep,
+                timesteps_per_iteration=self.training_batch_size,
+            )
+
+            lr_schedules += [{"scheduler": lr_scheduler}]
             optimizers += [optimizer]
         return optimizers, lr_schedules
 
@@ -847,12 +846,24 @@ class WarpDriveModule(LightningModule):
     def training_step(
         self, batch: Tuple[Tensor, Tensor, Tensor, Tensor], batch_idx=0, optimizer_idx=0
     ):
+        assert batch_idx >= 0
+        assert optimizer_idx >= 0
+
         """The training loop"""
+        if optimizer_idx == 0:
+            # Do this only once for all the optimizers
+            self.iters += 1
+
+        # Exit training when complete
+        if self.iters > self.num_iters:
+            print("Training is complete!")
+            self.graceful_close()
+            sys.exit(0)
 
         # Flag for logging (which also happens after the last iteration)
         logging_flag = (
-            batch_idx % self.config["saving"]["metrics_log_freq"] == 0
-            or batch_idx == self.num_iters - 1
+            self.iters % self.config["saving"]["metrics_log_freq"] == 0
+            or self.iters == self.num_iters - 1
         )
 
         policy = self.policies_to_train[optimizer_idx]
@@ -955,13 +966,14 @@ class PerfStatsCallback(Callback):
             "Mean steps per sec (training time)": self.steps / self.training_time,
         }
 
-    @staticmethod
-    def pretty_print(stats):
+    def pretty_print(self, stats):
         print("=" * 40)
         print("Speed performance stats")
         print("=" * 40)
+        print("{:40}: {:13}".format("Iteration", f"{self.iters} / {self.num_iters}"))
         for k, v in stats.items():
             print(f"{k:40}: {v:10.2f}")
+        print("\n")
 
     # Pytorch Lightning hooks
     def on_batch_start(self, trainer=None, pl_module=None):

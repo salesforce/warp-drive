@@ -323,13 +323,13 @@ You can register a customized environment by using **EnvironmentRegistrar**. Ple
 from warp_drive.utils.env_registrar import EnvironmentRegistrar
 import Your_Env_Class
 
-env_registry = EnvironmentRegistrar()
-env_registry.add_cuda_env_src_path(Your_Env_Class.name, "FULL_PATH_TO_YOUR_ENV_CUDA_SRC")
+env_registrar = EnvironmentRegistrar()
+env_registrar.add_cuda_env_src_path(Your_Env_Class.name, "FULL_PATH_TO_YOUR_ENV_CUDA_SRC")
 env_wrapper = EnvWrapper(
     Your_Env_Class(**run_config["env"]), 
     num_envs=num_envs, 
     use_cuda=True, 
-    env_registry=env_registry)
+    env_registrar=env_registrar)
 ```
 
 Now, inside the EnvWrapper, function managers will be able to feed the `self.num_env` and `self.num_agents` to the CUDA compiler at compile time to build and load a unique CUDA environment context for all the tasks.
@@ -346,8 +346,8 @@ from warp_drive.utils.env_registrar import EnvironmentRegistrar
 import Your_Dual_Mode_Env_Class
 
 
-env_registry = EnvironmentRegistrar()
-env_registry.add_cuda_env_src_path(Your_Dual_Mode_Env_Class.name, "FULL_PATH_TO_YOUR_ENV_CUDA_SRC")
+env_registrar = EnvironmentRegistrar()
+env_registrar.add_cuda_env_src_path(Your_Dual_Mode_Env_Class.name, "FULL_PATH_TO_YOUR_ENV_CUDA_SRC")
 env_configs = {
     "test1": {
         "num_agents": 4,
@@ -359,7 +359,7 @@ testing_class = EnvironmentCPUvsGPU(
     env_configs=env_configs,
     num_envs=2,
     num_episodes=2,
-    env_registry=env_registry,
+    env_registrar=env_registrar,
 )
 
 testing_class.test_env_reset_and_step()
@@ -373,8 +373,8 @@ from warp_drive.utils.env_registrar import EnvironmentRegistrar
 import Your_CPU_Env_Class, Your_GPU_Env_Class
 
 
-env_registry = EnvironmentRegistrar()
-env_registry.add_cuda_env_src_path(Your_GPU_Env_Class.name, "FULL_PATH_TO_YOUR_ENV_CUDA_SRC")
+env_registrar = EnvironmentRegistrar()
+env_registrar.add_cuda_env_src_path(Your_GPU_Env_Class.name, "FULL_PATH_TO_YOUR_ENV_CUDA_SRC")
 env_configs = {
     "test1": {
         "num_agents": 4,
@@ -387,7 +387,7 @@ testing_class = EnvironmentCPUvsGPU(
     env_configs=env_configs,
     num_envs=2,
     num_episodes=2,
-    env_registry=env_registry,
+    env_registrar=env_registrar,
 )
 
 testing_class.test_env_reset_and_step()
@@ -395,7 +395,7 @@ testing_class.test_env_reset_and_step()
 
 The `EnvironmentCPUvsGPU` class also takes in a few optional arguments that will need to be correctly set, if required.
 - `use_gpu_testing_mode`: a flag to determine whether to simply load the cuda binaries (.cubin) or compile the cuda source code (.cu) each time to create a binary.` Defaults to False.
-- `env_registry`: the EnvironmentRegistrar object. It provides the customized env info (like src path) for the build.
+- `env_registrar`: the EnvironmentRegistrar object. It provides the customized env info (like src path) for the build.
 - `env_wrapper`: allows for the user to provide their own EnvWrapper.
 - `policy_tag_to_agent_id_map`: a dictionary mapping policy tag to agent ids.
 - `create_separate_placeholders_for_each_policy`: a flag indicating whether there exist separate observations, actions and rewards placeholders, for each policy, as designed in the step function. The placeholders will be used in the step() function and during training. When there's only a single policy, this flag will be False. It can also be True when there are multiple policies, yet all the agents have the same obs and action space shapes, so we can share the same placeholder. Defaults to False.

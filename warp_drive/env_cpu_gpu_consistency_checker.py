@@ -83,7 +83,7 @@ class EnvironmentCPUvsGPU:
         num_envs=3,
         num_episodes=2,
         use_gpu_testing_mode=False,
-        env_registry=None,
+        env_registrar=None,
         env_wrapper=EnvWrapper,
         policy_tag_to_agent_id_map=None,
         create_separate_placeholders_for_each_policy=False,
@@ -107,7 +107,7 @@ class EnvironmentCPUvsGPU:
             If use_gpu_testing_mode is True, do not forget to
             include your testing env into warp_drive/cuda_includes/test_build.cu,
             and the Makefile will automate this build.
-        :param env_registry: the EnvironmentRegistrar object;
+        :param env_registrar: the EnvironmentRegistrar object;
             it provides the customized env info (like src path) for the build
         :param env_wrapper: allows for the user to provide their own EnvWrapper.
             e.g.,https://github.com/salesforce/ai-economist/blob/master/
@@ -152,7 +152,7 @@ class EnvironmentCPUvsGPU:
         self.num_envs = num_envs
         self.num_episodes = num_episodes
         self.use_gpu_testing_mode = use_gpu_testing_mode
-        self.env_registry = env_registry
+        self.env_registrar = env_registrar
         self.env_wrapper = env_wrapper
         self.policy_tag_to_agent_id_map = policy_tag_to_agent_id_map
         self.create_separate_placeholders_for_each_policy = (
@@ -177,10 +177,10 @@ class EnvironmentCPUvsGPU:
             env_cpu = {}
             obs_cpu = []
             for env_id in range(self.num_envs):
-                if self.env_registry is not None and self.env_registry.has_env(
+                if self.env_registrar is not None and self.env_registrar.has_env(
                     self.cpu_env_class.name, device="cpu"
                 ):
-                    env_cpu[env_id] = self.env_registry.get(
+                    env_cpu[env_id] = self.env_registrar.get(
                         self.cpu_env_class.name, use_cuda=False
                     )(**env_config)
                 else:
@@ -196,10 +196,10 @@ class EnvironmentCPUvsGPU:
 
             # GPU version of env
             # ------------------
-            if self.env_registry is not None and self.env_registry.has_env(
+            if self.env_registrar is not None and self.env_registrar.has_env(
                 self.cuda_env_class.name, device="cuda"
             ):
-                # we use env_registry to instantiate env object
+                # we use env_registrar to instantiate env object
                 env_obj = None
             else:
                 # if not registered, we use the brutal force
@@ -210,7 +210,7 @@ class EnvironmentCPUvsGPU:
                 "env_config": env_config,
                 "num_envs": self.num_envs,
                 "use_cuda": True,
-                "env_registry": self.env_registry,
+                "env_registrar": self.env_registrar,
             }
             # Testing mode
             if self.use_gpu_testing_mode:

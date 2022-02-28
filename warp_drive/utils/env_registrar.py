@@ -3,7 +3,7 @@ import logging
 
 class EnvironmentRegistrar:
     """
-    Environment Registry Class
+    Environment Registrar Class
     """
 
     _cpu_envs = {}
@@ -92,4 +92,4 @@ class EnvironmentRegistrar:
         raise Exception("Invalid device: only support CPU and CUDA/GPU")
 
 
-env_registry = EnvironmentRegistrar()
+env_registrar = EnvironmentRegistrar()

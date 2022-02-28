@@ -846,6 +846,12 @@ class WarpDriveModule(LightningModule):
     def training_step(
         self, batch: Tuple[Tensor, Tensor, Tensor, Tensor], batch_idx=0, optimizer_idx=0
     ):
+        """
+        Carries out a single training step based on a batch of rollout data.
+        Args:
+            batch of sampled actions, rewards, done flags and processed observations.
+        Returns: loss.
+        """
         assert batch_idx >= 0
         assert optimizer_idx >= 0
 
@@ -921,18 +927,13 @@ class WarpDriveModule(LightningModule):
             self.num_completed_episodes[policy] = 0
 
             self._log_metrics({policy: metrics})
-        else:
-            avg_reward = None
 
-        return OrderedDict(
-            {
-                "policy": policy,
-                "loss": loss,
-                "avg_reward": avg_reward,
-                "log": metrics,
-                "progress_bar": metrics,
-            }
-        )
+            # Logging
+            self.log(f"avg_reward_{policy}", avg_reward, prog_bar=False, on_step=False, on_epoch=True)
+            self.log(f"loss_{policy}", loss, prog_bar=True, on_step=False, on_epoch=True)
+            for key in metrics:
+                self.log(f"{key}_{policy}", metrics[key], prog_bar=False, on_step=False, on_epoch=True)
+        return loss
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no cover

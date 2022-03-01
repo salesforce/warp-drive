@@ -5,6 +5,8 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 import logging
 
+from torch.optim.lr_scheduler import LambdaLR
+
 
 def _linear_interpolation(l_v, r_v, slope):
     """linear interpolation between l_v and r_v with a slope"""
@@ -13,18 +15,12 @@ def _linear_interpolation(l_v, r_v, slope):
 
 class ParamScheduler:
     """
-    A scheduler for the adapting parameters such as
+    A generic scheduler for the adapting parameters such as
     learning rate and entropy coefficient.
     Available scheduler types are ["constant", "piecewise_linear"].
     """
 
-    def __init__(
-        self,
-        schedule,
-        init_timestep=0,
-        timesteps_per_iteration=1,
-        optimizer=None,
-    ):
+    def __init__(self, schedule):
         """
         schedule: schedule for how to vary the parameter.
         Types of parameter schedules:
@@ -40,16 +36,7 @@ class ParamScheduler:
                0.05 if t > 2000,
                and linearly interpolated between 1000 and 2000 steps.]
                For instance, the value at 1500 steps will equal 0.075.
-        init_timestep: the value of timestep at initialization.
-        timesteps_per_iteration: number of timesteps in each iteration.
-        optimizer: optimizer associated with the scheduler. This is only valid for
-        a learning rate scheduler, wherein, the optimizer lr can be set.
         """
-        assert init_timestep >= 0
-        self.timestep = init_timestep
-        assert timesteps_per_iteration > 0
-        self.timesteps_per_iteration = timesteps_per_iteration
-
         if isinstance(schedule, (int, float)):
             # The schedule corresponds to the param value itself.
             self.type = "constant"
@@ -75,8 +62,6 @@ class ParamScheduler:
             raise NotImplementedError
         self.schedule = schedule
 
-        self.optimizer = optimizer
-
     def get_param_value(self, timestep):
         """Obtain the parameter value at a desired timestep."""
         assert timestep >= 0
@@ -99,13 +84,33 @@ class ParamScheduler:
         logging.info(f"Setting the param value at t={timestep} to {param_value}.")
         return param_value
 
-    def step(self):
-        # Update the timestep.
-        self.timestep += self.timesteps_per_iteration
-        # Set the learning rate if associated with and optimizer.
-        if self.optimizer is not None:
-            lr = self.get_param_value(self.timestep)
-            for param_group in self.optimizer.param_groups:
-                param_group["lr"] = lr
-            logging.info(f"Setting the learning rate at t={self.timestep} to {lr}.")
-        return self.get_param_value(self.timestep)
+
+class LRScheduler(ParamScheduler, LambdaLR):
+    """
+    A learning rate scheduler with Pytorch-style APIs,
+    compatible with Pytorch Lightning.
+    """
+
+    def __init__(
+        self, schedule, optimizer=None, init_timestep=0, timesteps_per_iteration=1
+    ):
+        """
+        optimizer: optimizer associated with the LR scheduler.
+        init_timestep: the value of timestep at initialization.
+        timesteps_per_iteration: number of timesteps in each iteration.
+        """
+        assert optimizer is not None
+        self.optimizer = optimizer
+        assert init_timestep >= 0
+        self.init_timestep = init_timestep
+        assert timesteps_per_iteration > 0
+        self.timesteps_per_iteration = timesteps_per_iteration
+
+        ParamScheduler.__init__(self, schedule)
+
+        def lr_lambda(iteration):
+            return self.get_param_value(
+                self.init_timestep + iteration * self.timesteps_per_iteration
+            ) / self.get_param_value(self.init_timestep)
+
+        LambdaLR.__init__(self, optimizer, lr_lambda)

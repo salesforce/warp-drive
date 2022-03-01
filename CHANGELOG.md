@@ -1,5 +1,8 @@
 # Changelog
 
+# Release 1.5 (2022-03-01)
+- Trainer integration with Pytorch Lightning
+
 # Release 1.4 (2022-01-29)
 - Added multi-GPU support 
 

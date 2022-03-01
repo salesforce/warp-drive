@@ -855,7 +855,6 @@ class WarpDriveModule(LightningModule):
         assert batch_idx >= 0
         assert optimizer_idx >= 0
 
-        """The training loop"""
         if optimizer_idx == 0:
             # Do this only once for all the optimizers
             self.iters += 1
@@ -916,9 +915,6 @@ class WarpDriveModule(LightningModule):
                     / (self.num_completed_episodes[policy] + _EPSILON),
                 }
             )
-            avg_reward = self.episodic_reward_sum[policy].item() / (
-                self.num_completed_episodes[policy] + _EPSILON
-            )
 
             # Reset sum and counter
             self.episodic_reward_sum[policy] = (
@@ -929,10 +925,10 @@ class WarpDriveModule(LightningModule):
             self._log_metrics({policy: metrics})
 
             # Logging
-            self.log(f"avg_reward_{policy}", avg_reward, prog_bar=False, on_step=False, on_epoch=True)
             self.log(f"loss_{policy}", loss, prog_bar=True, on_step=False, on_epoch=True)
             for key in metrics:
                 self.log(f"{key}_{policy}", metrics[key], prog_bar=False, on_step=False, on_epoch=True)
+
         return loss
 
     @staticmethod

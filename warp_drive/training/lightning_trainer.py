@@ -925,9 +925,17 @@ class WarpDriveModule(LightningModule):
             self._log_metrics({policy: metrics})
 
             # Logging
-            self.log(f"loss_{policy}", loss, prog_bar=True, on_step=False, on_epoch=True)
+            self.log(
+                f"loss_{policy}", loss, prog_bar=True, on_step=False, on_epoch=True
+            )
             for key in metrics:
-                self.log(f"{key}_{policy}", metrics[key], prog_bar=False, on_step=False, on_epoch=True)
+                self.log(
+                    f"{key}_{policy}",
+                    metrics[key],
+                    prog_bar=False,
+                    on_step=False,
+                    on_epoch=True,
+                )
 
         return loss
 

@@ -6,10 +6,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.art3d as art3d
 import numpy as np
-from matplotlib import animation, rc
-from matplotlib.animation import PillowWriter
+from matplotlib import animation
 from matplotlib.patches import Polygon
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def generate_tag_env_rollout_animation(

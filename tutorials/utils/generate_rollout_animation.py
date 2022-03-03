@@ -11,7 +11,7 @@ from matplotlib.patches import Polygon
 
 
 def generate_tag_env_rollout_animation(
-    env,
+    trainer,
     episode_states=None,
     fps=60,
     tagger_color="#C843C3",
@@ -20,11 +20,17 @@ def generate_tag_env_rollout_animation(
     fig_width=6,
     fig_height=6,
 ):
-    assert episode_states is not None
+    assert trainer is not None
+
+    episode_states = trainer.fetch_episode_states(
+        ["loc_x", "loc_y", "still_in_the_game"]
+    )
     assert isinstance(episode_states, dict)
     assert "loc_x" in episode_states
     assert "loc_y" in episode_states
     assert "still_in_the_game" in episode_states
+
+    env = trainer.cuda_envs.env
 
     fig, ax = plt.subplots(
         1, 1, figsize=(fig_width, fig_height)  # , constrained_layout=True

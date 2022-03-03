@@ -11,8 +11,8 @@ env:
     min_acceleration: -0.1
     max_turn: 2.35  # 3*pi/4 radians
     min_turn: -2.35  # -3*pi/4 radians
-    num_acceleration_levels: 20
-    num_turn_levels: 20
+    num_acceleration_levels: 10
+    num_turn_levels: 10
     skill_level_runner: 1
     skill_level_tagger: 1
     seed: 274880
@@ -25,14 +25,13 @@ env:
     step_reward_for_runner: 0.00
     edge_hit_penalty: -0.0
     end_of_game_reward_for_runner: 1.0
-    tagging_distance: 0.01
+    tagging_distance: 0.02
 
 # Trainer settings
 trainer:
-    num_envs: 200 # number of environment replicas
-    num_episodes: 100 # number of episodes to run the training for
-    train_batch_size: 250 # total batch size used for training per iteration (across all the environments)
-
+    num_envs: 400 # number of environment replicas
+    train_batch_size: 10000 # total batch size used for training per iteration (across all the environments)
+    num_episodes: 500 # number of episodes to run the training for (can be arbitrarily high)
 # Policy network settings
 policy: # list all the policies below
     runner:
@@ -61,8 +60,8 @@ policy: # list all the policies below
 
 # Checkpoint saving setting
 saving:
-    metrics_log_freq: 50 # how often (in iterations) to print the metrics
-    model_params_save_freq: 50 # how often (in iterations) to save the model parameters
+    metrics_log_freq: 100 # how often (in iterations) to print the metrics
+    model_params_save_freq: 5000 # how often (in iterations) to save the model parameters
     basedir: "/tmp" # base folder used for saving
     name: "tag_continuous"
-    tag: "100runners_5taggers_bs250"
+    tag: "100runners_5taggers"

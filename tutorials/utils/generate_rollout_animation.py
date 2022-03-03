@@ -12,8 +12,7 @@ from matplotlib.patches import Polygon
 
 def generate_tag_env_rollout_animation(
     trainer,
-    episode_states=None,
-    fps=60,
+    fps=50,
     tagger_color="#C843C3",
     runner_color="#245EB6",
     runner_not_in_game_color="#666666",

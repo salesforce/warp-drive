@@ -947,6 +947,7 @@ class PerfStatsCallback(Callback):
     """
     Performance stats that will be included in rollout metrics.
     """
+
     def __init__(self, batch_size=None, num_iters=None, log_freq=1):
         assert batch_size is not None
         assert num_iters is not None
@@ -1001,6 +1002,7 @@ class CudaCallback(Callback):
     """
     Callbacks pertaining to CUDA.
     """
+
     def __init__(self, module):
         self.module = module
 
@@ -1014,4 +1016,3 @@ class CudaCallback(Callback):
         assert trainer is not None
         assert pl_module is not None
         print("Training is complete!")
-

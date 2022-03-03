@@ -34,6 +34,7 @@ from warp_drive.managers.function_manager import CUDASampler
 from warp_drive.training.algorithms.a2c import A2C
 from warp_drive.training.algorithms.ppo import PPO
 from warp_drive.training.models.fully_connected import FullyConnected
+from warp_drive.training.trainer import Metrics
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
 from warp_drive.training.utils.param_scheduler import LRScheduler, ParamScheduler
 from warp_drive.utils.common import get_project_root
@@ -859,12 +860,6 @@ class WarpDriveModule(LightningModule):
             # Do this only once for all the optimizers
             self.iters += 1
 
-        # Exit training when complete
-        if self.iters > self.num_iters:
-            print("Training is complete!")
-            self.graceful_close()
-            sys.exit(0)
-
         # Flag for logging (which also happens after the last iteration)
         logging_flag = (
             self.iters % self.config["saving"]["metrics_log_freq"] == 0
@@ -937,6 +932,9 @@ class WarpDriveModule(LightningModule):
                     on_epoch=True,
                 )
 
+        # Save the model checkpoint
+        self.save_model_checkpoint(self.iters)
+
         return loss
 
     @staticmethod
@@ -949,7 +947,6 @@ class PerfStatsCallback(Callback):
     """
     Performance stats that will be included in rollout metrics.
     """
-
     def __init__(self, batch_size=None, num_iters=None, log_freq=1):
         assert batch_size is not None
         assert num_iters is not None
@@ -1000,21 +997,21 @@ class PerfStatsCallback(Callback):
             self.pretty_print(self.get_perf_stats())
 
 
-class Metrics:
+class CudaCallback(Callback):
     """
-    Metrics class to log and print the key metrics
+    Callbacks pertaining to CUDA.
     """
+    def __init__(self, module):
+        self.module = module
 
-    def __init__(self):
-        pass
+    # Pytorch Lightning hooks
+    def on_train_start(self, trainer=None, pl_module=None):
+        assert trainer is not None
+        assert pl_module is not None
+        self.module.cuda_envs.reset_all_envs()
 
-    def pretty_print(self, metrics):
-        assert metrics is not None
-        assert isinstance(metrics, dict)
+    def on_train_end(self, trainer=None, pl_module=None):
+        assert trainer is not None
+        assert pl_module is not None
+        print("Training is complete!")
 
-        for policy in metrics:
-            print("=" * 40)
-            print(f"Metrics for policy '{policy}'")
-            print("=" * 40)
-            for k, v in metrics[policy].items():
-                print(f"{k:40}: {v:10.5f}")

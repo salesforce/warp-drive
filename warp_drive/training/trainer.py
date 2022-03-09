@@ -261,6 +261,12 @@ class Trainer:
 
         self.total_steps = self.cuda_envs.episode_length * self.num_episodes
         self.num_iters = int(self.total_steps // self.training_batch_size)
+        if self.num_iters == 0:
+            raise ValueError(
+                "Not enough steps to even perform a single training iteration!. "
+                "Please increase the number of episodes or reduce the training"
+                "batch size."
+            )
 
         for policy in self.policies:
             self.current_timestep[policy] = 0

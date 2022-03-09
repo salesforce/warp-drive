@@ -264,7 +264,7 @@ class Trainer:
         if self.num_iters == 0:
             raise ValueError(
                 "Not enough steps to even perform a single training iteration!. "
-                "Please increase the number of episodes or reduce the training"
+                "Please increase the number of episodes or reduce the training "
                 "batch size."
             )
 

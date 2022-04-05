@@ -1,3 +1,4 @@
+import logging
 import multiprocessing as mp
 
 import torch
@@ -21,8 +22,9 @@ class ProcessWrapper(mp.Process):
         try:
             mp.Process.run(self)
             self._child_conn.send(None)
-        except Exception as e:
-            self._child_conn.send(e)
+        except Exception as err:
+            logging.error(err)
+            self._child_conn.send(err)
 
     @property
     def exception(self):
@@ -80,8 +82,9 @@ class DeviceContextProcessWrapper(ProcessWrapper):
             self.assert_context_consistency()
             mp.Process.run(self)
             self._child_conn.send(None)
-        except Exception as e:
-            self._child_conn.send(e)
+        except Exception as err:
+            logging.error(err)
+            self._child_conn.send(err)
         finally:
             # clean up the context regardless the finish status
             self._clear_torch_process_group()

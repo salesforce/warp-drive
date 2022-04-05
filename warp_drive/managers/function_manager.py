@@ -17,6 +17,7 @@ from pycuda.compiler import SourceModule
 from pycuda.driver import Context
 
 from warp_drive.managers.data_manager import CUDADataManager, CudaTensorHolder
+from warp_drive.utils.architecture_validate import validate_device_setup
 from warp_drive.utils.common import (
     check_env_header,
     get_project_root,
@@ -52,14 +53,37 @@ class CUDAFunctionManager:
 
     """
 
-    def __init__(self, num_agents: int = 1, num_envs: int = 1, process_id: int = 0):
+    def __init__(
+        self,
+        num_agents: int = 1,
+        num_envs: int = 1,
+        blocks_per_env: int = 1,
+        process_id: int = 0,
+    ):
         """
         :param num_agents: total number of agents for each env,
-            it defines the default block size
+            it defines the default block size if blocks_per_env = 1
+            and links to the CUDA constant `wkNumberAgents`
         :param num_envs: number of example_envs in parallel,
-            it defines the default grid size
+            it defines the default grid size if blocks_per_env = 1
+            and links to the CUDA constant `wkNumberEnvs`
+        :param blocks_per_env: number of blocks to cover one environment
+            it links to the CUDA constant `wkBlocksPerEnv`
         :param process_id: device ID
+
         """
+        if num_agents % blocks_per_env != 0:
+            logging.warning(
+                """
+                `num_agents` cannot be divisible by `blocks_per_env`.
+                Therefore, the running threads for the last block could
+                possibly EXCEED the boundaries of the output arrays and
+                incurs index our-of-range bugs.
+                Consider to have a proper thread index boundary check,
+                for example if you have already checked
+                `if (kThisAgentId < NumAgents)`, please ignore this warning.
+                """
+            )
         self._CUDA_module = None
 
         # functions from the cuda module
@@ -67,10 +91,24 @@ class CUDAFunctionManager:
         self._cuda_function_names = []
         self._num_agents = int(num_agents)
         self._num_envs = int(num_envs)
+        self._blocks_per_env = int(blocks_per_env)
         self._process_id = process_id
-        self._block = (self._num_agents, 1, 1)
-        self._grid = (self._num_envs, 1)
+        # number of threads in each block, a ceiling operation is performed
+        self._block = (int((self._num_agents - 1) // self._blocks_per_env + 1), 1, 1)
+        # number of blocks
+        self._grid = (int(self._num_envs * self._blocks_per_env), 1)
         self._default_functions_initialized = False
+
+        cc = Context.get_device().compute_capability()  # compute capability
+        self.arch = f"sm_{cc[0]}{cc[1]}"
+        valid = validate_device_setup(
+            arch=self.arch,
+            num_blocks=self._grid[0],
+            threads_per_block=self._block[0],
+            blocks_per_env=self._blocks_per_env,
+        )
+        if not valid:
+            raise Exception("The simulation setup fails to pass the validation")
 
     def load_cuda_from_source_code(
         self, code: str, default_functions_included: bool = True
@@ -173,6 +211,7 @@ class CUDAFunctionManager:
                 path=template_path,
                 num_agents=self._num_agents,
                 num_envs=self._num_envs,
+                blocks_per_env=self._blocks_per_env,
             )
             update_env_runner(
                 template_runner_file=template_runner_file,
@@ -183,12 +222,16 @@ class CUDAFunctionManager:
             check_env_header(
                 header_file="env_config.h",
                 path=header_path,
-                num_envs=self.grid[0],
-                num_agents=self.block[0],
+                num_envs=self._num_envs,
+                num_agents=self._num_agents,
+                blocks_per_env=self._blocks_per_env,
             )
             logging.debug(
-                f"header file {header_path}/env_config.h has num_agents: "
-                f"{self.block[0]} and num_envs: {self.grid[0]} "
+                f"header file {header_path}/env_config.h "
+                f"has number_agents: {self._num_agents}, "
+                f"num_agents per block: {self.block[0]}, "
+                f"num_envs: {self._num_envs}, num of blocks: {self.grid[0]} "
+                f"and blocks_per_env: {self._blocks_per_env}"
                 f"that are consistent with the block and the grid"
             )
 
@@ -197,7 +240,7 @@ class CUDAFunctionManager:
 
             logging.info(f"Compiling {main_file} -> {cubin_file}")
 
-            self._compile(main_file, cubin_file)
+            self._compile(main_file, cubin_file, arch=self.arch)
 
             if event_messenger is not None:
                 event_messenger.set()
@@ -207,7 +250,7 @@ class CUDAFunctionManager:
         )
 
     @staticmethod
-    def _compile(main_file, cubin_file):
+    def _compile(main_file, cubin_file, arch=None):
 
         bin_path = f"{get_project_root()}/warp_drive/cuda_bin"
         mkbin = f"mkdir -p {bin_path}"
@@ -223,8 +266,9 @@ class CUDAFunctionManager:
             os.remove(f"{cubin_file}")
 
         try:
-            cc = Context.get_device().compute_capability()  # compute capability
-            arch = f"sm_{cc[0]}{cc[1]}"
+            if arch is None:
+                cc = Context.get_device().compute_capability()  # compute capability
+                arch = f"sm_{cc[0]}{cc[1]}"
             cmd = f"nvcc --fatbin -arch={arch} {main_file} -o {cubin_file}"
             with subprocess.Popen(
                 cmd, shell=True, stderr=subprocess.STDOUT
@@ -381,6 +425,10 @@ class CUDAFunctionManager:
     def grid(self):
         return self._grid
 
+    @property
+    def blocks_per_env(self):
+        return self._blocks_per_env
+
 
 class CUDAFunctionFeed:
     """
@@ -450,6 +498,7 @@ class CUDALogController:
         )
         self._block = function_manager.block
         self._grid = function_manager.grid
+        self._blocks_per_env = function_manager.blocks_per_env
         self.last_valid_step = -1
         self._env_id = None
 
@@ -552,7 +601,7 @@ class CUDALogController:
                 data_manager.meta_info("episode_length"),
                 env_id,
                 block=self._block,
-                grid=(1, 1),
+                grid=(self._blocks_per_env, 1),
             )
 
     def _update_log_mask(self, data_manager: CUDADataManager, step: int):
@@ -567,7 +616,7 @@ class CUDALogController:
             step,
             data_manager.meta_info("episode_length"),
             block=self._block,
-            grid=(1, 1),
+            grid=(self._blocks_per_env, 1),
         )
         self.last_valid_step = step
 
@@ -577,7 +626,7 @@ class CUDALogController:
             data_manager.device_data("_log_mask_"),
             data_manager.meta_info("episode_length"),
             block=self._block,
-            grid=(1, 1),
+            grid=(self._blocks_per_env, 1),
         )
 
     def _cuda_check_last_valid_step(self, data_manager: CUDADataManager):
@@ -628,6 +677,8 @@ class CUDASampler:
         )
         self._block = function_manager.block
         self._grid = function_manager.grid
+        self._blocks_per_env = function_manager.blocks_per_env
+        self._num_envs = function_manager._num_envs
         self._random_initialized = False
 
         self.sample_actions = self._function_manager.get_function("sample_actions")
@@ -695,7 +746,7 @@ class CUDASampler:
             "please call init_random()"
         )
         assert torch.is_tensor(distribution)
-        assert distribution.shape[0] == self._grid[0]
+        assert distribution.shape[0] == self._num_envs
         n_agents = int(distribution.shape[1])
         assert data_manager.get_shape(action_name)[1] == n_agents
         n_actions = distribution.shape[2]
@@ -708,8 +759,9 @@ class CUDASampler:
             CudaTensorHolder(distribution),
             data_manager.device_data(action_name),
             data_manager.device_data(f"{action_name}_cum_distr"),
+            np.int32(n_agents),
             np.int32(n_actions),
-            block=(n_agents, 1, 1),
+            block=((n_agents - 1) // self._blocks_per_env + 1, 1, 1),
             grid=self._grid,
         )
 
@@ -757,6 +809,7 @@ class CUDAEnvironmentReset:
         )
         self._block = function_manager.block
         self._grid = function_manager.grid
+        self._blocks_per_env = function_manager.blocks_per_env
 
         self.reset_func_in_float_2d = self._function_manager.get_function(
             "reset_in_float_when_done_2d"
@@ -786,6 +839,8 @@ class CUDAEnvironmentReset:
                 data_manager, mode, undo_done_after_reset
             )
         else:
+            # TODO: Not implemented yet
+            # self.reset_when_done_random(data_manager, mode, undo_done_after_reset)
             raise NotImplementedError
 
     def reset_when_done_deterministic(
@@ -846,7 +901,7 @@ class CUDAEnvironmentReset:
                     agent_dim,
                     feature_dim,
                     force_reset,
-                    block=(int(agent_dim), 1, 1),
+                    block=(int((agent_dim - 1) // self._blocks_per_env + 1), 1, 1),
                     grid=self._grid,
                 )
             else:
@@ -862,7 +917,7 @@ class CUDAEnvironmentReset:
                     data_manager.device_data("_done_"),
                     feature_dim,
                     force_reset,
-                    block=(int(feature_dim), 1, 1),
+                    block=(int((feature_dim - 1) // self._blocks_per_env + 1), 1, 1),
                     grid=self._grid,
                 )
 

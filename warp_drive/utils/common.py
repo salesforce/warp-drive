@@ -27,7 +27,9 @@ def get_default_env_directory(env_name):
     return envs.get(env_name, None)
 
 
-def update_env_header(template_header_file, path=None, num_envs=1, num_agents=1):
+def update_env_header(
+    template_header_file, path=None, num_envs=1, num_agents=1, blocks_per_env=1
+):
     def from_dict(dct):
         def lookup(match):
             key = match.group(1)
@@ -48,7 +50,11 @@ def update_env_header(template_header_file, path=None, num_envs=1, num_agents=1)
         )
         os.remove(f"{destination_header_path}/{destination_header_file}")
 
-    header_subs = {"N_ENVS": str(num_envs), "N_AGENTS": str(num_agents)}
+    header_subs = {
+        "N_ENVS": str(num_envs),
+        "N_AGENTS": str(num_agents),
+        "N_BLOCKS_PER_ENV": str(blocks_per_env),
+    }
     header_content = ""
 
     with open(f"{path}/{template_header_file}", "r", encoding="utf8") as reader:
@@ -61,23 +67,30 @@ def update_env_header(template_header_file, path=None, num_envs=1, num_agents=1)
         writer.write(header_content)
 
 
-def check_env_header(header_file="env_config.h", path=None, num_envs=1, num_agents=1):
+def check_env_header(
+    header_file="env_config.h", path=None, num_envs=1, num_agents=1, blocks_per_env=1
+):
 
     if path is None:
         path = f"{get_project_root()}/warp_drive/cuda_includes"
 
     with open(f"{path}/{header_file}", "r", encoding="utf8") as reader:
         for line in reader.readlines():
-            if "num_envs" in line:
+            if "wkNumberEnvs" in line:
                 res = re.findall(r"\b\d+\b", line)
                 assert (
                     len(res) == 1 and int(res[0]) == num_envs
                 ), f"{header_file} has different num_envs"
-            elif "num_agents" in line:
+            elif "wkNumberAgents" in line:
                 res = re.findall(r"\b\d+\b", line)
                 assert (
                     len(res) == 1 and int(res[0]) == num_agents
                 ), f"{header_file} has different num_agents"
+            elif "wkBlocksPerEnv" in line:
+                res = re.findall(r"\b\d+\b", line)
+                assert (
+                    len(res) == 1 and int(res[0]) == blocks_per_env
+                ), f"{header_file} has different blocks_per_env"
 
 
 def update_env_runner(

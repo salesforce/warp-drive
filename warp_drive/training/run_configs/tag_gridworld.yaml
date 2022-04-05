@@ -18,9 +18,9 @@ env:
     step_cost_for_tagger: 0.01
 # Trainer settings
 trainer:
-    num_envs: 2000
-    num_episodes: 2000000
-    train_batch_size: 200000
+    num_envs: 2000 # number of environment replicas
+    num_episodes: 1 # number of episodes to run the training for. Can be arbitrarily high!
+    train_batch_size: 200000 # total batch size used for training per iteration (across all the environments)
 # Policy network settings
 policy: # list all the policies below
     shared:

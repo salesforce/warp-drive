@@ -9,16 +9,18 @@ extern "C"{
   __global__ void testkernel(float* x, int* y, int* done, int* actions, float multiplier, int target, int step, int episode_length)
   {
     __shared__ int reach_target;
-    int env_id = blockIdx.x;
-    int agent_id = threadIdx.x;
+    int env_id = getEnvID(blockIdx.x);
+    int agent_id = getAgentID(threadIdx.x, blockIdx.x, blockDim.x);
+    // this serves as the leading agent for each block since we have shared memory residing in each block
+    int tid = threadIdx.x;
     int action_dim = 3;
 
-    if(agent_id==0){
+    if(tid==0){
       reach_target = 0;
     }
 
-    if(agent_id < num_agents){
-        int index = env_id * num_agents + agent_id;
+    if(agent_id < wkNumberAgents){
+        int index = env_id * wkNumberAgents + agent_id;
         int action_index = index * action_dim;
 
         x[index] = x[index] / multiplier;
@@ -32,11 +34,11 @@ extern "C"{
           actions[action_index + i] = i;
         }
 
-        __syncthreads();
+        __sync_env_threads();
 
         if(step == episode_length || reach_target > 0){
-          if(agent_id == 0){
-            done[env_id] = 1;
+          if(tid == 0){
+            atomicMax(&done[env_id], 1);
           }
         }
     }

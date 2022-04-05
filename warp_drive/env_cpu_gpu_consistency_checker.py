@@ -81,8 +81,11 @@ class EnvironmentCPUvsGPU:
         dual_mode_env_class=None,
         env_configs=None,
         num_envs=3,
+        blocks_per_env=None,
+        assert_equal_num_agents_per_block=False,
         num_episodes=2,
         use_gpu_testing_mode=False,
+        testing_bin_filename=None,
         env_registrar=None,
         env_wrapper=EnvWrapper,
         policy_tag_to_agent_id_map=None,
@@ -97,6 +100,9 @@ class EnvironmentCPUvsGPU:
         :param num_envs: number of parallel example_envs in the test.
             If use_gpu_testing_mode = True,
             num_envs = 2 and num_agents=5 are enforced
+        :param blocks_per_env: number of blocks to cover one environment
+            default is None, the utility function will estimate it
+            otherwise it will be reinforced
         :param num_episodes: number of episodes in the test
             hint: number >=2 is recommended
             since it can fully test the reset
@@ -107,6 +113,8 @@ class EnvironmentCPUvsGPU:
             If use_gpu_testing_mode is True, do not forget to
             include your testing env into warp_drive/cuda_includes/test_build.cu,
             and the Makefile will automate this build.
+        :param testing_bin_filename: load the specified .cubin or .fatbin directly,
+            only for use_gpu_testing_mode.
         :param env_registrar: the EnvironmentRegistrar object;
             it provides the customized env info (like src path) for the build
         :param env_wrapper: allows for the user to provide their own EnvWrapper.
@@ -150,8 +158,11 @@ class EnvironmentCPUvsGPU:
                 f"supporting this testing mode assumes 2 parallel example_envs"
             )
         self.num_envs = num_envs
+        self.blocks_per_env = blocks_per_env
+        self.assert_equal_num_agents_per_block = assert_equal_num_agents_per_block
         self.num_episodes = num_episodes
         self.use_gpu_testing_mode = use_gpu_testing_mode
+        self.testing_bin_filename = testing_bin_filename
         self.env_registrar = env_registrar
         self.env_wrapper = env_wrapper
         self.policy_tag_to_agent_id_map = policy_tag_to_agent_id_map
@@ -209,12 +220,18 @@ class EnvironmentCPUvsGPU:
                 "env_name": self.cuda_env_class.name,
                 "env_config": env_config,
                 "num_envs": self.num_envs,
+                "blocks_per_env": self.blocks_per_env,
                 "use_cuda": True,
                 "env_registrar": self.env_registrar,
             }
             # Testing mode
             if self.use_gpu_testing_mode:
-                kwargs.update({"testing_mode": self.use_gpu_testing_mode})
+                kwargs.update(
+                    {
+                        "testing_mode": self.use_gpu_testing_mode,
+                        "testing_bin_filename": self.testing_bin_filename,
+                    }
+                )
             env_gpu = self.env_wrapper(**kwargs)
             env_gpu.reset_all_envs()
 

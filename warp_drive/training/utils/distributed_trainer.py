@@ -27,7 +27,7 @@ def perform_distributed_training(setup_trainer_and_train, config, results_dir=No
                 "device_id": device_id,
                 "num_devices": num_devices,
                 "event_messenger": e,
-                "results_dir": results_dir,
+                "results_directory": results_dir,
                 "verbose": (device_id == 0),
             },
         )

@@ -971,7 +971,9 @@ class PerfStatsCallback(Callback):
         print("=" * 40)
         print("Speed performance stats")
         print("=" * 40)
-        print("{:40}: {:13}".format("Iteration", f"{self.iters} / {self.num_iters}"))
+        iteration_str = "Iteration"
+        iter_counter = f"{self.iters} / {self.num_iters}"
+        print(f"{iteration_str:40}: {iter_counter:13}")
         for k, v in stats.items():
             print(f"{k:40}: {v:10.2f}")
         print("\n")

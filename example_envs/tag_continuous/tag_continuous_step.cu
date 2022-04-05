@@ -292,8 +292,7 @@ extern "C" {
 
       // Ensure that all the agents rewards are initialized before we proceed.
       // The rewards are only set by the runners, so this pause is necessary.
-      __syncthreads();
-
+      __sync_env_threads();
       float min_dist = kGridLength * sqrt(2.0);
       bool is_runner = !agent_types_arr[kThisAgentId];
 
@@ -338,8 +337,7 @@ extern "C" {
       }
 
       // Wait here to update the number of runners before determining done_arr
-      __syncthreads();
-
+      __sync_env_threads();
       // Use only agent 0's thread to set done_arr
       if (kThisAgentId == 0) {
         if ((env_timestep_arr[kEnvId] == kEpisodeLength) ||
@@ -385,8 +383,8 @@ extern "C" {
     int kNumAgents,
     int kEpisodeLength
   ) {
-    const int kEnvId = blockIdx.x;
-    const int kThisAgentId = threadIdx.x;
+    const int kEnvId = getEnvID(blockIdx.x);
+    const int kThisAgentId = getAgentID(threadIdx.x, blockIdx.x, blockDim.x);
     const int kThisAgentArrayIdx = kEnvId * kNumAgents + kThisAgentId;
     const int kNumActions = 2;
 
@@ -396,7 +394,7 @@ extern "C" {
     }
 
     // Wait here until timestep has been updated
-    __syncthreads();
+    __sync_env_threads();
 
     assert(env_timestep_arr[kEnvId] > 0 && env_timestep_arr[kEnvId] <=
       kEpisodeLength);
@@ -467,8 +465,7 @@ extern "C" {
     }
 
     // Make sure all agents have updated their states
-    __syncthreads();
-
+    __sync_env_threads();
     // -------------------------------
     // Generate observation
     // -------------------------------

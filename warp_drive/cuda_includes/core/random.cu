@@ -13,7 +13,8 @@ __constant__ float kEps = 1.0e-8;
 // used as random seed for sampling with given distribution
 __global__ void init_random(int seed) {
   int tidx = threadIdx.x + blockIdx.x * blockDim.x;
-
+  if (tidx >= wkNumberEnvs * wkNumberAgents)
+      return;
   curandState_t* s = new curandState_t;
   if (s != 0) {
     curand_init(seed, tidx, 0, s);
@@ -23,6 +24,8 @@ __global__ void init_random(int seed) {
 
 __global__ void free_random() {
   int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+  if (tidx >= wkNumberEnvs * wkNumberAgents)
+      return;
   curandState_t* s = states[tidx];
   delete s;
 }
@@ -46,8 +49,10 @@ __device__ int search_index(float* distr, float p, int l, int r) {
 }
 
 __global__ void sample_actions(float* distr, int* action_indices,
-float* cum_distr, int num_actions) {
+float* cum_distr, int num_agents, int num_actions) {
   int posidx = blockIdx.x*blockDim.x + threadIdx.x;
+  if (posidx >= wkNumberEnvs * num_agents)
+      return;
   int dist_index = posidx * num_actions;
 
   curandState_t s = *states[posidx];

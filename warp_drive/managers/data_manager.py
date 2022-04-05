@@ -66,11 +66,16 @@ class CUDADataManager:
     """
 
     def __init__(
-        self, num_agents: int = None, num_envs: int = None, episode_length: int = None
+        self,
+        num_agents: int = None,
+        num_envs: int = None,
+        blocks_per_env: int = 1,
+        episode_length: int = None,
     ):
         """
         :param num_agents: total number of agents for each env
         :param num_envs: total number of example_envs running in parallel
+        :param blocks_per_env: number of blocks to cover one environment
         :param episode_length: the length of one single episode, used for logging in
         general, but in many example_envs, it also sets the duration of a game.
 
@@ -97,6 +102,7 @@ class CUDADataManager:
 
         assert num_agents is not None
         assert num_envs is not None
+        assert blocks_per_env is not None
         assert episode_length is not None
 
         self.add_meta_info(
@@ -104,6 +110,7 @@ class CUDADataManager:
                 "n_agents": num_agents,
                 "episode_length": episode_length,
                 "n_envs": num_envs,
+                "blocks_per_env": blocks_per_env,
             }
         )
         self._add_log_mask_and_push_to_device()

@@ -15,6 +15,8 @@ the GPU runs out of memory, and the function run will throw a
 `CUDA out of memory` error.
 """
 
+import logging
+
 from warp_drive.training.utils.child_process import ProcessWrapper
 
 
@@ -42,7 +44,8 @@ def best_param_search(low=1, margin=1, func=None):
         print(f"Trying with a parameter value of {low}.")
         func(low)
         success = True
-    except Exception:
+    except Exception as err:
+        logging.error(err)
         success = False
         print("Run failed! The starting value of the parameter is itself too high!\n")
 
@@ -52,7 +55,8 @@ def best_param_search(low=1, margin=1, func=None):
             print(f"Trying with a parameter value of {low}.")
             func(low)
             success = True
-        except Exception:
+        except Exception as err:
+            logging.error(err)
             print("Run failed! Lowering the parameter value.\n")
 
     if not success:
@@ -67,7 +71,8 @@ def best_param_search(low=1, margin=1, func=None):
             print(f"Trying with a parameter value of {high}.")
             func(high)
             low = high
-        except Exception:
+        except Exception as err:
+            logging.error(err)
             success = False
             print("Run failed!\n")
             print(
@@ -82,7 +87,8 @@ def best_param_search(low=1, margin=1, func=None):
             print(f"Trying with a parameter value of {mid}.")
             func(mid)
             low = mid
-        except Exception:
+        except Exception as err:
+            logging.error(err)
             high = mid
             print("Run failed!\n")
         print(f"Low and high parameter values set to {low} and {high} respectively.")

@@ -18,6 +18,7 @@ from warp_drive.managers.function_manager import (
     CUDAFunctionFeed,
     CUDAFunctionManager,
 )
+from warp_drive.utils.architecture_validate import calculate_blocks_per_env
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 from warp_drive.utils.recursive_obs_dict_to_spaces_dict import (
@@ -45,8 +46,10 @@ class EnvWrapper:
         env_name=None,
         env_config=None,
         num_envs=1,
+        blocks_per_env=None,
         use_cuda=False,
         testing_mode=False,
+        testing_bin_filename=None,
         env_registrar=None,
         event_messenger=None,
         process_id=0,
@@ -60,8 +63,13 @@ class EnvWrapper:
         'use_cuda': if True, step through the environment on the GPU, else on the CPU
         'num_envs': the number of parallel environments to instantiate. Note: this is
             only relevant when use_cuda is True
+        'blocks_per_env': number of blocks to cover one environment
+            default is None, the utility function will estimate it
+            otherwise it will be reinforced
         'testing_mode': a flag used to determine whether to simply load the .cubin (when
             testing) or compile the .cu source code to create a .cubin and use that.
+        'testing_bin_filename': load the specified .cubin or .fatbin directly,
+            only required when testing_mode is True.
         'env_registrar': EnvironmentRegistrar object
             it provides the customized env info (like src path) for the build
         'event_messenger': multiprocessing Event to sync up the build
@@ -117,25 +125,38 @@ class EnvWrapper:
             # Number of environments to run in parallel
             assert num_envs >= 1
             self.n_envs = num_envs
+            if blocks_per_env is not None:
+                self.blocks_per_env = blocks_per_env
+            else:
+                self.blocks_per_env = calculate_blocks_per_env(self.n_agents)
+            logging.info(f"We use blocks_per_env = {self.blocks_per_env} ")
 
             logging.info("Initializing the CUDA data manager...")
             self.cuda_data_manager = CUDADataManager(
                 num_agents=self.n_agents,
                 episode_length=self.episode_length,
                 num_envs=self.n_envs,
+                blocks_per_env=self.blocks_per_env,
             )
 
             logging.info("Initializing the CUDA function manager...")
             self.cuda_function_manager = CUDAFunctionManager(
                 num_agents=int(self.cuda_data_manager.meta_info("n_agents")),
                 num_envs=int(self.cuda_data_manager.meta_info("n_envs")),
+                blocks_per_env=int(self.cuda_data_manager.meta_info("blocks_per_env")),
                 process_id=process_id,
             )
 
             if testing_mode:
                 logging.info(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
+                if testing_bin_filename is None:
+                    testing_bin_filename = "test_build.fatbin"
+                assert (
+                    ".cubin" in testing_bin_filename
+                    or ".fatbin" in testing_bin_filename
+                )
                 self.cuda_function_manager.load_cuda_from_binary_file(
-                    f"{_CUBIN_FILEPATH}/test_build.fatbin"
+                    f"{_CUBIN_FILEPATH}/{testing_bin_filename}"
                 )
             else:
                 self.cuda_function_manager.compile_and_load_cuda(

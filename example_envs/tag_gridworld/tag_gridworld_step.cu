@@ -17,33 +17,33 @@ extern "C" {
     int env_id,
     bool use_full_observation
   ) {
-    const bool is_tagger = (agent_id < num_agents - 1);
+    const bool is_tagger = (agent_id < wkNumberAgents - 1);
 
 
     // obs shape is (num_envs, num_agents, 4 * num_agents + 1)
     // state shape is (num_envs, num_agents,)
     if (use_full_observation) {
-      const int agent_times_feature_dim = num_agents * 4 + 1;
-      const int obs_start_index = env_id * num_agents * agent_times_feature_dim;
-      const int state_index = env_id * num_agents + agent_id;
+      const int agent_times_feature_dim = wkNumberAgents * 4 + 1;
+      const int obs_start_index = env_id * wkNumberAgents * agent_times_feature_dim;
+      const int state_index = env_id * wkNumberAgents + agent_id;
 
-      for (int ag_id = 0; ag_id < num_agents; ag_id++) {
+      for (int ag_id = 0; ag_id < wkNumberAgents; ag_id++) {
         const int state_x_obs_index =
             obs_start_index + ag_id * agent_times_feature_dim + agent_id;
-        const int state_y_obs_index = state_x_obs_index + num_agents;
-        const int type_obs_index = state_y_obs_index + num_agents;
-        const int is_current_agent_obs_index = type_obs_index + num_agents;
+        const int state_y_obs_index = state_x_obs_index + wkNumberAgents;
+        const int type_obs_index = state_y_obs_index + wkNumberAgents;
+        const int is_current_agent_obs_index = type_obs_index + wkNumberAgents;
 
         obs_arr[state_x_obs_index] =
             states_x_arr[state_index] / static_cast<float>(world_boundary);
         obs_arr[state_y_obs_index] =
             states_y_arr[state_index] / static_cast<float>(world_boundary);
         obs_arr[type_obs_index] = 1.0 * static_cast<int>(
-          agent_id == num_agents - 1);
+          agent_id == wkNumberAgents - 1);
         obs_arr[is_current_agent_obs_index] = 1.0 * static_cast<int>(
           ag_id == agent_id);
 
-        if (agent_id == num_agents - 1) {
+        if (agent_id == wkNumberAgents - 1) {
           int time_to_end_index = is_current_agent_obs_index + 1;
           obs_arr[time_to_end_index] =
               env_timestep_arr[env_id] / static_cast<float>(episode_length);
@@ -52,11 +52,11 @@ extern "C" {
     } else {
       // obs shape is (num_envs, num_agents, 6)
       // state shape is (num_envs, num_agents,)
-      __shared__ int distance[num_agents];
+      __shared__ int distance[wkNumberAgents];
 
-      const int state_index = env_id * num_agents + agent_id;
+      const int state_index = env_id * wkNumberAgents + agent_id;
       const int obs_start_index = state_index * 6;
-      const int adversary_state_index = env_id * num_agents + num_agents - 1;
+      const int adversary_state_index = env_id * wkNumberAgents + wkNumberAgents - 1;
 
       // tagger and runners observe their own locations
       obs_arr[obs_start_index] =
@@ -88,22 +88,22 @@ extern "C" {
       if (!is_tagger) {
         int closest_agent_id = 0;
         int min_distance = 2 * world_boundary * world_boundary;
-        for (int ag_id = 0; ag_id < num_agents - 1; ag_id++) {
+        for (int ag_id = 0; ag_id < wkNumberAgents - 1; ag_id++) {
           if (distance[ag_id] < min_distance) {
             min_distance = distance[ag_id];
             closest_agent_id = ag_id;
           }
         }
         obs_arr[obs_start_index + 2] =
-            states_x_arr[env_id * num_agents + closest_agent_id] /
+            states_x_arr[env_id * wkNumberAgents + closest_agent_id] /
             static_cast<float>(world_boundary);
         obs_arr[obs_start_index + 3] =
-            states_y_arr[env_id * num_agents + closest_agent_id] /
+            states_y_arr[env_id * wkNumberAgents + closest_agent_id] /
             static_cast<float>(world_boundary);
       }
 
       obs_arr[obs_start_index + 4] = 1.0 * static_cast<int>(
-          agent_id == num_agents - 1);
+          agent_id == wkNumberAgents - 1);
       obs_arr[obs_start_index + 5] =
           env_timestep_arr[env_id] / static_cast<float>(episode_length);
     }
@@ -133,7 +133,7 @@ extern "C" {
 
     const int kEnvId = blockIdx.x;
     const int kThisAgentId = threadIdx.x;
-    const bool is_tagger = (kThisAgentId < num_agents - 1);
+    const bool is_tagger = (kThisAgentId < wkNumberAgents - 1);
 
 
     // Increment time ONCE -- only 1 thread can do this.
@@ -148,9 +148,9 @@ extern "C" {
     assert(env_timestep_arr[kEnvId] > 0 && env_timestep_arr[kEnvId]
       <= episode_length);
 
-    int global_state_arr_shape[] = {gridDim.x, num_agents};
+    int global_state_arr_shape[] = {gridDim.x, wkNumberAgents};
     int agent_index[] = {kEnvId, kThisAgentId};
-    int adv_agent_index[] = {kEnvId, num_agents - 1};
+    int adv_agent_index[] = {kEnvId, wkNumberAgents - 1};
     int dimension = 2;
     int state_index = get_flattened_array_index(agent_index, global_state_arr_shape, dimension);
     int adversary_state_index = get_flattened_array_index(adv_agent_index, global_state_arr_shape, dimension);

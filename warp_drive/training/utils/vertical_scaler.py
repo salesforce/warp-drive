@@ -154,7 +154,7 @@ def perform_auto_vertical_scaling(setup_trainer_and_train, config, num_iters=2):
 
     # Save some initial configs
     num_episodes = config["trainer"]["num_episodes"]
-    use_wandb = config["saving"]["use_wandb"]
+    use_wandb = config["saving"].get("use_wandb", False)
     # disable wandb
     config["saving"]["use_wandb"] = False
 

@@ -839,7 +839,7 @@ class CUDAEnvironmentReset:
                 data_manager, mode, undo_done_after_reset
             )
         else:
-            # TODO: Not implemented yet
+            # TODO: To be implemented
             # self.reset_when_done_random(data_manager, mode, undo_done_after_reset)
             raise NotImplementedError
 

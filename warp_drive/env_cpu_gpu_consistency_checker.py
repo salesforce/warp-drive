@@ -271,7 +271,8 @@ class EnvironmentCPUvsGPU:
             )
 
             # Test across multiple episodes
-            for timestep in range(self.num_episodes * env_gpu.episode_length):
+            # Note: timestep = 0 is used for reset
+            for timestep in range(1, self.num_episodes * env_gpu.episode_length + 1):
                 actions_list_of_dicts = generate_random_actions(
                     env_gpu.env, self.num_envs, seed
                 )

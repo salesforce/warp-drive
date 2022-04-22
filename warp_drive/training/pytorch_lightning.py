@@ -998,7 +998,7 @@ class PerfStatsCallback(Callback):
             self.pretty_print(self.get_perf_stats())
 
 
-class CudaCallback(Callback):
+class CUDACallback(Callback):
     """
     Callbacks pertaining to CUDA.
     """

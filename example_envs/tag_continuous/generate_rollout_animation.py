@@ -2,12 +2,11 @@
 Helper file for generating an environment rollout
 """
 
-import matplotlib
 import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.art3d as art3d
 import numpy as np
 from matplotlib import animation
 from matplotlib.patches import Polygon
+from mpl_toolkits.mplot3d import art3d
 
 
 def generate_tag_env_rollout_animation(
@@ -27,7 +26,9 @@ def generate_tag_env_rollout_animation(
     assert isinstance(episode_states, dict)
     env = trainer.cuda_envs.env
 
-    fig, ax = plt.subplots(1, 1, figsize=(fig_width, fig_height))  # , constrained_layout=True
+    fig, ax = plt.subplots(
+        1, 1, figsize=(fig_width, fig_height)
+    )  # , constrained_layout=True
     ax.remove()
     ax = fig.add_subplot(1, 1, 1, projection="3d")
 
@@ -70,7 +71,7 @@ def generate_tag_env_rollout_animation(
     # Plot init data
     lines = [None for _ in range(env.num_agents)]
 
-    for idx in range(len(lines)):
+    for idx in range(env.num_agents):
         if idx in env.taggers:
             lines[idx] = ax.plot3D(
                 episode_states["loc_x"][:1, idx] / env.grid_length,
@@ -130,7 +131,9 @@ def generate_tag_env_rollout_animation(
         n_runners_alive = episode_states["still_in_the_game"][i].sum() - env.num_taggers
         label.set_text(_get_label(i, n_runners_alive, init_num_runners).lower())
 
-    ani = animation.FuncAnimation(fig, animate, np.arange(0, env.episode_length + 1), interval=1000.0 / fps)
+    ani = animation.FuncAnimation(
+        fig, animate, np.arange(0, env.episode_length + 1), interval=1000.0 / fps
+    )
     plt.close()
 
     return ani

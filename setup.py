@@ -14,7 +14,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="rl-warp-drive",
-    version="1.6.4",
+    version="1.6.5",
     author="Tian Lan, Sunil Srinivasa, Stephan Zheng",
     author_email="stephan.zheng@salesforce.com",
     description="Framework for fast end-to-end "
@@ -27,6 +27,7 @@ setup(
     package_data={
         "example_envs": ["tag_continuous/*.cu", "tag_gridworld/*.cu", "dummy_env/*.cu"],
         "warp_drive": [
+            "cuda_bin",
             "cuda_includes/*",
             "cuda_includes/core/*.*",
             "training/run_configs/default_configs.yaml",

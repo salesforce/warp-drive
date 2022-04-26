@@ -25,15 +25,9 @@ def generate_tag_env_rollout_animation(
         ["loc_x", "loc_y", "still_in_the_game"]
     )
     assert isinstance(episode_states, dict)
-    assert "loc_x" in episode_states
-    assert "loc_y" in episode_states
-    assert "still_in_the_game" in episode_states
-
     env = trainer.cuda_envs.env
 
-    fig, ax = plt.subplots(
-        1, 1, figsize=(fig_width, fig_height)  # , constrained_layout=True
-    )
+    fig, ax = plt.subplots(1, 1, figsize=(fig_width, fig_height))  # , constrained_layout=True
     ax.remove()
     ax = fig.add_subplot(1, 1, 1, projection="3d")
 
@@ -43,12 +37,7 @@ def generate_tag_env_rollout_animation(
     ax.set_zlim(-0.01, 0.01)
 
     # Surface
-    corner_points = [
-        (0, 0),
-        (0, 1),
-        (1, 1),
-        (1, 0),
-    ]
+    corner_points = [(0, 0), (0, 1), (1, 1), (1, 0)]
 
     poly = Polygon(corner_points, color=(0.1, 0.2, 0.5, 0.15))
     ax.add_patch(poly)
@@ -104,13 +93,12 @@ def generate_tag_env_rollout_animation(
     init_num_runners = env.num_agents - env.num_taggers
 
     def _get_label(timestep, n_runners_alive, init_n_runners):
-        return (
-            "Continuous Tag\n"
-            + "Time Step:".ljust(14)
-            + f"{timestep:4.0f}\n"
-            + "Runners Left:".ljust(14)
-            + f"{n_runners_alive:4} ({n_runners_alive / init_n_runners * 100:.0f}%)"
-        )
+        line1 = "Continuous Tag\n"
+        line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
+        frac_runners_alive = n_runners_alive / init_n_runners
+        pct_runners_alive = f"{n_runners_alive:4} ({frac_runners_alive * 100:.0f}%)"
+        line3 = "Runners Left:".ljust(14) + pct_runners_alive
+        return line1 + line2 + line3
 
     label = ax.text(
         0,
@@ -128,7 +116,7 @@ def generate_tag_env_rollout_animation(
             line.set_data_3d(
                 episode_states["loc_x"][i : i + 1, idx] / env.grid_length,
                 episode_states["loc_y"][i : i + 1, idx] / env.grid_length,
-                np.zeros((1)),
+                np.zeros(1),
             )
 
             still_in_game = episode_states["still_in_the_game"][i, idx]
@@ -142,9 +130,7 @@ def generate_tag_env_rollout_animation(
         n_runners_alive = episode_states["still_in_the_game"][i].sum() - env.num_taggers
         label.set_text(_get_label(i, n_runners_alive, init_num_runners).lower())
 
-    ani = animation.FuncAnimation(
-        fig, animate, np.arange(0, env.episode_length + 1), interval=1000.0 / fps
-    )
+    ani = animation.FuncAnimation(fig, animate, np.arange(0, env.episode_length + 1), interval=1000.0 / fps)
     plt.close()
 
     return ani

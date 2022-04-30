@@ -27,7 +27,7 @@ setup(
     package_data={
         "example_envs": ["tag_continuous/*.cu", "tag_gridworld/*.cu", "dummy_env/*.cu"],
         "warp_drive": [
-            "cuda_bin",
+            "cuda_bin/*",
             "cuda_includes/*",
             "cuda_includes/core/*.*",
             "training/run_configs/default_configs.yaml",

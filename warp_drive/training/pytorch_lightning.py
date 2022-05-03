@@ -956,16 +956,31 @@ class PerfStatsCallback(Callback):
         self.iters = 0
         self.steps = 0
         self.training_time = 0.0
+        self.total_time = 0.0
 
         # For timing purposes
-        self.start_event = torch.cuda.Event(enable_timing=True)
-        self.end_event = torch.cuda.Event(enable_timing=True)
+        self.start_event_batch = torch.cuda.Event(enable_timing=True)
+        self.end_event_batch = torch.cuda.Event(enable_timing=True)
 
-    def get_perf_stats(self):
-        return {
+        self.start_event_fit = torch.cuda.Event(enable_timing=True)
+        self.end_event_fit = torch.cuda.Event(enable_timing=True)
+
+    def get_perf_stats(self, with_fit=False):
+        perf_stats = {
             "Mean training time per iter (ms)": self.training_time * 1000 / self.iters,
-            "Mean steps per sec (training time)": self.steps / self.training_time,
+            "Mean steps per sec (training)": self.steps / self.training_time,
         }
+        if with_fit:
+            # Add the stats obtained at the end of the trainer.fit() call
+            perf_stats.update(
+                {
+                    "Mean total time per iter (ms)": self.total_time
+                    * 1000
+                    / self.iters,
+                    "Mean steps per sec (total)": self.steps / self.total_time,
+                }
+            )
+        return perf_stats
 
     def pretty_print(self, stats):
         print("=" * 40)
@@ -984,18 +999,35 @@ class PerfStatsCallback(Callback):
         assert pl_module is not None
         self.iters += 1
         self.steps = self.iters * self.batch_size
-        self.start_event.record()
+        self.start_event_batch.record()
 
     def on_batch_end(self, trainer=None, pl_module=None):
         assert trainer is not None
         assert pl_module is not None
-        self.end_event.record()
+        self.end_event_batch.record()
         torch.cuda.synchronize()
 
-        self.training_time += self.start_event.elapsed_time(self.end_event) / 1000
+        self.training_time += (
+            self.start_event_batch.elapsed_time(self.end_event_batch) / 1000
+        )
 
         if self.iters % self.log_freq == 0 or self.iters == self.num_iters:
             self.pretty_print(self.get_perf_stats())
+
+    def on_fit_start(self, trainer=None, pl_module=None):
+        assert trainer is not None
+        assert pl_module is not None
+        self.start_event_fit.record()
+
+    def on_fit_end(self, trainer=None, pl_module=None):
+        assert trainer is not None
+        assert pl_module is not None
+        self.end_event_fit.record()
+        torch.cuda.synchronize()
+
+        self.total_time += self.start_event_fit.elapsed_time(self.end_event_fit) / 1000
+        if self.iters % self.log_freq == 0 or self.iters == self.num_iters:
+            self.pretty_print(self.get_perf_stats(with_fit=True))
 
 
 class CUDACallback(Callback):

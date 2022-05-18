@@ -732,7 +732,7 @@ class TagContinuous(CUDAEnvironmentContext):
         )
         data_dict.add_data(
             name="neighbor_distances",
-            data=np.zeros((self.num_agents, self.num_agents - 1), dtype=np.int32),
+            data=np.zeros((self.num_agents, self.num_agents - 1), dtype=np.float32),
             save_copy_and_apply_at_reset=True,
         )
         data_dict.add_data(

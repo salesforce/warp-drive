@@ -9,8 +9,10 @@ from typing import Dict, Optional
 
 import numpy as np
 import pycuda.autoinit
-import pycuda.driver as cuda_driver
 import torch
+
+import pycuda.driver as pycuda_driver
+
 
 from warp_drive.utils.data_feed import DataFeed
 
@@ -394,19 +396,7 @@ class CUDADataManager:
         returns: a host copy of scalar data or numpy array
         fetched back from the device array
         """
-
-        assert name in self._host_data
-        if name in self._scalar_data_list:
-            return self._host_data[name]
-
-        if self.is_data_on_device_via_torch(name):
-            return self._device_data_via_torch[name].cpu().numpy()
-
-        assert name in self._device_data_pointer
-
-        v = np.empty_like(self._host_data[name])
-        cuda_driver.memcpy_dtoh(v, self._device_data_pointer[name])
-        return v
+        raise NotImplementedError
 
     def data_on_device_via_torch(self, name: str) -> torch.Tensor:
         """
@@ -429,16 +419,7 @@ class CUDADataManager:
 
         :param name: (optional) reset a device array by name, if None, reset all arrays
         """
-        if name is not None:
-            assert name in self._device_data_pointer
-            assert name in self._host_data
-
-            device_array_ptr = self._device_data_pointer[name]
-            cuda_driver.memcpy_htod(device_array_ptr, self._host_data[name])
-        else:
-            for key, host_array in self._host_data.items():
-                device_array_ptr = self._device_data_pointer[key]
-                cuda_driver.memcpy_htod(device_array_ptr, host_array)
+        raise NotImplementedError
 
     def meta_info(self, name: str):
         assert name in self._meta_info
@@ -467,21 +448,7 @@ class CUDADataManager:
         name_on_device: Optional[str] = None,
         torch_accessible: bool = False,
     ):
-        assert name in self._host_data
-        host_array = self._host_data[name]
-        if name_on_device is None:
-            name_on_device = name
-        assert name_on_device not in self._device_data_pointer
-        if not torch_accessible:
-            device_array_ptr = cuda_driver.mem_alloc(host_array.nbytes)
-            cuda_driver.memcpy_htod(device_array_ptr, host_array)
-            self._device_data_pointer[name_on_device] = device_array_ptr
-        else:
-            torch_tensor_device = torch.from_numpy(host_array).cuda()
-            self._device_data_via_torch[name_on_device] = torch_tensor_device
-            self._device_data_pointer[name_on_device] = CudaTensorHolder(
-                torch_tensor_device
-            )
+        raise NotImplementedError
 
     def is_data_on_device(self, name: str) -> bool:
         return name in self._device_data_pointer
@@ -529,3 +496,54 @@ class CUDADataManager:
     @property
     def log_data_list(self):
         return self._log_data_list
+
+class PyCUDADataManager(CUDADataManager):
+    
+    def pull_data_from_device(self, name: str):
+        
+        assert name in self._host_data
+        if name in self._scalar_data_list:
+            return self._host_data[name]
+
+        if self.is_data_on_device_via_torch(name):
+            return self._device_data_via_torch[name].cpu().numpy()
+
+        assert name in self._device_data_pointer
+
+        v = np.empty_like(self._host_data[name])
+        pycuda_driver.memcpy_dtoh(v, self._device_data_pointer[name])
+        return v
+
+    def reset_device(self, name: Optional[str] = None):
+        if name is not None:
+            assert name in self._device_data_pointer
+            assert name in self._host_data
+
+            device_array_ptr = self._device_data_pointer[name]
+            pycuda_driver.memcpy_htod(device_array_ptr, self._host_data[name])
+        else:
+            for key, host_array in self._host_data.items():
+                device_array_ptr = self._device_data_pointer[key]
+                pycuda_driver.memcpy_htod(device_array_ptr, host_array)
+                
+    def _to_device(
+        self,
+        name: str,
+        name_on_device: Optional[str] = None,
+        torch_accessible: bool = False,
+    ):
+        assert name in self._host_data
+        host_array = self._host_data[name]
+        if name_on_device is None:
+            name_on_device = name
+        assert name_on_device not in self._device_data_pointer
+        if not torch_accessible:
+            device_array_ptr = pycuda_driver.mem_alloc(host_array.nbytes)
+            pycuda_driver.memcpy_htod(device_array_ptr, host_array)
+            self._device_data_pointer[name_on_device] = device_array_ptr
+        else:
+            torch_tensor_device = torch.from_numpy(host_array).cuda()
+            self._device_data_via_torch[name_on_device] = torch_tensor_device
+            self._device_data_pointer[name_on_device] = CudaTensorHolder(
+                torch_tensor_device
+            )

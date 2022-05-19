@@ -12,7 +12,7 @@ import logging
 
 import numpy as np
 
-from warp_drive.managers.data_manager import CUDADataManager
+from warp_drive.managers.data_manager import PyCUDADataManager
 from warp_drive.managers.function_manager import (
     CUDAEnvironmentReset,
     CUDAFunctionFeed,
@@ -132,7 +132,7 @@ class EnvWrapper:
             logging.info(f"We use blocks_per_env = {self.blocks_per_env} ")
 
             logging.info("Initializing the CUDA data manager...")
-            self.cuda_data_manager = CUDADataManager(
+            self.cuda_data_manager = PyCUDADataManager(
                 num_agents=self.n_agents,
                 episode_length=self.episode_length,
                 num_envs=self.n_envs,

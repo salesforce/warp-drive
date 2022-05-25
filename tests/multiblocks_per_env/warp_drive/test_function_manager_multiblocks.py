@@ -9,7 +9,7 @@ import unittest
 import numpy as np
 import torch
 
-from warp_drive.managers.data_manager import CUDADataManager
+from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
 from warp_drive.managers.function_manager import (
     CUDAEnvironmentReset,
     CUDAFunctionManager,
@@ -27,7 +27,7 @@ _ACTIONS = Constants.ACTIONS
 
 def cuda_dummy_step(
     function_manager: CUDAFunctionManager,
-    data_manager: CUDADataManager,
+    data_manager: PyCUDADataManager,
     env_resetter: CUDAEnvironmentReset,
     target: int,
     step: int,
@@ -60,7 +60,7 @@ class TestFunctionManager(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dm = CUDADataManager(
+        self.dm = PyCUDADataManager(
             num_agents=5, num_envs=2, episode_length=2, blocks_per_env=2
         )
         self.fm = CUDAFunctionManager(

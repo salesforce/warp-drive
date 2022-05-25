@@ -9,7 +9,7 @@ import unittest
 import numpy as np
 import torch
 
-from warp_drive.managers.data_manager import CUDADataManager
+from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
 from warp_drive.managers.function_manager import CUDAFunctionManager, CUDASampler
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.constants import Constants
@@ -28,7 +28,7 @@ class TestActionSampler(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dm = CUDADataManager(
+        self.dm = PyCUDADataManager(
             num_agents=5, episode_length=1, num_envs=2, blocks_per_env=2
         )
         self.fm = CUDAFunctionManager(

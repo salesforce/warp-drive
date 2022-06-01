@@ -60,6 +60,8 @@ class MyTestCase(unittest.TestCase):
     def test_tag_continuous_training(self):
         run_config = self.get_config("tag_continuous")
         try:
+            run_config["env"]["num_taggers"] = 2
+            run_config["env"]["num_runners"] = 10
             launch_process(
                 setup_trainer_and_train,
                 kwargs={"run_configuration": run_config, "verbose": False},

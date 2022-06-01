@@ -7,6 +7,7 @@
 import os
 import yaml
 import unittest
+import warnings
 import torch
 from warp_drive.utils.common import get_project_root
 from warp_drive.training.utils.child_process import ProcessWrapper
@@ -71,6 +72,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_tag_gridworld_training_with_multiple_devices(self):
         if self.num_gpus <= 1:
+            warnings.warn("Only single GPU is detected, we skip trainer test for multiple devices")
             return
 
         run_config = self.get_config("tag_gridworld")

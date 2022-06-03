@@ -10,7 +10,7 @@ from warp_drive.utils.common import get_project_root
 
 if __name__ == "__main__":
     cmds = [
-        f"pytest {get_project_root()}/tests/trainer"
+        f"pytest {get_project_root()}/tests/wd_training"
     ]
     for cmd in cmds:
         print(f"Running Unit tests: {cmd} ")

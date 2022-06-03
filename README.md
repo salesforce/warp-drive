@@ -105,6 +105,7 @@ You can find full reference documentation [here](http://opensource.salesforce.co
 
 - [AI Economist Covid Environment with WarpDrive](https://github.com/salesforce/ai-economist/blob/master/tutorials/multi_agent_gpu_training_with_warp_drive.ipynb): We train two-level multi-agent economic simulations using [AI-Economist Foundation](https://github.com/salesforce/ai-economist) and train it using WarpDrive. We specifically consider the COVID-19 and economy simulation in this example.
 - [Pytorch Lightning Trainer with WarpDrive](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb): We provide a [tutorial example](https://pytorchlightning.github.io/lightning-tutorials/notebooks/lightning_examples/warp-drive.html) and a [blog article](https://devblog.pytorchlightning.ai/turbocharge-multi-agent-reinforcement-learning-with-warpdrive-and-pytorch-lightning-6be9b00a3a43) of a multi-agent reinforcement learning training loop with WarpDrive and [Pytorch Lightning](https://www.pytorchlightning.ai/).
+- [Climate Change Cooperation Competition](https://mila-iqia.github.io/climate-cooperation-competition/) collaborated with [Mila](https://mila.quebec/en/). We provide the base version of the RICE (regional integrated climate environment) [simulation environment](https://github.com/mila-iqia/climate-cooperation-competition).
 
 ## Installation Instructions
 

@@ -178,20 +178,10 @@ pip install rl_warp_drive
 
 ### Testing your Installation
 
-To test your installation, try running from the root directory:
-
+You can call directly from Python command to test all modules and the end-to-end training workflow.
 ```
-conda activate warp_drive
-cd warp_drive/cuda_includes
-make compile-test
-```
-
-Running `make compile-test` will compile the core service source code into a CUDA binary and place it 
-in a `bin` folder, and additionally, run some unit tests.
-
-Equivalently, you can call directly from Python command
-```
-python warp_drive/utils/unittest_run.py
+python warp_drive/utils/run_unittests.py
+python warp_drive/utils/run_trainer_tests.py
 ```
 
 ## Learn More

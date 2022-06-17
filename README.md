@@ -11,7 +11,7 @@ on extremely large batches of experience, achieving over 100x throughput over CP
 
 Our current release includes several multi-agent environments
 based on the game of "Tag", where taggers are trying to run after
-and tag the runners. More environments will be added soon!
+and tag the runners. Supported by WarpDrive, several much more complex environment such as Covid-19 environment and climate change environment have been developed, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
 
 Below, we show multi-agent RL policies 
 trained for different tagger:runner speed ratios using WarpDrive. 
@@ -101,7 +101,7 @@ See [https://jupyter.readthedocs.io/en/latest/install.html](https://jupyter.read
 
 You can find full reference documentation [here](http://opensource.salesforce.com/warp-drive/).
 
-## Real-World Problems and Collaborations
+## Real World Problems and Collaborations
 
 - [AI Economist Covid Environment with WarpDrive](https://github.com/salesforce/ai-economist/blob/master/tutorials/multi_agent_gpu_training_with_warp_drive.ipynb): We train two-level multi-agent economic simulations using [AI-Economist Foundation](https://github.com/salesforce/ai-economist) and train it using WarpDrive. We specifically consider the COVID-19 and economy simulation in this example.
 - [Pytorch Lightning Trainer with WarpDrive](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb): We provide a [tutorial example](https://pytorchlightning.github.io/lightning-tutorials/notebooks/lightning_examples/warp-drive.html) and a [blog article](https://devblog.pytorchlightning.ai/turbocharge-multi-agent-reinforcement-learning-with-warpdrive-and-pytorch-lightning-6be9b00a3a43) of a multi-agent reinforcement learning training loop with WarpDrive and [Pytorch Lightning](https://www.pytorchlightning.ai/).

@@ -87,7 +87,7 @@ Familiarize yourself with WarpDrive by running these tutorials on Colab!
 - [WarpDrive basics](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-1-warp_drive_basics.ipynb): Explains the basics of Python APIs in the host managing the
   CUDA data and kernel functions in the GPU.
 - [WarpDrive sampler](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-2-warp_drive_sampler.ipynb): Explains Python APIs controlling the GPU action sampler.
-- [WarpDrive resetter and logger](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-3_warp_drive_reset_and_log.ipynb): Explains Python APIs controlling the GPU
+- [WarpDrive resetter and logger](https://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-3-warp_drive_reset_and_log.ipynb): Explains Python APIs controlling the GPU
   environment resetter and rollout history logger.
 - [Create custom environments](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4-create_custom_environments.md): Explains how to create your own custom RL
   environment in CUDA C, and integrate it with WarpDrive.

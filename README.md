@@ -11,7 +11,7 @@ on extremely large batches of experience, achieving over 100x throughput over CP
 
 Our current release includes several multi-agent environments
 based on the game of "Tag", where taggers are trying to run after
-and tag the runners. Supported by WarpDrive, several much more complex environment such as Covid-19 environment and climate change environment have been developed, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
+and tag the runners. Supported by WarpDrive, several much more complex environments such as Covid-19 environment and climate change environment have been developed, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
 
 Below, we show multi-agent RL policies 
 trained for different tagger:runner speed ratios using WarpDrive. 

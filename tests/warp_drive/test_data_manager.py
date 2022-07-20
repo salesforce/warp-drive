@@ -8,7 +8,7 @@ import unittest
 
 import numpy as np
 
-from warp_drive.managers.data_manager import CUDADataManager
+from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
 from warp_drive.utils.data_feed import DataFeed
 
 
@@ -19,7 +19,7 @@ class TestDataManager(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dm = CUDADataManager(num_agents=5, num_envs=1, episode_length=3)
+        self.dm = PyCUDADataManager(num_agents=5, num_envs=1, episode_length=3)
 
     def test_add_meta_info(self):
         self.dm.add_meta_info(meta={"learning_rate": 0.01})

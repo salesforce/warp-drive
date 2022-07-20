@@ -16,7 +16,10 @@ import torch
 from pycuda.compiler import SourceModule
 from pycuda.driver import Context
 
-from warp_drive.managers.data_manager import CUDADataManager, CudaTensorHolder
+# TODO: remove this once numba works on independent sampler and reset
+from warp_drive.managers.data_manager import CUDADataManager
+
+from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager, CudaTensorHolder
 from warp_drive.utils.architecture_validate import validate_device_setup
 from warp_drive.utils.common import (
     check_env_header,

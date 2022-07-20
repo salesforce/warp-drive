@@ -122,7 +122,7 @@ class Trainer:
                 Defaults to True.
         """
         assert env_wrapper is not None
-        assert env_wrapper.use_cuda
+        assert not env_wrapper.env_backend == 'cpu'
         assert config is not None
         assert isinstance(create_separate_placeholders_for_each_policy, bool)
         assert obs_dim_corresponding_to_num_agents in ["first", "last"]

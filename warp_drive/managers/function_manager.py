@@ -827,6 +827,32 @@ class CUDAEnvironmentReset:
             "undo_done_flag_and_reset_timestep"
         )
 
+        self._cuda_custom_reset = None
+        self._cuda_reset_feed = None
+
+    def register_custom_reset_function(self, data_manager: CUDADataManager, reset_function_name=None):
+        if reset_function_name is None or reset_function_name not in self._function_manager._cuda_function_names:
+            return
+        self._cuda_custom_reset = self._function_manager.get_function(reset_function_name)
+        self._cuda_reset_feed = CUDAFunctionFeed(data_manager)
+
+    def custom_reset(self,
+                     args: Optional[list] = None,
+                     block=None,
+                     grid=None):
+
+        assert self._cuda_custom_reset is not None and self._cuda_reset_feed is not None, \
+            "Custom Reset function is not defined, call register_custom_reset_function() first"
+        assert args is None or isinstance(args, list)
+        if block is None:
+            block = self._block
+        if grid is None:
+            grid = self._grid
+        if args is None or len(args) == 0:
+            self._cuda_custom_reset(block=block, grid=grid)
+        else:
+            self._cuda_custom_reset(*self._cuda_reset_feed(args), block=block, grid=grid)
+
     def reset_when_done(
         self,
         data_manager: CUDADataManager,

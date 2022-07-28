@@ -185,6 +185,11 @@ class EnvWrapper:
             self.env_resetter = CUDAEnvironmentReset(
                 function_manager=self.cuda_function_manager
             )
+            # custom reset function, if not found, will ignore
+            reset_function = f"Cuda{self.name}Reset"
+            self.env_resetter.register_custom_reset_function(
+                self.cuda_data_manager,
+                reset_function_name=reset_function)
 
     def reset_all_envs(self):
         """
@@ -266,6 +271,10 @@ class EnvWrapper:
         )
 
         self.env_resetter.reset_when_done(self.cuda_data_manager, mode="if_done")
+        return {}
+
+    def custom_reset_all_envs(self, args=None, block=None, grid=None):
+        self.env_resetter.custom_reset(args=args, block=block, grid=grid)
         return {}
 
     def step_all_envs(self, actions=None):

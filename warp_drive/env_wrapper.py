@@ -1,5 +1,6 @@
 # Copyright (c) 2021, salesforce.com, inc.
 # All rights reserved.
+# Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 # For full license text, see the LICENSE file in the repo root
 # or https://opensource.org/licenses/BSD-3-Clause
@@ -12,7 +13,9 @@ import logging
 
 import numpy as np
 
-from warp_drive.managers.data_manager import CUDADataManager
+from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
+from warp_drive.managers.numba.numba_data_manager import NumbaDataManager
+
 from warp_drive.managers.function_manager import (
     CUDAEnvironmentReset,
     CUDAFunctionFeed,
@@ -47,7 +50,7 @@ class EnvWrapper:
         env_config=None,
         num_envs=1,
         blocks_per_env=None,
-        use_cuda=False,
+        env_backend='cpu',
         testing_mode=False,
         testing_bin_filename=None,
         env_registrar=None,
@@ -60,9 +63,9 @@ class EnvWrapper:
             WarpDrive environment registrar
         'env_config': environment configuration to instantiate
             an environment from the registrar
-        'use_cuda': if True, step through the environment on the GPU, else on the CPU
+        'env_backend': environment backend, choose between pycuda, numba, or cpu
         'num_envs': the number of parallel environments to instantiate. Note: this is
-            only relevant when use_cuda is True
+            only relevant when env_backend is pycuda or numba
         'blocks_per_env': number of blocks to cover one environment
             default is None, the utility function will estimate it
             otherwise it will be reinforced
@@ -85,7 +88,7 @@ class EnvWrapper:
                 and env_config is not None
                 and env_registrar is not None
             )
-            self.env = env_registrar.get(env_name, use_cuda)(**env_config)
+            self.env = env_registrar.get(env_name, env_backend)(**env_config)
 
         self.n_agents = self.env.num_agents
         self.episode_length = self.env.episode_length
@@ -103,10 +106,13 @@ class EnvWrapper:
 
         # CUDA-specific initializations
         # -----------------------------
-        # Flag to determine whether to use CUDA or not
-        self.use_cuda = use_cuda
-        if hasattr(self.env, "use_cuda"):
-            self.env.use_cuda = use_cuda
+        # Flag to determine which backend to use
+        if env_backend not in ('pycuda', 'numba', 'cpu'):
+            logging.warn("Environment backend not recognized, defaulting to cpu")
+            env_backend = 'cpu'
+        self.env_backend = env_backend
+        if hasattr(self.env, "env_backend"):
+            self.env.env_backend = env_backend
 
         # Flag to determine where the reset happens (host or device)
         # First reset is always on the host (CPU), and subsequent resets are on
@@ -115,12 +121,12 @@ class EnvWrapper:
 
         # Steps specific to GPU runs
         # --------------------------
-        if self.use_cuda:
+        if not self.env_backend == 'cpu':
             logging.info("USING CUDA...")
 
             assert isinstance(
                 self.env, CUDAEnvironmentContext
-            ), "use_cuda requires the environment an instance of CUDAEnvironmentContext"
+            ), f"{self.env_backend} backend requires the environment an instance of CUDAEnvironmentContext"
 
             # Number of environments to run in parallel
             assert num_envs >= 1
@@ -131,8 +137,13 @@ class EnvWrapper:
                 self.blocks_per_env = calculate_blocks_per_env(self.n_agents)
             logging.info(f"We use blocks_per_env = {self.blocks_per_env} ")
 
+            if self.env_backend == 'pycuda':
+                backend_data_manager = PyCUDADataManager
+            elif self.env_backend == 'numba':
+                backend_data_manager = NumbaDataManager
+                
             logging.info("Initializing the CUDA data manager...")
-            self.cuda_data_manager = CUDADataManager(
+            self.cuda_data_manager = backend_data_manager(
                 num_agents=self.n_agents,
                 episode_length=self.episode_length,
                 num_envs=self.n_envs,
@@ -196,7 +207,7 @@ class EnvWrapper:
         Reset the state of the environment to initialize a new episode.
         if self.reset_on_host is True:
             calls the CPU env to prepare and return the initial state
-        if self.use_cuda is True:
+        if self.env_backend is pycuda or numba:
             if self.reset_on_host is True:
                 expands initial state to parallel example_envs and push to GPU once
                 sets self.reset_on_host = False
@@ -209,9 +220,9 @@ class EnvWrapper:
             # Produce observation
             obs = self.obs_at_reset()
         else:
-            assert self.use_cuda
+            assert not self.env_backend == 'cpu'
 
-        if self.use_cuda:  # GPU version
+        if not self.env_backend == 'cpu':  # GPU version
             if self.reset_on_host:
 
                 # Helper function to repeat data across the env dimension
@@ -265,9 +276,9 @@ class EnvWrapper:
         It will check all the running example_envs,
         and only resets those example_envs that are observing done flag is True
         """
-        assert self.use_cuda and not self.reset_on_host, (
+        assert (not self.env_backend == 'cpu') and not self.reset_on_host, (
             "reset_only_done_envs() only works "
-            "for self.use_cuda = True and self.reset_on_host = False"
+            "for pycuda or numba backends and self.reset_on_host = False"
         )
 
         self.env_resetter.reset_when_done(self.cuda_data_manager, mode="if_done")
@@ -281,7 +292,7 @@ class EnvWrapper:
         """
         Step through all the environments
         """
-        if self.use_cuda:
+        if not self.env_backend == 'cpu':
             self.env.step()
             result = None  # Do not return anything
         else:

@@ -192,11 +192,11 @@ class EnvironmentCPUvsGPU:
                     self.cpu_env_class.name, device="cpu"
                 ):
                     env_cpu[env_id] = self.env_registrar.get(
-                        self.cpu_env_class.name, use_cuda=False
+                        self.cpu_env_class.name, env_backend='cpu'
                     )(**env_config)
                 else:
                     env_cpu[env_id] = self.env_wrapper(
-                        env_obj=self.cpu_env_class(**env_config), use_cuda=False
+                        env_obj=self.cpu_env_class(**env_config), env_backend='cpu'
                     )
                 if self.use_gpu_testing_mode:
                     assert env_cpu[env_id].n_agents == 5
@@ -221,7 +221,7 @@ class EnvironmentCPUvsGPU:
                 "env_config": env_config,
                 "num_envs": self.num_envs,
                 "blocks_per_env": self.blocks_per_env,
-                "use_cuda": True,
+                "env_backend": 'pycuda',
                 "env_registrar": self.env_registrar,
             }
             # Testing mode

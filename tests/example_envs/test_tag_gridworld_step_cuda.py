@@ -9,6 +9,8 @@ import unittest
 import numpy as np
 import torch
 
+from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
+
 from warp_drive.managers.data_manager import CUDADataManager
 from warp_drive.managers.function_manager import (
     CUDAEnvironmentReset,
@@ -65,7 +67,7 @@ class TestCUDAEnvTagGridWorld(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dm = CUDADataManager(num_agents=5, num_envs=2, episode_length=1)
+        self.dm = PyCUDADataManager(num_agents=5, num_envs=2, episode_length=1)
         self.fm = CUDAFunctionManager(
             num_agents=int(self.dm.meta_info("n_agents")),
             num_envs=int(self.dm.meta_info("n_envs")),

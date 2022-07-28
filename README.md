@@ -5,13 +5,13 @@ framework that implements end-to-end multi-agent RL on a single or multiple GPUs
 
 Using the extreme parallelization capability of GPUs, WarpDrive enables orders-of-magnitude 
 faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, 
-and runs simulations across multiple agents and multiple environment replicas in parallel. WarpDrive also provides the auto scaling tools to achieve the optimal throughput per device (version 1.3) and to perform the distributed asynchronous training among multiple GPU devices (version 1.4).
+and runs simulations across multiple agents and multiple environment replicas in parallel. WarpDrive also provides the auto scaling tools to achieve the optimal throughput per device (version 1.3), to perform the distributed asynchronous training among multiple GPU devices (version 1.4), to combine multiple GPU blocks for one environment replica (version 1.6).
 Together, these allow the user to run thousands of concurrent multi-agent simulations and train 
 on extremely large batches of experience, achieving over 100x throughput over CPU-based counterparts.
 
 Our current release includes several multi-agent environments
 based on the game of "Tag", where taggers are trying to run after
-and tag the runners. More environments will be added soon!
+and tag the runners. Supported by WarpDrive, several much more complex environments such as Covid-19 environment and climate change environment have been developed, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
 
 Below, we show multi-agent RL policies 
 trained for different tagger:runner speed ratios using WarpDrive. 
@@ -87,7 +87,7 @@ Familiarize yourself with WarpDrive by running these tutorials on Colab!
 - [WarpDrive basics](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-1-warp_drive_basics.ipynb): Explains the basics of Python APIs in the host managing the
   CUDA data and kernel functions in the GPU.
 - [WarpDrive sampler](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-2-warp_drive_sampler.ipynb): Explains Python APIs controlling the GPU action sampler.
-- [WarpDrive resetter and logger](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-3_warp_drive_reset_and_log.ipynb): Explains Python APIs controlling the GPU
+- [WarpDrive resetter and logger](https://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-3-warp_drive_reset_and_log.ipynb): Explains Python APIs controlling the GPU
   environment resetter and rollout history logger.
 - [Create custom environments](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4-create_custom_environments.md): Explains how to create your own custom RL
   environment in CUDA C, and integrate it with WarpDrive.
@@ -101,10 +101,11 @@ See [https://jupyter.readthedocs.io/en/latest/install.html](https://jupyter.read
 
 You can find full reference documentation [here](http://opensource.salesforce.com/warp-drive/).
 
-## Real-World Problems and Collaborations
+## Real World Problems and Collaborations
 
 - [AI Economist Covid Environment with WarpDrive](https://github.com/salesforce/ai-economist/blob/master/tutorials/multi_agent_gpu_training_with_warp_drive.ipynb): We train two-level multi-agent economic simulations using [AI-Economist Foundation](https://github.com/salesforce/ai-economist) and train it using WarpDrive. We specifically consider the COVID-19 and economy simulation in this example.
-- [Pytorch Lightning Trainer with WarpDrive](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb): We provide an example of a multi-agent reinforcement learning training loop with WarpDrive and [Pytorch Lightning](https://www.pytorchlightning.ai/).
+- [Pytorch Lightning Trainer with WarpDrive](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb): We provide a [tutorial example](https://pytorchlightning.github.io/lightning-tutorials/notebooks/lightning_examples/warp-drive.html) and a [blog article](https://devblog.pytorchlightning.ai/turbocharge-multi-agent-reinforcement-learning-with-warpdrive-and-pytorch-lightning-6be9b00a3a43) of a multi-agent reinforcement learning training loop with WarpDrive and [Pytorch Lightning](https://www.pytorchlightning.ai/).
+- [Climate Change Cooperation Competition](https://mila-iqia.github.io/climate-cooperation-competition/) collaborated with [Mila](https://mila.quebec/en/). We provide the base version of the RICE (regional integrated climate environment) [simulation environment](https://github.com/mila-iqia/climate-cooperation-competition).
 
 ## Installation Instructions
 
@@ -177,20 +178,10 @@ pip install rl_warp_drive
 
 ### Testing your Installation
 
-To test your installation, try running from the root directory:
-
+You can call directly from Python command to test all modules and the end-to-end training workflow.
 ```
-conda activate warp_drive
-cd warp_drive/cuda_includes
-make compile-test
-```
-
-Running `make compile-test` will compile the core service source code into a CUDA binary and place it 
-in a `bin` folder, and additionally, run some unit tests.
-
-Equivalently, you can call directly from Python command
-```
-python warp_drive/utils/unittest_run.py
+python warp_drive/utils/run_unittests.py
+python warp_drive/utils/run_trainer_tests.py
 ```
 
 ## Learn More

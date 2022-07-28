@@ -5,3 +5,4 @@ pycuda==2021.1
 pytest>=6.1.0
 pyyaml>=5.4
 torch>=1.9, <1.11
+numba

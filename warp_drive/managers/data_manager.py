@@ -9,11 +9,7 @@ import logging
 from typing import Dict, Optional
 
 import numpy as np
-import pycuda.autoinit
 import torch
-
-import pycuda.driver as pycuda_driver
-
 
 from warp_drive.utils.data_feed import DataFeed
 

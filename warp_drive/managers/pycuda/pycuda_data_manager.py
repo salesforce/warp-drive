@@ -16,6 +16,7 @@ import pycuda.driver as pycuda_driver
 
 from warp_drive.managers.data_manager import CUDADataManager
 
+
 class CudaTensorHolder(pycuda_driver.PointerHolderBase):
     """
     A class that facilitates casting tensors to pointers.

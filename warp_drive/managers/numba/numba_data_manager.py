@@ -13,6 +13,7 @@ import numba.cuda as numba_driver
 
 from warp_drive.managers.data_manager import CUDADataManager
 
+
 class NumbaDataManager(CUDADataManager):
     
     def __init__(self, device=0, **kwargs):

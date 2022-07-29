@@ -60,7 +60,7 @@ def setup_trainer_and_train(
         env_wrapper = EnvWrapper(
             CUDATagGridWorld(**run_configuration["env"]),
             num_envs=num_envs,
-            use_cuda=True,
+            env_backend="pycuda",
             event_messenger=event_messenger,
             process_id=device_id,
         )
@@ -68,7 +68,7 @@ def setup_trainer_and_train(
         env_wrapper = EnvWrapper(
             TagContinuous(**run_configuration["env"]),
             num_envs=num_envs,
-            use_cuda=True,
+            env_backend="pycuda",
             event_messenger=event_messenger,
             process_id=device_id,
         )

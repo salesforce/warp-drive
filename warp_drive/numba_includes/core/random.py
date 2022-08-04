@@ -1,7 +1,10 @@
 from numba import int32, float32
 from numba import cuda as numba_driver
 from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
-from numba_includes.env_config import *
+try:
+    from numba_includes.env_config import *
+except ImportError:
+    raise Exception("numba_includes.env_config is not available to import")
 
 
 kEps = 1.0e-8
@@ -9,7 +12,10 @@ kEps = 1.0e-8
 
 class NumbaRandomService:
 
-    def __init__(self, seed=None):
+    def __init__(self):
+        self.rng_states = None
+
+    def init_random(self, seed):
         self.rng_states = create_xoroshiro128p_states(wkNumberEnvs * wkNumberAgents, seed=seed)
 
     @numba_driver.jit(int32(float32[::1], float32, int32, int32), device=True)

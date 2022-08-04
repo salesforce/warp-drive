@@ -16,10 +16,14 @@ import numpy as np
 from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
 from warp_drive.managers.numba.numba_data_manager import NumbaDataManager
 
-from warp_drive.managers.function_manager import (
-    CUDAEnvironmentReset,
-    CUDAFunctionFeed,
-    CUDAFunctionManager,
+from warp_drive.managers.function_manager import CUDAFunctionFeed
+from warp_drive.managers.function_manager.pycuda import (
+    PyCUDAEnvironmentReset,
+    PyCUDAFunctionManager,
+)
+from warp_drive.managers.function_manager.numba import (
+    NumbaEnvironmentReset,
+    NumbaFunctionManager,
 )
 from warp_drive.utils.architecture_validate import calculate_blocks_per_env
 from warp_drive.utils.common import get_project_root
@@ -29,6 +33,7 @@ from warp_drive.utils.recursive_obs_dict_to_spaces_dict import (
 )
 
 _CUBIN_FILEPATH = f"{get_project_root()}/warp_drive/cuda_bin"
+_NUMBA_FILEPATH = "warp_drive.numba_includes"
 
 
 class EnvWrapper:
@@ -139,8 +144,12 @@ class EnvWrapper:
 
             if self.env_backend == 'pycuda':
                 backend_data_manager = PyCUDADataManager
+                backend_function_manager = PyCUDAFunctionManager
+                backend_env_resetter = PyCUDAEnvironmentReset
             elif self.env_backend == 'numba':
                 backend_data_manager = NumbaDataManager
+                backend_function_manager = NumbaFunctionManager
+                backend_env_resetter = NumbaEnvironmentReset
                 
             logging.info("Initializing the CUDA data manager...")
             self.cuda_data_manager = backend_data_manager(
@@ -151,32 +160,51 @@ class EnvWrapper:
             )
 
             logging.info("Initializing the CUDA function manager...")
-            self.cuda_function_manager = CUDAFunctionManager(
+            self.cuda_function_manager = backend_function_manager(
                 num_agents=int(self.cuda_data_manager.meta_info("n_agents")),
                 num_envs=int(self.cuda_data_manager.meta_info("n_envs")),
                 blocks_per_env=int(self.cuda_data_manager.meta_info("blocks_per_env")),
                 process_id=process_id,
             )
+            if self.env_backend == 'pycuda':
+                if testing_mode:
+                    logging.info(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
+                    if testing_bin_filename is None:
+                        testing_bin_filename = "test_build.fatbin"
+                    assert (
+                        ".cubin" in testing_bin_filename
+                        or ".fatbin" in testing_bin_filename
+                    )
+                    self.cuda_function_manager.load_cuda_from_binary_file(
+                        f"{_CUBIN_FILEPATH}/{testing_bin_filename}"
+                    )
+                else:
+                    self.cuda_function_manager.compile_and_load_cuda(
+                        env_name=self.name,
+                        template_header_file="template_env_config.h",
+                        template_runner_file="template_env_runner.cu",
+                        customized_env_registrar=env_registrar,
+                        event_messenger=event_messenger,
+                    )
+            elif self.env_backend == "numba":
+                if testing_mode:
+                    logging.info(f"Using numba_filepath: {_NUMBA_FILEPATH}")
+                    if testing_bin_filename is None:
+                        testing_bin_filename = "test_build.py"
+                    assert ".py" in testing_bin_filename
+                    testing_bin_module = testing_bin_filename[:-3]
+                    self.cuda_function_manager.import_numba_from_source_code(
+                        f"{_NUMBA_FILEPATH}.{testing_bin_module}"
+                    )
+                else:
+                    self.cuda_function_manager.dynamic_import_numba(
+                        env_name=self.name,
+                        template_header_file="template_env_config.txt",
+                        template_runner_file="template_env_runner.txt",
+                        customized_env_registrar=env_registrar,
+                        event_messenger=event_messenger,
+                    )
 
-            if testing_mode:
-                logging.info(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
-                if testing_bin_filename is None:
-                    testing_bin_filename = "test_build.fatbin"
-                assert (
-                    ".cubin" in testing_bin_filename
-                    or ".fatbin" in testing_bin_filename
-                )
-                self.cuda_function_manager.load_cuda_from_binary_file(
-                    f"{_CUBIN_FILEPATH}/{testing_bin_filename}"
-                )
-            else:
-                self.cuda_function_manager.compile_and_load_cuda(
-                    env_name=self.name,
-                    template_header_file="template_env_config.h",
-                    template_runner_file="template_env_runner.cu",
-                    customized_env_registrar=env_registrar,
-                    event_messenger=event_messenger,
-                )
             self.cuda_function_feed = CUDAFunctionFeed(self.cuda_data_manager)
 
             # Register the CUDA step() function for the env
@@ -193,7 +221,7 @@ class EnvWrapper:
                 context_ready
             ), "The environment class failed to initialize the CUDA step function"
             # Register the env resetter
-            self.env_resetter = CUDAEnvironmentReset(
+            self.env_resetter = backend_env_resetter(
                 function_manager=self.cuda_function_manager
             )
             # custom reset function, if not found, will ignore

@@ -13,15 +13,15 @@ import logging
 
 import numpy as np
 
-from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
-from warp_drive.managers.numba.numba_data_manager import NumbaDataManager
+from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager
+from warp_drive.managers.numba_managers.numba_data_manager import NumbaDataManager
 
 from warp_drive.managers.function_manager import CUDAFunctionFeed
-from warp_drive.managers.function_manager.pycuda import (
+from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
     PyCUDAEnvironmentReset,
     PyCUDAFunctionManager,
 )
-from warp_drive.managers.function_manager.numba import (
+from warp_drive.managers.numba_managers.numba_function_manager import (
     NumbaEnvironmentReset,
     NumbaFunctionManager,
 )
@@ -55,7 +55,7 @@ class EnvWrapper:
         env_config=None,
         num_envs=1,
         blocks_per_env=None,
-        env_backend='cpu',
+        env_backend="cpu",
         testing_mode=False,
         testing_bin_filename=None,
         env_registrar=None,
@@ -112,9 +112,9 @@ class EnvWrapper:
         # CUDA-specific initializations
         # -----------------------------
         # Flag to determine which backend to use
-        if env_backend not in ('pycuda', 'numba', 'cpu'):
+        if env_backend not in ("pycuda", "numba", "cpu"):
             logging.warn("Environment backend not recognized, defaulting to cpu")
-            env_backend = 'cpu'
+            env_backend = "cpu"
         self.env_backend = env_backend
         if hasattr(self.env, "env_backend"):
             self.env.env_backend = env_backend
@@ -126,7 +126,7 @@ class EnvWrapper:
 
         # Steps specific to GPU runs
         # --------------------------
-        if not self.env_backend == 'cpu':
+        if not self.env_backend == "cpu":
             logging.info("USING CUDA...")
 
             assert isinstance(
@@ -142,11 +142,11 @@ class EnvWrapper:
                 self.blocks_per_env = calculate_blocks_per_env(self.n_agents)
             logging.info(f"We use blocks_per_env = {self.blocks_per_env} ")
 
-            if self.env_backend == 'pycuda':
+            if self.env_backend == "pycuda":
                 backend_data_manager = PyCUDADataManager
                 backend_function_manager = PyCUDAFunctionManager
                 backend_env_resetter = PyCUDAEnvironmentReset
-            elif self.env_backend == 'numba':
+            elif self.env_backend == "numba":
                 backend_data_manager = NumbaDataManager
                 backend_function_manager = NumbaFunctionManager
                 backend_env_resetter = NumbaEnvironmentReset
@@ -166,7 +166,7 @@ class EnvWrapper:
                 blocks_per_env=int(self.cuda_data_manager.meta_info("blocks_per_env")),
                 process_id=process_id,
             )
-            if self.env_backend == 'pycuda':
+            if self.env_backend == "pycuda":
                 if testing_mode:
                     logging.info(f"Using cubin_filepath: {_CUBIN_FILEPATH}")
                     if testing_bin_filename is None:
@@ -248,9 +248,9 @@ class EnvWrapper:
             # Produce observation
             obs = self.obs_at_reset()
         else:
-            assert not self.env_backend == 'cpu'
+            assert not self.env_backend == "cpu"
 
-        if not self.env_backend == 'cpu':  # GPU version
+        if not self.env_backend == "cpu":  # GPU version
             if self.reset_on_host:
 
                 # Helper function to repeat data across the env dimension
@@ -304,7 +304,7 @@ class EnvWrapper:
         It will check all the running example_envs,
         and only resets those example_envs that are observing done flag is True
         """
-        assert (not self.env_backend == 'cpu') and not self.reset_on_host, (
+        assert (not self.env_backend == "cpu") and not self.reset_on_host, (
             "reset_only_done_envs() only works "
             "for pycuda or numba backends and self.reset_on_host = False"
         )
@@ -320,7 +320,7 @@ class EnvWrapper:
         """
         Step through all the environments
         """
-        if not self.env_backend == 'cpu':
+        if not self.env_backend == "cpu":
             self.env.step()
             result = None  # Do not return anything
         else:

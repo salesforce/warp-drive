@@ -67,7 +67,7 @@ class TagContinuous(CUDAEnvironmentContext):
         step_reward_for_runner=0.0,
         end_of_game_reward_for_runner=1.0,
         runner_exits_game_after_tagged=True,
-        env_backend='cpu',
+        env_backend="cpu",
     ):
         """
         Args:
@@ -123,7 +123,7 @@ class TagContinuous(CUDAEnvironmentContext):
                 continue to get tagged]. Defaults to True.
             env_backend (string, optional): [indicate whether to use the CPU
                 or the GPU (either pycuda or numba) for stepping through the environment].
-                Defaults to 'cpu'.
+                Defaults to "cpu".
         """
         super().__init__()
 
@@ -805,7 +805,7 @@ class TagContinuous(CUDAEnvironmentContext):
         Env step() - The GPU version calls the corresponding CUDA kernels
         """
         self.timestep += 1
-        if not self.env_backend == 'cpu':
+        if not self.env_backend == "cpu":
             # CUDA version of step()
             # This subsumes update_state(), generate_observation(),
             # and compute_reward()
@@ -846,13 +846,13 @@ class TagContinuous(CUDAEnvironmentContext):
                 ("episode_length", "meta"),
             ]
             
-            if self.env_backend == 'pycuda':
+            if self.env_backend == "pycuda":
                 self.cuda_step(
                     *self.cuda_step_function_feed(args),
                     block=self.cuda_function_manager.block,
                     grid=self.cuda_function_manager.grid,
                 )
-            elif self.env_backend == 'numba':
+            elif self.env_backend == "numba":
                 NumbaTagContinuousStep[self.cuda_function_manager.grid,
                                        self.cuda_function_manager.block](*self.cuda_step_function_feed(args))
             result = None  # do not return anything
@@ -878,7 +878,7 @@ class TagContinuous(CUDAEnvironmentContext):
 
             # Update state and generate observation
             self.update_state(delta_accelerations, delta_turns)
-            if self.env_backend == 'cpu':
+            if self.env_backend == "cpu":
                 obs = self.generate_observation()
 
             # Compute rewards and done

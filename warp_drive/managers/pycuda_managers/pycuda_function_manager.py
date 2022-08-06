@@ -19,15 +19,14 @@ from pycuda.compiler import SourceModule
 from pycuda.driver import Context
 
 from warp_drive.managers.function_manager import CUDAFunctionManager, CUDASampler, CUDAEnvironmentReset
-from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager, CudaTensorHolder
+from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager, CudaTensorHolder
 from warp_drive.utils.architecture_validate import validate_device_setup
 from warp_drive.utils.common import get_project_root
-from warp_drive.utils.pycuda.misc import (
+from warp_drive.utils.pycuda_utils.misc import (
     check_env_header,
     update_env_header,
     update_env_runner,
 )
-from warp_drive.utils.data_feed import DataFeed
 from warp_drive.utils.env_registrar import EnvironmentRegistrar
 
 
@@ -329,7 +328,7 @@ class PyCUDAFunctionManager(CUDAFunctionManager):
             )
 
     def initialize_shared_constants(
-        self, data_manager: CUDADataManager, constant_names: list
+        self, data_manager: PyCUDADataManager, constant_names: list
     ):
         """
         Initialize the shared constants in the runtime.
@@ -424,7 +423,7 @@ class PyCUDALogController:
 
     def fetch_log(
         self,
-        data_manager: CUDADataManager,
+        data_manager: PyCUDADataManager,
         names: Optional[str] = None,
         last_step: Optional[int] = None,
         check_last_valid_step: bool = True,

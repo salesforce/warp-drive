@@ -1,13 +1,20 @@
+import time
+from typing import Optional
 import importlib
+
+import numpy as np
 import numba.cuda as numba_driver
+import torch
+
+from warp_drive.managers.function_manager import CUDAFunctionManager, CUDASampler, CUDAEnvironmentReset
+from warp_drive.managers.numba_managers.numba_data_manager import NumbaDataManager
 from warp_drive.utils.common import get_project_root
-from warp_drive.utils.numba.misc import (
+from warp_drive.utils.numba_utils.misc import (
     check_env_header,
     update_env_header,
     update_env_runner,
 )
-from warp_drive.managers.function_manager import CUDAFunctionManager, CUDASampler, CUDAEnvironmentReset
-from warp_drive.managers.numba.numba_data_manager import NumbaDataManager
+from warp_drive.utils.env_registrar import EnvironmentRegistrar
 
 
 class NumbaFunctionManager(CUDAFunctionManager):
@@ -24,7 +31,7 @@ class NumbaFunctionManager(CUDAFunctionManager):
                          blocks_per_env=blocks_per_env,
                          process_id=process_id)
         self._NUMBA_module = None
-        # functions from the numba module
+        # functions from the numba_managers module
         self._numba_functions = {}
         self._numba_function_names = []
 
@@ -135,13 +142,13 @@ class NumbaFunctionManager(CUDAFunctionManager):
         for fname in func_names:
             assert fname not in self._numba_function_names
             logging.info(
-                f"starting to load the numba kernel function: {fname} "
+                f"starting to load the numba_managers kernel function: {fname} "
                 f"from the NUMBA module "
             )
             self._numba_functions[fname] = getattr(self._NUMBA_module, fname)
             self._numba_function_names.append(fname)
             logging.info(
-                f"finished loading the numba kernel function: {fname} "
+                f"finished loading the numba_managers kernel function: {fname} "
                 f"from the NUMBA module, "
             )
 

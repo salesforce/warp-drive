@@ -9,13 +9,13 @@ import unittest
 import numpy as np
 import torch
 
-from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
+from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager
 
-from warp_drive.managers.data_manager import CUDADataManager
-from warp_drive.managers.function_manager import (
-    CUDAEnvironmentReset,
-    CUDAFunctionManager,
-    CUDASampler,
+from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager
+from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
+    PyCUDAEnvironmentReset,
+    PyCUDAFunctionManager,
+    PyCUDASampler,
 )
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.constants import Constants
@@ -30,9 +30,9 @@ _REWARDS = Constants.REWARDS
 
 
 def cuda_tag_gridworld_step(
-    function_manager: CUDAFunctionManager,
-    data_manager: CUDADataManager,
-    env_resetter: CUDAEnvironmentReset,
+    function_manager: PyCUDAFunctionManager,
+    data_manager: PyCUDADataManager,
+    env_resetter: PyCUDAEnvironmentReset,
 ):
     # reset env if done flag is seen
     env_resetter.reset_when_done(data_manager)
@@ -68,13 +68,13 @@ class TestCUDAEnvTagGridWorld(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dm = PyCUDADataManager(num_agents=5, num_envs=2, episode_length=1)
-        self.fm = CUDAFunctionManager(
+        self.fm = PyCUDAFunctionManager(
             num_agents=int(self.dm.meta_info("n_agents")),
             num_envs=int(self.dm.meta_info("n_envs")),
         )
         self.fm.load_cuda_from_binary_file(f"{_CUBIN_FILEPATH}/test_build.fatbin")
-        self.resetter = CUDAEnvironmentReset(function_manager=self.fm)
-        self.sampler = CUDASampler(function_manager=self.fm)
+        self.resetter = PyCUDAEnvironmentReset(function_manager=self.fm)
+        self.sampler = PyCUDASampler(function_manager=self.fm)
         self.sampler.init_random(seed=None)
 
         self.int_step()

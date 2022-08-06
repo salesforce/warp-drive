@@ -9,8 +9,8 @@ import unittest
 import numpy as np
 import torch
 
-from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
-from warp_drive.managers.pycuda.pycuda_function_manager import PyCUDAFunctionManager, PyCUDASampler
+from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager
+from warp_drive.managers.pycuda_managers.pycuda_function_manager import PyCUDAFunctionManager, PyCUDASampler
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
@@ -28,12 +28,17 @@ class TestActionSampler(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dm = PyCUDADataManager(num_agents=5, episode_length=1, num_envs=2)
+        self.dm = PyCUDADataManager(
+            num_agents=5, episode_length=1, num_envs=2, blocks_per_env=2
+        )
         self.fm = PyCUDAFunctionManager(
             num_agents=int(self.dm.meta_info("n_agents")),
             num_envs=int(self.dm.meta_info("n_envs")),
+            blocks_per_env=int(self.dm.meta_info("blocks_per_env")),
         )
-        self.fm.load_cuda_from_binary_file(f"{_CUBIN_FILEPATH}/test_build.fatbin")
+        self.fm.load_cuda_from_binary_file(
+            f"{_CUBIN_FILEPATH}/test_build_multiblocks.fatbin"
+        )
         self.sampler = PyCUDASampler(function_manager=self.fm)
         self.sampler.init_random(seed=None)
 
@@ -43,7 +48,7 @@ class TestActionSampler(unittest.TestCase):
         tensor.add_data(name=f"{_ACTIONS}_a", data=[[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
         self.dm.push_data_to_device(tensor, torch_accessible=True)
         self.assertTrue(self.dm.is_data_on_device_via_torch(f"{_ACTIONS}_a"))
-
+        print("all good 01")
         self.sampler.register_actions(self.dm, f"{_ACTIONS}_a", 3)
 
         agent_distribution = np.array(
@@ -71,7 +76,7 @@ class TestActionSampler(unittest.TestCase):
         actions_a_cuda = torch.from_numpy(
             np.empty((10000, 2, 5), dtype=np.int32)
         ).cuda()
-
+        print("all good 02")
         for i in range(10000):
             self.sampler.sample(
                 self.dm, agent_distribution, action_name=f"{_ACTIONS}_a"
@@ -84,7 +89,7 @@ class TestActionSampler(unittest.TestCase):
 
         # Sampler is based on distribution, we test
         # sample mean = given mean and deviation < 10% mean
-
+        print("all good 03")
         self.assertAlmostEqual(
             (actions_a_env_0[:, 0] == 0).sum() / 10000.0, 0.333, delta=0.03
         )
@@ -104,7 +109,7 @@ class TestActionSampler(unittest.TestCase):
         self.assertAlmostEqual(
             (actions_a_env_0[:, 1] == 2).sum() / 10000.0, 0.3, delta=0.03
         )
-
+        print("all good 04")
         self.assertEqual((actions_a_env_0[:, 2] == 0).sum(), 10000)
         self.assertEqual((actions_a_env_0[:, 3] == 1).sum(), 10000)
         self.assertEqual((actions_a_env_0[:, 4] == 2).sum(), 10000)

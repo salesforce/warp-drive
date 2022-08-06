@@ -65,7 +65,7 @@ def create_and_push_data_placeholders(
         Defaults to True.
     """
     assert env_wrapper is not None
-    assert not env_wrapper.env_backend == 'cpu'
+    assert not env_wrapper.env_backend == "cpu"
     policy_tag_to_agent_id_map = _validate_policy_tag_to_agent_id_map(
         env_wrapper, policy_tag_to_agent_id_map
     )

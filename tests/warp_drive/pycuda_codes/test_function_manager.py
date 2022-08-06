@@ -9,8 +9,8 @@ import unittest
 import numpy as np
 import torch
 
-from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
-from warp_drive.managers.pycuda.pycuda_function_manager import (
+from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager
+from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
     PyCUDAEnvironmentReset,
     PyCUDAFunctionManager,
     PyCUDALogController,

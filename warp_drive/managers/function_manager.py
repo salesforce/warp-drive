@@ -13,7 +13,7 @@ from typing import Optional
 import numpy as np
 import torch
 
-# TODO: remove this once numba works on independent sampler and reset
+# TODO: remove this once numba_managers works on independent sampler and reset
 from warp_drive.managers.data_manager import CUDADataManager
 
 from warp_drive.utils.data_feed import DataFeed

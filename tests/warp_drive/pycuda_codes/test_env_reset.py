@@ -9,10 +9,10 @@ import unittest
 import numpy as np
 import torch
 
-from warp_drive.managers.pycuda.pycuda_data_manager import PyCUDADataManager
-from warp_drive.managers.function_manager import (
-    CUDAEnvironmentReset,
-    CUDAFunctionManager,
+from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager
+from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
+    PyCUDAEnvironmentReset,
+    PyCUDAFunctionManager,
 )
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.data_feed import DataFeed
@@ -29,18 +29,13 @@ class TestEnvironmentReset(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.dm = PyCUDADataManager(
-            num_agents=5, episode_length=1, num_envs=2, blocks_per_env=2
-        )
-        self.fm = CUDAFunctionManager(
+        self.dm = PyCUDADataManager(num_agents=5, num_envs=2, episode_length=2)
+        self.fm = PyCUDAFunctionManager(
             num_agents=int(self.dm.meta_info("n_agents")),
             num_envs=int(self.dm.meta_info("n_envs")),
-            blocks_per_env=int(self.dm.meta_info("blocks_per_env")),
         )
-        self.fm.load_cuda_from_binary_file(
-            f"{_CUBIN_FILEPATH}/test_build_multiblocks.fatbin"
-        )
-        self.resetter = CUDAEnvironmentReset(function_manager=self.fm)
+        self.fm.load_cuda_from_binary_file(f"{_CUBIN_FILEPATH}/test_build.fatbin")
+        self.resetter = PyCUDAEnvironmentReset(function_manager=self.fm)
 
     def test_reset_for_different_dim(self):
 

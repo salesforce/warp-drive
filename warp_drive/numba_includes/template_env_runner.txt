@@ -4,8 +4,8 @@
 // For full license text, see the LICENSE file in the repo root
 // or https://opensource.org/licenses/BSD-3-Clause
 
-from warpdrive.numba_includes.env_config import *
-from warpdrive.numba_includes.core.random import *
-from warpdrive.numba_includes.core.reset import *
+from warp_drive.numba_includes.env_config import *
+from warp_drive.numba_includes.core.random import *
+from warp_drive.numba_includes.core.reset import *
 
 from <<ENV_NUMBA>> import *

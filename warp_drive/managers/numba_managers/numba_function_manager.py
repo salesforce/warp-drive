@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Optional
 import importlib
@@ -119,7 +120,9 @@ class NumbaFunctionManager(CUDAFunctionManager):
         the CUDA compilation includes src/core
         """
         default_func_names = [
-            "NumbaRandomService",
+            "init_random",
+            "sample_actions",
+            "reset_when_done_1d",
             "reset_when_done_2d",
             "reset_when_done_3d",
             "undo_done_flag_and_reset_timestep",
@@ -186,7 +189,9 @@ class NumbaSampler(CUDASampler):
         """
         super().__init__(function_manager)
 
-        self.numba_random_class = self._function_manager.get_function("NumbaRandomService")()
+        self.sample_actions = self._function_manager.get_function("sample_actions")
+
+        self.rng_states_dict = {}
 
     def init_random(self, seed: Optional[int] = None):
         """
@@ -200,8 +205,13 @@ class NumbaSampler(CUDASampler):
                 f"using the current timestamp {seed} as seed"
             )
         seed = np.int32(seed)
-        init = self.numba_random_class.init_random
-        init[self._grid, self._block](seed)
+        xoroshiro128p_dtype = np.dtype([('s0', np.uint64), ('s1', np.uint64)],
+                                       align=True)
+        sz = self._function_manager._num_envs * self._function_manager._num_agents
+        rng_states = numba_driver.device_array(sz, dtype=xoroshiro128p_dtype)
+        init = self._function_manager.get_function("init_random")
+        init(rng_states, seed)
+        self.rng_states_dict["rng_states"] = rng_states
         self._random_initialized = True
 
     def sample(
@@ -233,14 +243,12 @@ class NumbaSampler(CUDASampler):
         # distribution is a runtime output from pytorch at device,
         # it should not be managed by data manager because
         # it is a temporary output and never sit at the host
-        self.sample_actions(
+        self.sample_actions[self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)](
+            self.rng_states_dict["rng_states"],
             numba_driver.as_cuda_array(distribution),
             data_manager.device_data(action_name),
             data_manager.device_data(f"{action_name}_cum_distr"),
-            np.int32(n_agents),
             np.int32(n_actions),
-            block=((n_agents - 1) // self._blocks_per_env + 1, 1, 1),
-            grid=self._grid,
         )
 
 
@@ -263,6 +271,9 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         """
         super().__init__(function_manager)
 
+        self.reset_func_1d = self._function_manager.get_function(
+            "reset_when_done_1d"
+        )
         self.reset_func_2d = self._function_manager.get_function(
             "reset_when_done_2d"
         )
@@ -323,22 +334,23 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
             assert f_shape[0] == data_manager.meta_info(
                 "n_envs"
             ), "reset function assumes the 0th dimension is n_envs"
+            data_shape = None
             if len(f_shape) >= 3:
                 agent_dim = np.int32(f_shape[1])
                 feature_dim = np.int32(np.prod(f_shape[2:]))
-                is_3d = True
+                data_shape = "is_3d"
             elif len(f_shape) == 2:
                 feature_dim = np.int32(f_shape[1])
-                is_3d = False
+                data_shape = "is_2d"
             else:  # len(f_shape) == 1:
                 feature_dim = np.int32(1)
-                is_3d = False
+                data_shape = "is_1d"
 
             dtype = data_manager.get_dtype(name)
             if "float" not in dtype and "int" not in dtype:
                 raise Exception(f"unknown dtype: {dtype}"
                                 )
-            if is_3d:
+            if data_shape == "is_3d":
                 reset_func = self.reset_func_3d
                 reset_func[self._grid, (int((agent_dim - 1) // self._blocks_per_env + 1), 1, 1)](
                     data_manager.device_data(name),
@@ -348,13 +360,21 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
                     feature_dim,
                     force_reset
                 )
-            else:
+            elif data_shape == "is_2d":
                 reset_func = self.reset_func_2d
                 reset_func[self._grid, (int((feature_dim - 1) // self._blocks_per_env + 1), 1, 1)](
                     data_manager.device_data(name),
                     data_manager.device_data(f"{name}_at_reset"),
                     data_manager.device_data("_done_"),
                     feature_dim,
+                    force_reset
+                )
+            elif data_shape == "is_1d":
+                reset_func = self.reset_func_1d
+                reset_func[self._grid, (1, 1, 1)](
+                    data_manager.device_data(name),
+                    data_manager.device_data(f"{name}_at_reset"),
+                    data_manager.device_data("_done_"),
                     force_reset
                 )
 

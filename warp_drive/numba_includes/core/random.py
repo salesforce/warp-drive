@@ -1,55 +1,50 @@
 from numba import int32, float32
 from numba import cuda as numba_driver
-from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
-try:
-    from numba_includes.env_config import *
-except ImportError:
-    raise Exception("numba_includes.env_config is not available to import")
-
+from numba.cuda.random import init_xoroshiro128p_states, xoroshiro128p_uniform_float32
 
 kEps = 1.0e-8
 
 
-class NumbaRandomService:
+# @numba_driver.jit(int32(float32[::1], float32, int32, int32), device=True)
+@numba_driver.jit(device=True, inline=True)
+def search_index(distr, p, env_id, agent_id, r):
+    left = 0
+    right = r
 
-    def __init__(self):
-        self.rng_states = None
-
-    def init_random(self, seed):
-        self.rng_states = create_xoroshiro128p_states(wkNumberEnvs * wkNumberAgents, seed=seed)
-
-    @numba_driver.jit(int32(float32[::1], float32, int32, int32), device=True)
-    def search_index(self, distr, p, l, r):
-        left = l
-        right = r
-
-        while left <= right:
-            mid = left + (right - left) / 2
-            if abs(distr[mid] - p) < kEps:
-                return mid - l
-            elif distr[mid] < p:
-                left = mid + 1
-            else:
-                right = mid - 1
-        if left > r:
-            return r - l
+    while left <= right:
+        mid = left + int((right - left) / 2)
+        if abs(distr[env_id, agent_id, mid] - p) < kEps:
+            return mid
+        elif distr[env_id, agent_id, mid] < p:
+            left = mid + 1
         else:
-            return left - l
+            right = mid - 1
+    if left > r:
+        return r
+    else:
+        return left
 
-    @numba_driver.jit((float32[::1], int32[::1], float32[::1], int32, int32))
-    def sample_actions(self, distr, action_indices, cum_distr, num_agents, num_actions):
-        posidx = numba_driver.grid(1)
-        if posidx >= wkNumberEnvs * num_agents:
-            return
 
-        p = xoroshiro128p_uniform_float32(self.rng_states, posidx)
+def init_random(rng_states, seed):
+    init_xoroshiro128p_states(states=rng_states, seed=seed)
 
-        dist_index = posidx * num_actions
-        cum_distr[dist_index] = distr[dist_index]
 
-        for i in range(1, num_actions):
-            cum_distr[dist_index + i] = distr[dist_index + i] + cum_distr[dist_index + i - 1]
+# @numba_driver.jit((float32[::1], int32[::1], float32[::1], int32, int32))
+@numba_driver.jit
+def sample_actions(rng_states, distr, action_indices, cum_distr, num_actions):
+    env_id = numba_driver.blockIdx.x
+    # Block id in a 1D grid
+    agent_id = numba_driver.threadIdx.x
+    posidx = numba_driver.grid(1)
+    if posidx >= rng_states.shape[0]:
+        return
+    p = xoroshiro128p_uniform_float32(rng_states, posidx)
 
-        ind = search_index(cum_distr, p, dist_index, dist_index + num_actions - 1)
-        action_indices[posidx] = ind
+    cum_distr[env_id, agent_id, 0] = distr[env_id, agent_id, 0]
+
+    for i in range(1, num_actions):
+        cum_distr[env_id, agent_id, i] = distr[env_id, agent_id, i] + cum_distr[env_id, agent_id, i - 1]
+
+    ind = search_index(cum_distr, p, env_id, agent_id, num_actions - 1)
+    action_indices[env_id, agent_id] = ind
 

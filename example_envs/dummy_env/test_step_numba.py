@@ -1,46 +1,41 @@
-// Copyright (c) 2021, salesforce.com, inc.
-// All rights reserved.
-// SPDX-License-Identifier: BSD-3-Clause
-// For full license text, see the LICENSE file in the repo root
-// or https://opensource.org/licenses/BSD-3-Clause
+# Copyright (c) 2021, salesforce.com, inc.
+# All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+# For full license text, see the LICENSE file in the repo root
+# or https://opensource.org/licenses/BSD-3-Clause
 
-extern "C"{
-// test data transfer between CPU and GPU, and the updates in place
-  __global__ void testkernel(float* x, int* y, int* done, int* actions, float multiplier, int target, int step, int episode_length)
-  {
-    __shared__ int reach_target;
-    int env_id = getEnvID(blockIdx.x);
-    int agent_id = getAgentID(threadIdx.x, blockIdx.x, blockDim.x);
-    // this serves as the leading agent for each block since we have shared memory residing in each block
-    int tid = threadIdx.x;
-    int action_dim = 3;
+# test data transfer between CPU and GPU, and the updates in place
+from numba import int32
+from numba import cuda as numba_driver
+try:
+    from warp_drive.numba_includes.env_config import *
+except:
+    raise Exception("warp_drive.numba_includes.env_config is not available")
 
-    if(tid==0){
-      reach_target = 0;
-    }
 
-    if(agent_id < wkNumberAgents){
-        int index = env_id * wkNumberAgents + agent_id;
-        int action_index = index * action_dim;
+@numba_driver.jit
+def testkernel(x, y, done, actions, multiplier, target, step, episode_length):
+    reach_target = numba_driver.shared.array(1, dtype=int32)
+    env_id = numba_driver.blockIdx.x
+    agent_id = numba_driver.threadIdx.x
+    # this serves as the leading agent for each block since we have shared memory residing in each block
+    action_dim = 3
 
-        x[index] = x[index] / multiplier;
-        y[index] = y[index] * multiplier;
+    if agent_id == 0:
+        reach_target[0] = 0
 
-        if(y[index] >= target){
-          atomicAdd(&reach_target, 1);
-        }
+    if agent_id < wkNumberAgents:
+        x[env_id, agent_id] = x[env_id, agent_id] / multiplier
+        y[env_id, agent_id] = y[env_id, agent_id] * multiplier
 
-        for(int i=0; i<action_dim; i++){
-          actions[action_index + i] = i;
-        }
+        if y[env_id, agent_id] >= target:
+            numba_driver.atomic.add(reach_target, 0, 1)
 
-        __sync_env_threads();
+        for i in range(action_dim):
+            actions[env_id, agent_id, i] = i
 
-        if(step == episode_length || reach_target > 0){
-          if(tid == 0){
-            atomicMax(&done[env_id], 1);
-          }
-        }
-    }
-  }
-}
+        numba_driver.syncthreads()
+
+        if step == episode_length or reach_target[0] > 0:
+            if agent_id == 0:
+                numba_driver.atomic.max(done, env_id, 1)

@@ -7,7 +7,12 @@ import numpy as np
 import numba.cuda as numba_driver
 import torch
 
-from warp_drive.managers.function_manager import CUDAFunctionManager, CUDASampler, CUDAEnvironmentReset
+from warp_drive.managers.function_manager import (
+    CUDAFunctionManager,
+    CUDASampler,
+    CUDAEnvironmentReset,
+    CUDALogController,
+)
 from warp_drive.managers.numba_managers.numba_data_manager import NumbaDataManager
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.numba_utils.misc import (
@@ -120,6 +125,10 @@ class NumbaFunctionManager(CUDAFunctionManager):
         the CUDA compilation includes src/core
         """
         default_func_names = [
+            "reset_log_mask",
+            "update_log_mask",
+            "log_one_step_2d",
+            "log_one_step_3d",
             "init_random",
             "sample_actions",
             "reset_when_done_1d",
@@ -334,8 +343,9 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
             assert f_shape[0] == data_manager.meta_info(
                 "n_envs"
             ), "reset function assumes the 0th dimension is n_envs"
-            data_shape = None
             if len(f_shape) >= 3:
+                if len(f_shape) > 3:
+                    raise Exception("Numba environment.reset() temporarily not supports array dimension > 3")
                 agent_dim = np.int32(f_shape[1])
                 feature_dim = np.int32(np.prod(f_shape[2:]))
                 data_shape = "is_3d"
@@ -389,3 +399,89 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
             data_manager.device_data("_timestep_"),
             force_reset
         )
+
+
+class NumbaLogController(CUDALogController):
+    """
+    CUDA Log Controller: manages the CUDA logger inside GPU for all the data having
+    the flag log_data_across_episode = True.
+    The log function will only work for one particular env, even there are multiple
+    example_envs running together.
+
+    prerequisite: CUDAFunctionManager is initialized, and the default function list
+    has been successfully launched
+
+    Example:
+        Please refer to tutorials
+
+    """
+
+    def __init__(self, function_manager: NumbaFunctionManager):
+        """
+        :param function_manager: CUDAFunctionManager object
+        """
+        super().__init__(function_manager)
+
+    def _log_one_step(self, data_manager: NumbaDataManager, step: int, env_id: int = 0):
+        step = np.int32(step)
+        assert env_id < data_manager.meta_info("n_envs")
+        env_id = np.int32(env_id)
+
+        for name in data_manager.log_data_list:
+            f_shape = data_manager.get_shape(name)
+            assert f_shape[0] == data_manager.meta_info(
+                "n_envs"
+            ), "log function assumes the 0th dimension is n_envs"
+            assert f_shape[1] == data_manager.meta_info(
+                "n_agents"
+            ), "log function assumes the 1st dimension is n_agents"
+            if len(f_shape) >= 3:
+                if len(f_shape) > 3:
+                    raise Exception("Numba environment.log() temporarily not supports array dimension > 3")
+                feature_dim = np.int32(np.prod(f_shape[2:]))
+                data_shape = "is_3d"
+            else:
+                data_shape = "is_2d"
+            dtype = data_manager.get_dtype(name)
+            assert "float" in dtype or "int" in dtype, f"unknown dtype: {dtype}"
+            if data_shape == "is_3d":
+                log_func = self._function_manager.get_function("log_one_step_3d")
+                log_func[self._blocks_per_env, self._block](
+                    data_manager.device_data(f"{name}_for_log"),
+                    data_manager.device_data(name),
+                    feature_dim,
+                    step,
+                    data_manager.meta_info("episode_length"),
+                    env_id,
+                )
+            elif data_shape == "is_2d":
+                log_func = self._function_manager.get_function("log_one_step_2d")
+                log_func[self._blocks_per_env, self._block](
+                    data_manager.device_data(f"{name}_for_log"),
+                    data_manager.device_data(name),
+                    step,
+                    data_manager.meta_info("episode_length"),
+                    env_id,
+                )
+
+    def _update_log_mask(self, data_manager: NumbaDataManager, step: int):
+        """
+        Mark the success of the current step and assign 1 for the dense_log_mask,
+        update self.last_valid_step
+        """
+        step = np.int32(step)
+        update_mask = self._function_manager.get_function("update_log_mask")
+        update_mask[self._blocks_per_env, self._block](
+            data_manager.device_data("_log_mask_"),
+            step,
+            data_manager.meta_info("episode_length"),
+        )
+        self.last_valid_step = step
+
+    def _reset_log_mask(self, data_manager: NumbaDataManager):
+        reset = self._function_manager.get_function("reset_log_mask")
+        reset[self._blocks_per_env, self._block](
+            data_manager.device_data("_log_mask_"),
+            data_manager.meta_info("episode_length"),
+        )
+

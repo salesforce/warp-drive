@@ -42,7 +42,7 @@ int timestep, int agent_id, int env_id) {
 
 __global__ void log_one_step_in_float(float* log, float* data, int feature_dim,
 int timestep, int episode_length, int env_id) {
-  int agent_id = getAgentID(threadIdx.x, blockIdx.x, blockDim.x);
+  int agent_id = threadIdx.x + blockIdx.x * blockDim.x;;
   // only run threads in the first block
   if (agent_id >= wkNumberAgents) return;
   if (timestep > episode_length) return;

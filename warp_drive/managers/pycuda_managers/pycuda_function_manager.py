@@ -18,7 +18,12 @@ import torch
 from pycuda.compiler import SourceModule
 from pycuda.driver import Context
 
-from warp_drive.managers.function_manager import CUDAFunctionManager, CUDASampler, CUDAEnvironmentReset
+from warp_drive.managers.function_manager import (
+    CUDAFunctionManager,
+    CUDASampler,
+    CUDAEnvironmentReset,
+    CUDALogController,
+)
 from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager, CudaTensorHolder
 from warp_drive.utils.architecture_validate import validate_device_setup
 from warp_drive.utils.common import get_project_root
@@ -363,7 +368,7 @@ class PyCUDAFunctionManager(CUDAFunctionManager):
         return self._cuda_function_names
 
 
-class PyCUDALogController:
+class PyCUDALogController(CUDALogController):
     """
     CUDA Log Controller: manages the CUDA logger inside GPU for all the data having
     the flag log_data_across_episode = True.
@@ -382,81 +387,7 @@ class PyCUDALogController:
         """
         :param function_manager: CUDAFunctionManager object
         """
-        self._function_manager = function_manager
-        assert self._function_manager._default_functions_initialized, (
-            "Default CUDA functions are required to initialized "
-            "before LogController can work, "
-            "You may call function_manager.initialize_default_functions() to proceed"
-        )
-        self._block = function_manager.block
-        self._grid = function_manager.grid
-        self._blocks_per_env = function_manager.blocks_per_env
-        self.last_valid_step = -1
-        self._env_id = None
-
-    def update_log(self, data_manager: PyCUDADataManager, step: int):
-        """
-        Update the log for all the data having the flag log_data_across_episode = True
-
-        :param data_manager: CUDADataManager object
-        :param step: the logging step
-        """
-        assert (
-            step > self.last_valid_step
-        ), "update_log is trying to update the existing timestep"
-        self._log_one_step(data_manager, step, self._env_id)
-        self._update_log_mask(data_manager, step)
-
-    def reset_log(self, data_manager: PyCUDADataManager, env_id: int = 0):
-        """
-        Reset the dense log mask back to [1, 0, 0, 0 ....]
-
-        :param data_manager: CUDADataManager object
-        :param env_id: the env with env_id will reset log and later update_log()
-        will be executed for this env.
-        """
-        self._env_id = env_id
-        self.last_valid_step = -1
-        logging.info(f"reset log for env {self._env_id}")
-        self._reset_log_mask(data_manager)
-        self.update_log(data_manager, step=0)
-
-    def fetch_log(
-        self,
-        data_manager: PyCUDADataManager,
-        names: Optional[str] = None,
-        last_step: Optional[int] = None,
-        check_last_valid_step: bool = True,
-    ):
-        """
-        Fetch the complete log back to the host.
-
-        :param data_manager: CUDADataManager object
-        :param names: names of the data
-        :param last_step: optional, if provided, return data till min(last_step, )
-        :param check_last_valid_step: if True, check if host and device are consistent
-        with the last_valid_step
-
-        returns: the log at the host
-        """
-        if check_last_valid_step is True:
-            self._cuda_check_last_valid_step(data_manager)
-
-        if last_step is not None and last_step <= self.last_valid_step:
-            last_valid_step = last_step
-        else:
-            last_valid_step = self.last_valid_step
-
-        data = {}
-        if names is None:
-            names = data_manager.log_data_list
-
-        for name in names:
-            name = f"{name}_for_log"
-            d = data_manager.pull_data_from_device(name)
-            assert len(d) == int(data_manager.meta_info("episode_length")) + 1
-            data[name] = d[: last_valid_step + 1]
-        return data
+        super().__init__(function_manager)
 
     def _log_one_step(self, data_manager: PyCUDADataManager, step: int, env_id: int = 0):
         step = np.int32(step)
@@ -519,27 +450,6 @@ class PyCUDALogController:
             data_manager.meta_info("episode_length"),
             block=self._block,
             grid=(self._blocks_per_env, 1),
-        )
-
-    def _cuda_check_last_valid_step(self, data_manager: PyCUDADataManager):
-        """
-        Check if self.last_valid_step maintained by step() is consistent
-        with dense_log_mask
-        """
-        log_mask = data_manager.pull_data_from_device("_log_mask_")
-        pos_1s = np.argwhere(log_mask == 1).reshape(-1)
-        pos_0s = np.argwhere(log_mask == 0).reshape(-1)
-        if len(pos_1s) > 0 and len(pos_0s) > 0 and pos_0s[0] < pos_1s[-1]:
-            raise Exception("there is invalid log data in the middle")
-        if len(pos_1s) > 0:
-            last_valid_step = pos_1s[-1]
-        else:
-            last_valid_step = -1
-
-        assert last_valid_step == self.last_valid_step, (
-            f"inconsistency of last_valid_step derived from "
-            f"dense_log_mask = {last_valid_step} "
-            f"and the step() function = {self.last_valid_step}"
         )
 
 

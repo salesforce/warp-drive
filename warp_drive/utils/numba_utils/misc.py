@@ -8,12 +8,14 @@ import logging
 import os
 import re
 
+from warp_drive.utils.common import get_project_root
 from warp_drive.utils.env_registrar import EnvironmentRegistrar
 
 
 def get_default_env_directory(env_name):
     envs = {
-        "TagContinuous": "",
+        "DummyEnv": "example_envs.dummy_env.test_step_numba",
+        "TagContinuous": "example_envs.tag_continous.tag_continuous_step_numba",
         "YOUR_ENVIRONMENT": "PYTHON_PATH_TO_YOUR_ENV_SRC",
     }
     return envs.get(env_name, None)

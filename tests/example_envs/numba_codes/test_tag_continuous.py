@@ -13,22 +13,22 @@ from warp_drive.env_cpu_gpu_consistency_checker import EnvironmentCPUvsGPU
 
 # Env configs for testing
 env_configs = {
-    "test1": {
-        "num_taggers": 2,
-        "num_runners": 3,
-        "max_acceleration": 1,
-        "max_turn": np.pi / 4,
-        "num_acceleration_levels": 3,
-        "num_turn_levels": 3,
-        "grid_length": 10,
-        "episode_length": 100,
-        "seed": 274880,
-        "skill_level_runner": 1,
-        "skill_level_tagger": 1,
-        "use_full_observation": True,
-        "runner_exits_game_after_tagged": True,
-        "tagging_distance": 0.0,
-    },
+    # "test1": {
+    #     "num_taggers": 2,
+    #     "num_runners": 3,
+    #     "max_acceleration": 1,
+    #     "max_turn": np.pi / 4,
+    #     "num_acceleration_levels": 3,
+    #     "num_turn_levels": 3,
+    #     "grid_length": 10,
+    #     "episode_length": 100,
+    #     "seed": 274880,
+    #     "skill_level_runner": 1,
+    #     "skill_level_tagger": 1,
+    #     "use_full_observation": True,
+    #     "runner_exits_game_after_tagged": True,
+    #     "tagging_distance": 0.0,
+    # },
     "test2": {
         "num_taggers": 4,
         "num_runners": 1,
@@ -90,7 +90,7 @@ class MyTestCase(unittest.TestCase):
         self.testing_class = EnvironmentCPUvsGPU(
             dual_mode_env_class=TagContinuous,
             env_configs=env_configs,
-            gpu_env_backend="pycuda",
+            gpu_env_backend="numba",
             num_envs=2,
             num_episodes=2,
             use_gpu_testing_mode=True,

@@ -245,4 +245,9 @@ class TestActionSampler(unittest.TestCase):
             )
             actions_s_cuda[i] = self.dm.data_on_device_via_torch(f"{_ACTIONS}_s")
         actions_s = actions_s_cuda.cpu().numpy()
+        # randomness across agents in each env
         self.assertTrue(actions_s.std(axis=-1).reshape(-1).mean() > 0.9)
+        # randomness across iteration for each agent
+        self.assertTrue(actions_s.std(axis=0).mean() > 1.11)
+        # randomness across envs
+        self.assertTrue(actions_s.std(axis=1).mean() > 0.60)

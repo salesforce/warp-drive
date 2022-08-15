@@ -15,8 +15,6 @@ from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
 from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 
-from example_envs.tag_continuous.tag_continuous_step_numba import NumbaTagContinuousStep
-
 _OBSERVATIONS = Constants.OBSERVATIONS
 _ACTIONS = Constants.ACTIONS
 _REWARDS = Constants.REWARDS
@@ -853,8 +851,10 @@ class TagContinuous(CUDAEnvironmentContext):
                     grid=self.cuda_function_manager.grid,
                 )
             elif self.env_backend == "numba":
-                NumbaTagContinuousStep[self.cuda_function_manager.grid,
-                                       self.cuda_function_manager.block](*self.cuda_step_function_feed(args))
+                self.cuda_step[self.cuda_function_manager.grid,
+                               self.cuda_function_manager.block](
+                    *self.cuda_step_function_feed(args)
+                )
             result = None  # do not return anything
         else:
             assert isinstance(actions, dict)

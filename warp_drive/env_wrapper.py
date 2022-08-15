@@ -139,7 +139,10 @@ class EnvWrapper:
             if blocks_per_env is not None:
                 self.blocks_per_env = blocks_per_env
             else:
-                self.blocks_per_env = calculate_blocks_per_env(self.n_agents)
+                if self.env_backend == "pycuda":
+                    self.blocks_per_env = calculate_blocks_per_env(self.n_agents)
+                else:
+                    self.blocks_per_env = 1
             logging.info(f"We use blocks_per_env = {self.blocks_per_env} ")
 
             if self.env_backend == "pycuda":
@@ -189,12 +192,13 @@ class EnvWrapper:
             elif self.env_backend == "numba":
                 if testing_mode:
                     logging.info(f"Using numba_filepath: {_NUMBA_FILEPATH}")
-                    if testing_bin_filename is None:
-                        testing_bin_filename = "test_build.py"
-                    assert ".py" in testing_bin_filename
-                    testing_bin_module = testing_bin_filename[:-3]
-                    self.cuda_function_manager.import_numba_from_source_code(
-                        f"{_NUMBA_FILEPATH}.{testing_bin_module}"
+                    assert self.n_agents == 5
+                    assert self.n_envs == 2
+                    assert self.blocks_per_env == 1
+                    self.cuda_function_manager.dynamic_import_numba(
+                        env_name=self.name,
+                        template_header_file="template_env_config.txt",
+                        template_runner_file="template_env_runner.txt",
                     )
                 else:
                     self.cuda_function_manager.dynamic_import_numba(
@@ -210,7 +214,7 @@ class EnvWrapper:
             # Register the CUDA step() function for the env
             # Note: generate_observation() and compute_reward()
             # should be part of the step function itself
-            step_function = f"Cuda{self.name}Step"
+            step_function = f"Cuda{self.name}Step" if self.env_backend == "pycuda" else f"Numba{self.name}Step"
             context_ready = self.env.initialize_step_function_context(
                 cuda_data_manager=self.cuda_data_manager,
                 cuda_function_manager=self.cuda_function_manager,

@@ -15,7 +15,7 @@ from warp_drive.utils.env_registrar import EnvironmentRegistrar
 def get_default_env_directory(env_name):
     envs = {
         "DummyEnv": "example_envs.dummy_env.test_step_numba",
-        "TagContinuous": "example_envs.tag_continous.tag_continuous_step_numba",
+        "TagContinuous": "example_envs.tag_continuous.tag_continuous_step_numba",
         "YOUR_ENVIRONMENT": "PYTHON_PATH_TO_YOUR_ENV_SRC",
     }
     return envs.get(env_name, None)
@@ -116,9 +116,9 @@ def update_env_runner(
     env_numba = None
     if (
         customized_env_registrar is not None
-        and customized_env_registrar.get_cuda_env_src_path(env_name) is not None
+        and customized_env_registrar.get_cuda_env_src_path(env_name, env_backend="numba") is not None
     ):
-        env_numba = customized_env_registrar.get_cuda_env_src_path(env_name)
+        env_numba = customized_env_registrar.get_cuda_env_src_path(env_name, env_backend="numba")
         logging.info(
             f"Finding the targeting environment source code "
             f"from the customized environment directory: {env_numba}"

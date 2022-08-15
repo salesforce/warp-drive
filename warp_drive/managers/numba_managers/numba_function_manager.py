@@ -22,6 +22,8 @@ from warp_drive.utils.numba_utils.misc import (
 )
 from warp_drive.utils.env_registrar import EnvironmentRegistrar
 
+from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
+
 
 class NumbaFunctionManager(CUDAFunctionManager):
 
@@ -178,6 +180,45 @@ class NumbaFunctionManager(CUDAFunctionManager):
         return self._numba_function_names
 
 
+# @numba_driver.jit(device=True, inline=True)
+# def search_index(distr, p, env_id, agent_id, r):
+#     left = 0
+#     right = r
+#
+#     while left <= right:
+#         mid = left + int((right - left) / 2)
+#         if abs(distr[env_id, agent_id, mid] - p) < 1.0e-8:
+#             return mid
+#         elif distr[env_id, agent_id, mid] < p:
+#             left = mid + 1
+#         else:
+#             right = mid - 1
+#     if left > r:
+#         return r
+#     else:
+#         return left
+
+
+# @numba_driver.jit
+# def sample_speed_debug_helper(rng_states, distr, action_indices, cum_distr, num_actions, out):
+#     env_id = numba_driver.blockIdx.x
+#     # Block id in a 1D grid
+#     agent_id = numba_driver.threadIdx.x
+#     posidx = numba_driver.grid(1)
+#     if posidx >= rng_states.shape[0]:
+#         return
+#     for i in range(10000):
+#         p = xoroshiro128p_uniform_float32(rng_states, posidx)
+#
+#         cum_distr[env_id, agent_id, 0] = distr[env_id, agent_id, 0]
+#
+#         for j in range(1, num_actions):
+#             cum_distr[env_id, agent_id, j] = distr[env_id, agent_id, j] + cum_distr[env_id, agent_id, j - 1]
+#             ind = search_index(cum_distr, p, env_id, agent_id, num_actions - 1)
+#             action_indices[env_id, agent_id] = ind
+#             out[i, env_id, agent_id] = ind
+
+
 class NumbaSampler(CUDASampler):
     """
     CUDA Sampler: controls probability sampling inside GPU.
@@ -260,6 +301,33 @@ class NumbaSampler(CUDASampler):
             np.int32(n_actions),
         )
 
+    # def sample_speed_debug(self,
+    #                        data_manager: NumbaDataManager,
+    #                        distribution: torch.Tensor,
+    #                        action_name: str,):
+    #     assert torch.is_tensor(distribution)
+    #     assert distribution.shape[0] == self._num_envs
+    #     n_agents = int(distribution.shape[1])
+    #     assert data_manager.get_shape(action_name)[1] == n_agents
+    #     n_actions = distribution.shape[2]
+    #     assert data_manager.get_shape(f"{action_name}_cum_distr")[2] == n_actions
+    #
+    #     # out = numba_driver.as_cuda_array(torch.from_numpy(
+    #     #     np.empty((10000, 2, 5), dtype=np.int32)
+    #     # ).cuda())
+    #     for _ in range(10000):
+    #         distr_cuda = numba_driver.as_cuda_array(distribution)
+    #
+    #     out = numba_driver.to_device(np.empty((10000, 2, 5), dtype=np.int32))
+    #     sample_speed_debug_helper[self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)](
+    #         self.rng_states_dict["rng_states"],
+    #         distr_cuda,
+    #         data_manager.device_data(action_name),
+    #         data_manager.device_data(f"{action_name}_cum_distr"),
+    #         np.int32(n_actions),
+    #         out)
+    #     return out.copy_to_host()
+
 
 class NumbaEnvironmentReset(CUDAEnvironmentReset):
     """
@@ -292,6 +360,12 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         self.undo = self._function_manager.get_function(
             "undo_done_flag_and_reset_timestep"
         )
+
+    def register_custom_reset_function(self, data_manager: NumbaDataManager, reset_function_name=None):
+        if reset_function_name is None or reset_function_name not in self._function_manager._numba_function_names:
+            return
+        self._cuda_custom_reset = self._function_manager.get_function(reset_function_name)
+        self._cuda_reset_feed = CUDAFunctionFeed(data_manager)
 
     def custom_reset(self,
                      args: Optional[list] = None,

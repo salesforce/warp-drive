@@ -243,10 +243,7 @@ class CUDAEnvironmentReset:
         self._cuda_reset_feed = None
 
     def register_custom_reset_function(self, data_manager: CUDADataManager, reset_function_name=None):
-        if reset_function_name is None or reset_function_name not in self._function_manager._cuda_function_names:
-            return
-        self._cuda_custom_reset = self._function_manager.get_function(reset_function_name)
-        self._cuda_reset_feed = CUDAFunctionFeed(data_manager)
+        raise NotImplementedError
 
     def custom_reset(self,
                      args: Optional[list] = None,

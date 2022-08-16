@@ -57,7 +57,8 @@ def CudaTagContinuousGenerateObservation(loc_x_arr,
                     obs_arr[kEnvId, kThisAgentId, 2 * (kNumAgents - 1) + index] = 0.0
                     obs_arr[kEnvId, kThisAgentId, 3 * (kNumAgents - 1) + index] = 0.0
                     obs_arr[kEnvId, kThisAgentId, 4 * (kNumAgents - 1) + index] = 0.0
-                    obs_arr[kEnvId, kThisAgentId, 5 * (kNumAgents - 1) + index] = 0.0
+                    obs_arr[kEnvId, kThisAgentId, 5 * (kNumAgents - 1) + index] = \
+                        agent_types_arr[other_agent_id]
                     obs_arr[kEnvId, kThisAgentId, 6 * (kNumAgents - 1) + index] = \
                         still_in_the_game_arr[kEnvId, other_agent_id]
                     index += 1

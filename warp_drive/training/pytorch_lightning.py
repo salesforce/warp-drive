@@ -28,8 +28,6 @@ from pytorch_lightning.callbacks import Callback
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 
-from warp_drive.managers.pycuda_managers.pycuda_function_manager import PyCUDASampler
-from warp_drive.managers.numba_managers.numba_function_manager import NumbaSampler
 from warp_drive.training.algorithms.a2c import A2C
 from warp_drive.training.algorithms.ppo import PPO
 from warp_drive.training.models.fully_connected import FullyConnected
@@ -244,8 +242,12 @@ class WarpDriveModule(LightningModule):
         )
 
         if env_wrapper.env_backend == "pycuda":
+            from warp_drive.managers.pycuda_managers.pycuda_function_manager import PyCUDASampler
+
             self.cuda_sample_controller = PyCUDASampler(self.cuda_envs.cuda_function_manager)
         elif env_wrapper.env_backend == "numba":
+            from warp_drive.managers.numba_managers.numba_function_manager import NumbaSampler
+
             self.cuda_sample_controller = NumbaSampler(self.cuda_envs.cuda_function_manager)
 
         # Register action placeholders

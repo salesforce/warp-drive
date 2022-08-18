@@ -13,7 +13,9 @@ import time
 from typing import Optional
 
 import numpy as np
+
 import pycuda.driver as cuda_driver
+import pycuda.autoinit
 import torch
 from pycuda.compiler import SourceModule
 from pycuda.driver import Context

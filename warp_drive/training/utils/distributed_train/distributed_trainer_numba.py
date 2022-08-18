@@ -1,9 +1,9 @@
 import time
 
-from warp_drive.training.utils.child_process import (
-    DeviceContextProcessWrapper,
-    event_messenger,
-)
+import pycuda.driver as pycuda_driver
+from warp_drive.training.utils.child_process_base import event_messenger
+from warp_drive.training.utils.device_child_process.child_process_numba import \
+            NumbaDeviceContextProcessWrapper
 
 
 def perform_distributed_training(setup_trainer_and_train, config, results_dir=None):
@@ -20,7 +20,7 @@ def perform_distributed_training(setup_trainer_and_train, config, results_dir=No
         results_dir = f"{time.time():10.0f}"
 
     for device_id in range(num_devices):
-        proc = DeviceContextProcessWrapper(
+        proc = NumbaDeviceContextProcessWrapper(
             target=setup_trainer_and_train,
             kwargs={
                 "run_configuration": config,

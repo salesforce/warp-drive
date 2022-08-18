@@ -13,19 +13,7 @@ import logging
 
 import numpy as np
 
-from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager
-from warp_drive.managers.numba_managers.numba_data_manager import NumbaDataManager
-
 from warp_drive.managers.function_manager import CUDAFunctionFeed
-from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
-    PyCUDAEnvironmentReset,
-    PyCUDAFunctionManager,
-)
-from warp_drive.managers.numba_managers.numba_function_manager import (
-    NumbaEnvironmentReset,
-    NumbaFunctionManager,
-)
-from warp_drive.utils.architecture_validate import calculate_blocks_per_env
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 from warp_drive.utils.recursive_obs_dict_to_spaces_dict import (
@@ -140,16 +128,30 @@ class EnvWrapper:
                 self.blocks_per_env = blocks_per_env
             else:
                 if self.env_backend == "pycuda":
+                    from warp_drive.utils.architecture_validate import calculate_blocks_per_env
+
                     self.blocks_per_env = calculate_blocks_per_env(self.n_agents)
                 else:
                     self.blocks_per_env = 1
             logging.info(f"We use blocks_per_env = {self.blocks_per_env} ")
 
             if self.env_backend == "pycuda":
+                from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager
+                from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
+                    PyCUDAEnvironmentReset,
+                    PyCUDAFunctionManager,
+                )
+
                 backend_data_manager = PyCUDADataManager
                 backend_function_manager = PyCUDAFunctionManager
                 backend_env_resetter = PyCUDAEnvironmentReset
             elif self.env_backend == "numba":
+                from warp_drive.managers.numba_managers.numba_data_manager import NumbaDataManager
+                from warp_drive.managers.numba_managers.numba_function_manager import (
+                    NumbaEnvironmentReset,
+                    NumbaFunctionManager,
+                )
+
                 backend_data_manager = NumbaDataManager
                 backend_function_manager = NumbaFunctionManager
                 backend_env_resetter = NumbaEnvironmentReset

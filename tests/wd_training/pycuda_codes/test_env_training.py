@@ -10,9 +10,9 @@ import unittest
 import warnings
 import torch
 from warp_drive.utils.common import get_project_root
-from warp_drive.training.utils.child_process import ProcessWrapper
-from warp_drive.training.example_training_script import setup_trainer_and_train
-from warp_drive.training.utils.distributed_trainer import perform_distributed_training
+from warp_drive.training.utils.child_process_base import ProcessWrapper
+from warp_drive.training.example_training_script_pycuda import setup_trainer_and_train
+from warp_drive.training.utils.distributed_train.distributed_trainer_pycuda import perform_distributed_training
 
 _ROOT_DIR = get_project_root()
 

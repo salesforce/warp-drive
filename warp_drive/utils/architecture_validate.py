@@ -5,7 +5,6 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 
 import logging
-
 import pycuda.autoinit
 from pycuda.driver import Context
 

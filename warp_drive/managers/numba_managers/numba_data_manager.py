@@ -15,12 +15,7 @@ from warp_drive.managers.data_manager import CUDADataManager
 
 
 class NumbaDataManager(CUDADataManager):
-    
-    def __init__(self, device=0, **kwargs):
-        logging.info(f"Setting Numba to use CUDA device {device}")
-        numba_driver.select_device(device)
-        super(NumbaDataManager, self).__init__(**kwargs)
-        
+
     def pull_data_from_device(self, name: str):
 
         assert name in self._host_data

@@ -17,7 +17,7 @@ the GPU runs out of memory, and the function run will throw a
 
 import logging
 
-from warp_drive.training.utils.child_process import ProcessWrapper
+from warp_drive.training.utils.child_process_base import ProcessWrapper
 
 
 def best_param_search(low=1, margin=1, func=None):

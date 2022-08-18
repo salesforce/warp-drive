@@ -9,10 +9,9 @@
 from typing import Optional
 
 import numpy as np
-import pycuda.autoinit
 import torch
-
 import pycuda.driver as pycuda_driver
+import pycuda.autoinit
 
 from warp_drive.managers.data_manager import CUDADataManager
 
@@ -28,6 +27,18 @@ class CudaTensorHolder(pycuda_driver.PointerHolderBase):
 
 
 class PyCUDADataManager(CUDADataManager):
+
+    def __init__(
+            self,
+            num_agents: int = None,
+            num_envs: int = None,
+            blocks_per_env: int = 1,
+            episode_length: int = None,
+    ):
+        super().__init__(num_agents=num_agents,
+                         num_envs=num_envs,
+                         blocks_per_env=blocks_per_env,
+                         episode_length=episode_length)
     
     def pull_data_from_device(self, name: str):
         

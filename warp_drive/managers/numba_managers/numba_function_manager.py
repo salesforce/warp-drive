@@ -42,6 +42,7 @@ class NumbaFunctionManager(CUDAFunctionManager):
         # functions from the numba_managers module
         self._numba_functions = {}
         self._numba_function_names = []
+        print(f"function_manager: Setting Numba to use CUDA device {process_id}")
 
     def import_numba_from_source_code(self, numba_path: str, default_functions_included: bool = True):
         assert (
@@ -86,36 +87,55 @@ class NumbaFunctionManager(CUDAFunctionManager):
         """
         numba_path = "warp_drive.numba_includes.env_runner"
         header_path = f"{get_project_root()}/warp_drive/numba_includes"
-        if template_path is None:
-            template_path = f"{get_project_root()}/warp_drive/numba_includes"
-        update_env_header(
-            template_header_file=template_header_file,
-            path=template_path,
-            num_agents=self._num_agents,
-            num_envs=self._num_envs,
-            blocks_per_env=self._blocks_per_env,
-        )
-        update_env_runner(
-            template_runner_file=template_runner_file,
-            path=template_path,
-            env_name=env_name,
-            customized_env_registrar=customized_env_registrar,
-        )
-        check_env_header(
-            header_file="env_config.py",
-            path=header_path,
-            num_envs=self._num_envs,
-            num_agents=self._num_agents,
-            blocks_per_env=self._blocks_per_env,
-        )
-        logging.debug(
-            f"header file {header_path}/env_config.py "
-            f"has number_agents: {self._num_agents}, "
-            f"num_agents per block: {self.block[0]}, "
-            f"num_envs: {self._num_envs}, num of blocks: {self.grid[0]} "
-            f"and blocks_per_env: {self._blocks_per_env}"
-            f"that are consistent with the block and the grid"
-        )
+
+        if self._process_id > 0:
+            assert event_messenger is not None, (
+                "Event messenger is required to sync up "
+                "the compilation status among processes."
+            )
+            event_messenger.wait(timeout=12)
+
+            if not event_messenger.is_set():
+                raise Exception(
+                    f"Process {self._process_id} fails to get "
+                    f"the successful compilation message ... "
+                )
+
+        else:
+
+            if template_path is None:
+                template_path = f"{get_project_root()}/warp_drive/numba_includes"
+            update_env_header(
+                template_header_file=template_header_file,
+                path=template_path,
+                num_agents=self._num_agents,
+                num_envs=self._num_envs,
+                blocks_per_env=self._blocks_per_env,
+            )
+            update_env_runner(
+                template_runner_file=template_runner_file,
+                path=template_path,
+                env_name=env_name,
+                customized_env_registrar=customized_env_registrar,
+            )
+            check_env_header(
+                header_file="env_config.py",
+                path=header_path,
+                num_envs=self._num_envs,
+                num_agents=self._num_agents,
+                blocks_per_env=self._blocks_per_env,
+            )
+            logging.debug(
+                f"header file {header_path}/env_config.py "
+                f"has number_agents: {self._num_agents}, "
+                f"num_agents per block: {self.block[0]}, "
+                f"num_envs: {self._num_envs}, num of blocks: {self.grid[0]} "
+                f"and blocks_per_env: {self._blocks_per_env}"
+                f"that are consistent with the block and the grid"
+            )
+
+            if event_messenger is not None:
+                event_messenger.set()
 
         self.import_numba_from_source_code(
             numba_path=numba_path, default_functions_included=default_functions_included
@@ -295,7 +315,7 @@ class NumbaSampler(CUDASampler):
         # it is a temporary output and never sit at the host
         self.sample_actions[self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)](
             self.rng_states_dict["rng_states"],
-            numba_driver.as_cuda_array(distribution),
+            numba_driver.as_cuda_array(distribution.detach()),
             data_manager.device_data(action_name),
             data_manager.device_data(f"{action_name}_cum_distr"),
             np.int32(n_actions),

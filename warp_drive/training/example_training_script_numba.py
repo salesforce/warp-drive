@@ -14,15 +14,13 @@ import os
 import sys
 import time
 
-import pycuda.driver as cuda_driver
 import torch
 import yaml
 
 from example_envs.tag_continuous.tag_continuous import TagContinuous
-from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.trainer import Trainer
-from warp_drive.training.utils.distributed_trainer import perform_distributed_training
+from warp_drive.training.utils.distributed_train.distributed_trainer_numba import perform_distributed_training
 from warp_drive.training.utils.vertical_scaler import perform_auto_vertical_scaling
 from warp_drive.utils.common import get_project_root
 
@@ -56,38 +54,19 @@ def setup_trainer_and_train(
     # Create a wrapped environment object via the EnvWrapper
     # Ensure that use_cuda is set to True (in order to run on the GPU)
     # ----------------------------------------------------------------
-    if run_configuration["name"] == _TAG_GRIDWORLD:
-        env_wrapper = EnvWrapper(
-            CUDATagGridWorld(**run_configuration["env"]),
-            num_envs=num_envs,
-            env_backend="pycuda",
-            event_messenger=event_messenger,
-            process_id=device_id,
-        )
-    elif run_configuration["name"] == _TAG_CONTINUOUS:
+    if run_configuration["name"] == _TAG_CONTINUOUS:
         env_wrapper = EnvWrapper(
             TagContinuous(**run_configuration["env"]),
             num_envs=num_envs,
-            env_backend="pycuda",
+            env_backend="numba",
             event_messenger=event_messenger,
             process_id=device_id,
         )
     else:
         raise NotImplementedError(
             f"Currently, the environments supported are ["
-            f"{_TAG_GRIDWORLD}, "
             f"{_TAG_CONTINUOUS}"
             f"]",
-        )
-    # Initialize shared constants for action index to sampled_actions_placeholder
-    # ---------------------------------------------------------------------------
-    if run_configuration["name"] == _TAG_GRIDWORLD:
-        kIndexToActionArr = env_wrapper.env.step_actions
-        env_wrapper.env.cuda_data_manager.add_shared_constants(
-            {"kIndexToActionArr": kIndexToActionArr}
-        )
-        env_wrapper.env.cuda_function_manager.initialize_shared_constants(
-            env_wrapper.env.cuda_data_manager, constant_names=["kIndexToActionArr"]
         )
     # Policy mapping to agent ids: agents can share models
     # The policy_tag_to_agent_id_map dictionary maps
@@ -131,7 +110,7 @@ def setup_trainer_and_train(
 
 if __name__ == "__main__":
 
-    num_gpus_available = cuda_driver.Device.count()
+    num_gpus_available = torch.cuda.device_count()
     assert num_gpus_available > 0, "The training script needs a GPU machine to run!"
 
     # Set logger level e.g., DEBUG, INFO, WARNING, ERROR\n",

@@ -80,7 +80,7 @@ If you're using WarpDrive in your research or applications, please cite using th
 
 ## Tutorials and Quick Start
 
-Familiarize yourself with WarpDrive by running these tutorials on Colab!
+Familiarize yourself with WarpDrive by running these tutorials on Colab or [NGC container](https://catalog.ngc.nvidia.com/orgs/nvidia/resources/warp_drive)!
 
 - [A simple end-to-end RL training example](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/simple-end-to-end-example.ipynb): Explains how to get started with
   multi-agent RL training with just a few lines of code.
@@ -106,7 +106,7 @@ You can find full reference documentation [here](http://opensource.salesforce.co
 - [AI Economist Covid Environment with WarpDrive](https://github.com/salesforce/ai-economist/blob/master/tutorials/multi_agent_gpu_training_with_warp_drive.ipynb): We train two-level multi-agent economic simulations using [AI-Economist Foundation](https://github.com/salesforce/ai-economist) and train it using WarpDrive. We specifically consider the COVID-19 and economy simulation in this example.
 - [Climate Change Cooperation Competition](https://mila-iqia.github.io/climate-cooperation-competition/) collaborated with [Mila](https://mila.quebec/en/). We provide the base version of the RICE (regional integrated climate environment) [simulation environment](https://github.com/mila-iqia/climate-cooperation-competition).
 - [Pytorch Lightning Trainer with WarpDrive](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb): We provide a [tutorial example](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/warp-drive.html) and a [blog article](https://devblog.pytorchlightning.ai/turbocharge-multi-agent-reinforcement-learning-with-warpdrive-and-pytorch-lightning-6be9b00a3a43) of a multi-agent reinforcement learning training loop with WarpDrive and [Pytorch Lightning](https://www.pytorchlightning.ai/).
-- [NVIDIA NGC Catalog and Auto Deployment to VertexAI](https://catalog.ngc.nvidia.com/): WarpDrive image is hosted by [NGC Catalog](https://catalog.ngc.nvidia.com/orgs/partners/teams/salesforce/containers/warpdrive). The NGC catalog "hosts containers for the top AI and data science software, tuned, tested and optimized by NVIDIA". Our tutorials also enable the auto deployment to VertexAI supported by the NGC.  
+- [NVIDIA NGC Catalog and Quick Deployment to VertexAI](https://catalog.ngc.nvidia.com/): WarpDrive image is hosted by [NGC Catalog](https://catalog.ngc.nvidia.com/orgs/partners/teams/salesforce/containers/warpdrive). The NGC catalog "hosts containers for the top AI and data science software, tuned, tested and optimized by NVIDIA". Our tutorials also enable the quick deployment to VertexAI supported by the NGC.  
 
 ## Installation Instructions
 

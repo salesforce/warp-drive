@@ -139,3 +139,5 @@ cython_debug/
 
 *.DS_Store
 .idea
+
+sandbox

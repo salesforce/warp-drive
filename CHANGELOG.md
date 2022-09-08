@@ -1,4 +1,6 @@
 # Changelog
+# Release 1.7 (2022-09-08)
+- Update PyCUDA version to 2022.1
 
 # Release 1.6 (2022-04-05)
 - Allow for envs to span multiple blocks, adding the capability to train simulations with thousands of agents.

@@ -38,6 +38,26 @@ from warp_drive.utils.env_registrar import EnvironmentRegistrar
 
 
 class PyCUDAFunctionManager(CUDAFunctionManager):
+    """
+    Example:
+
+        cuda_function_manager = PyCUDAFunctionManager(num_agents=10, num_envs=5)
+
+        # if load from a source code directly
+        cuda_function_manager.load_cuda_from_source_code(code)
+
+        # if load from a pre-compiled bin
+        cuda_function_manager.load_cuda_from_binary_file(fname)
+
+        # if compile a template source code (so num_agents and num_envs
+        can be populated at compile time)
+        cuda_function_manager.compile_and_load_cuda(template_header_file)
+
+        cuda_function_manager.initialize_functions(["step", "test"])
+
+        cuda_step_func = cuda_function_manager.get_function("step")
+
+    """
 
     def __init__(
             self,
@@ -339,7 +359,7 @@ class PyCUDAFunctionManager(CUDAFunctionManager):
     ):
         """
         Initialize the shared constants in the runtime.
-        :param data_manager: CUDADataManager object
+        :param data_manager: PyCUDADataManager object
         :param constant_names: names of constants managed by CUDADataManager
         """
         for cname in constant_names:
@@ -355,7 +375,7 @@ class PyCUDAFunctionManager(CUDAFunctionManager):
     def _get_function(self, fname):
         """
         :param fname: function name
-        return: the CUDA function callable by Python
+        return: the PyCUDA function callable by Python
         """
         assert fname in self._cuda_function_names, f"{fname} is not defined"
 
@@ -372,12 +392,12 @@ class PyCUDAFunctionManager(CUDAFunctionManager):
 
 class PyCUDALogController(CUDALogController):
     """
-    CUDA Log Controller: manages the CUDA logger inside GPU for all the data having
+    PyCUDA Log Controller: manages the CUDA logger inside GPU for all the data having
     the flag log_data_across_episode = True.
     The log function will only work for one particular env, even there are multiple
     example_envs running together.
 
-    prerequisite: CUDAFunctionManager is initialized, and the default function list
+    prerequisite: PyCUDAFunctionManager is initialized, and the default function list
     has been successfully launched
 
     Example:
@@ -387,7 +407,7 @@ class PyCUDALogController(CUDALogController):
 
     def __init__(self, function_manager: PyCUDAFunctionManager):
         """
-        :param function_manager: CUDAFunctionManager object
+        :param function_manager: PyCUDAFunctionManager object
         """
         super().__init__(function_manager)
 
@@ -457,12 +477,12 @@ class PyCUDALogController(CUDALogController):
 
 class PyCUDASampler(CUDASampler):
     """
-    CUDA Sampler: controls probability sampling inside GPU.
+    PyCUDA Sampler: controls probability sampling inside GPU.
     A fast and lightweight implementation compared to the
     functionality provided by torch.Categorical.sample()
     It accepts the Pytorch tensor as distribution and gives out the sampled action index
 
-    prerequisite: CUDAFunctionManager is initialized,
+    prerequisite: PyCUDAFunctionManager is initialized,
     and the default function list has been successfully launched
 
     Example:
@@ -471,7 +491,7 @@ class PyCUDASampler(CUDASampler):
 
     def __init__(self, function_manager: PyCUDAFunctionManager):
         """
-        :param function_manager: CUDAFunctionManager object
+        :param function_manager: PyCUDAFunctionManager object
         """
         super().__init__(function_manager)
 
@@ -510,7 +530,7 @@ class PyCUDASampler(CUDASampler):
         """
         Sample based on the distribution
 
-        :param data_manager: CUDADataManager object
+        :param data_manager: PyCUDADataManager object
         :param distribution: Torch distribution tensor in the shape of
         (num_env, num_agents, num_actions)
         :param action_name: the name of action array that will
@@ -545,7 +565,7 @@ class PyCUDASampler(CUDASampler):
         """
         Assign action to the action array directly. T
         his may be used for env testing or debugging purpose.
-        :param data_manager: CUDADataManager object
+        :param data_manager: PyCUDADataManager object
         :param actions: actions array provided by the user
         :param action_name: the name of action array that will
         record the sampled actions
@@ -561,11 +581,11 @@ class PyCUDASampler(CUDASampler):
 
 class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
     """
-    CUDA Environment Reset: Manages the env reset when the game is terminated
+    PyCUDA Environment Reset: Manages the env reset when the game is terminated
     inside GPU. With this, the GPU can automatically reset and
     restart example_envs by itself.
 
-    prerequisite: CUDAFunctionManager is initialized, and the default function list
+    prerequisite: PyCUDAFunctionManager is initialized, and the default function list
     has been successfully launched
 
     Example:
@@ -574,7 +594,7 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
 
     def __init__(self, function_manager: PyCUDAFunctionManager):
         """
-        :param function_manager: CUDAFunctionManager object
+        :param function_manager: PyCUDAFunctionManager object
         """
         super().__init__(function_manager)
 
@@ -629,7 +649,7 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
         The reset includes copy the starting values of this env back,
         and turn off the done flag. Therefore, this env can safely get restarted.
 
-        :param data_manager: CUDADataManager object
+        :param data_manager: PyCUDADataManager object
         :param mode: "if_done": reset an env if done flag is observed for that env,
                      "force_reset": reset all env in a hard way
         :param undo_done_after_reset: If True, turn off the done flag

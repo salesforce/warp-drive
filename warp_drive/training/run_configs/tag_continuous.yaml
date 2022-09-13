@@ -37,7 +37,6 @@ trainer:
     num_envs: 100 # number of environment replicas
     num_episodes: 500 # number of episodes to run the training for. Can be arbitrarily high!
     train_batch_size: 25000 # total batch size used for training per iteration (across all the environments)
-    env_backend: "pycuda" # environment backend, pycuda or numba
 # Policy network settings
 policy: # list all the policies below
     runner:

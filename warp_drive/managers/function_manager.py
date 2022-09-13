@@ -21,26 +21,8 @@ from warp_drive.utils.data_feed import DataFeed
 
 class CUDAFunctionManager:
     """
-    CUDA Function Manager: manages the CUDA module
+    Base CUDA Function Manager: manages the CUDA module
     and the kernel functions defined therein
-
-    Example:
-
-        cuda_function_manager = CUDAFunctionManager(num_agents=10, num_envs=5)
-
-        # if load from a source code directly
-        cuda_function_manager.load_cuda_from_source_code(code)
-
-        # if load from a pre-compiled bin
-        cuda_function_manager.load_cuda_from_binary_file(fname)
-
-        # if compile a template source code (so num_agents and num_envs
-        can be populated at compile time)
-        cuda_function_manager.compile_and_load_cuda(template_header_file)
-
-        cuda_function_manager.initialize_functions(["step", "test"])
-
-        cuda_step_func = cuda_function_manager.get_function("step")
 
     """
 
@@ -155,7 +137,7 @@ class CUDAFunctionFeed:
 
 class CUDASampler:
     """
-    CUDA Sampler: controls probability sampling inside GPU.
+    Base CUDA Sampler: controls probability sampling inside GPU.
     A fast and lightweight implementation compared to the
     functionality provided by torch.Categorical.sample()
     It accepts the Pytorch tensor as distribution and gives out the sampled action index
@@ -215,7 +197,7 @@ class CUDASampler:
 
 class CUDAEnvironmentReset:
     """
-    CUDA Environment Reset: Manages the env reset when the game is terminated
+    Base CUDA Environment Reset: Manages the env reset when the game is terminated
     inside GPU. With this, the GPU can automatically reset and
     restart example_envs by itself.
 
@@ -283,7 +265,7 @@ class CUDAEnvironmentReset:
 
 class CUDALogController:
     """
-    CUDA Log Controller: manages the CUDA logger inside GPU for all the data having
+    Base CUDA Log Controller: manages the CUDA logger inside GPU for all the data having
     the flag log_data_across_episode = True.
     The log function will only work for one particular env, even there are multiple
     example_envs running together.

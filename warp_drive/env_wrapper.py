@@ -19,13 +19,13 @@ from warp_drive.utils.gpu_environment_context import CUDAEnvironmentContext
 from warp_drive.utils.recursive_obs_dict_to_spaces_dict import (
     recursive_obs_dict_to_spaces_dict,
 )
-from warp_drive.utils.argument_fix import arg_fix
+from warp_drive.utils.argument_fix import Argfix
 
 _CUBIN_FILEPATH = f"{get_project_root()}/warp_drive/cuda_bin"
 _NUMBA_FILEPATH = "warp_drive.numba_includes"
 
 
-@arg_fix(arg_mapping={"use_cuda": "env_backend"})
+@Argfix(arg_mapping={"use_cuda": "env_backend"})
 class EnvWrapper:
     """
     The environment wrapper class.
@@ -58,13 +58,13 @@ class EnvWrapper:
             WarpDrive environment registrar
         'env_config': environment configuration to instantiate
             an environment from the registrar
-        'env_backend': environment backend, choose between pycuda, numba, or cpu
         'num_envs': the number of parallel environments to instantiate. Note: this is
             only relevant when env_backend is pycuda or numba
         'blocks_per_env': number of blocks to cover one environment
             default is None, the utility function will estimate it
             otherwise it will be reinforced
-        'env_backend': cpu, pycuda or numba
+        'env_backend': environment backend, choose between pycuda, numba, or cpu.
+            Before version 1.8, the old argument is 'use_cuda' = True or False, and is deprecated.
         'use_cuda': deprecated since version 1.8
         'testing_mode': a flag used to determine whether to simply load the .cubin (when
             testing) or compile the .cu source code to create a .cubin and use that.

@@ -2,7 +2,7 @@ import functools
 import warnings
 
 
-class arg_fix:
+class Argfix:
     """Decorator ensuring backward compatibility when an argument name is
     modified in a function definition.
     """

@@ -28,6 +28,40 @@ class CudaTensorHolder(pycuda_driver.PointerHolderBase):
 
 class PyCUDADataManager(CUDADataManager):
 
+    """
+    Example:
+        cuda_data_manager = PyCUDADataManager(
+        num_agents=10, num_envs=5, episode_length=100
+        )
+
+        data1 = DataFeed()
+        data1.add_data(name="X", data=np.array([[1, 2, 3, 4, 5],
+                                               [0, 0, 0, 0, 0],
+                                               [0, 0, 0, 0, 0]])
+                      )
+        data1.add_data(name="a", data=100)
+        cuda_data_manager.push_data_to_device(data)
+
+        data2 = DataFeed()
+        data2.add_data(name="Y", data=[[0.1,0.2,0.3,0.4,0.5],
+                                      [0.0,0.0,0.0,0.0,0.0],
+                                      [0.0,0.0,0.0,0.0,0.0]]
+                      )
+        cuda_data_manager.push_data_to_device(data2, torch_accessible=True)
+
+        X_copy_at_host = cuda_data_manager.pull_data_from_device(name="X")
+        Y_copy_at_host = cuda_data_manager.pull_data_from_device(name="Y")
+
+        if cuda_data_manager.is_data_on_device_via_torch("Y"):
+            Y_tensor_accessible_by_torch =
+            cuda_data_manager.data_on_device_via_torch("Y")
+
+        # cuda_function here assumes a compiled CUDA C function
+        cuda_function(cuda_data_manager.device_data("X"),
+                      cuda_data_manager.device_data("Y"),
+                      block=(10,1,1), grid=(5,1))
+    """
+
     def __init__(
             self,
             num_agents: int = None,

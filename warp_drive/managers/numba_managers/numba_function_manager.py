@@ -27,6 +27,24 @@ from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform
 
 class NumbaFunctionManager(CUDAFunctionManager):
 
+    """
+    Example:
+
+        numba_function_manager = NumbaFunctionManager(num_agents=10, num_envs=5)
+
+        # if load from a source code directly
+        numba_function_manager.import_numba_from_source_code(numba_path)
+
+        # if compile a template source code (so num_agents and num_envs
+        can be populated at compile time)
+        numba_function_manager.dynamic_import_numba(template_header_file)
+
+        numba_function_manager.initialize_functions(["step", "test"])
+
+        numba_step_func = numba_function_manager.get_function("step")
+
+    """
+
     def __init__(
             self,
             num_agents: int = 1,
@@ -65,8 +83,8 @@ class NumbaFunctionManager(CUDAFunctionManager):
         event_messenger=None,
     ):
         """
-        Compile a template source code, so self.num_agents and self.num_envs
-        will replace the template code at compile time.
+        Dynamic import a template source code, so self.num_agents and self.num_envs
+        will replace the template code at JIT compile time.
         Note: self.num_agents: total number of agents for each env,
         it defines the default block size
         self.num_envs: number of example_envs in parallel,
@@ -74,11 +92,11 @@ class NumbaFunctionManager(CUDAFunctionManager):
 
         :param env_name: name of the environment for the build
         :param template_header_file: template header,
-            e.g., "template_env_config.h"
+            e.g., "template_env_config.txt"
         :param template_runner_file: template runner,
-            e.g., "template_env_runner.cu"
+            e.g., "template_env_runner.txt"
         :param template_path: template path, by default,
-        it is f"{ROOT_PATH}/warp_drive/cuda_includes/"
+        it is f"{ROOT_PATH}.warp_drive.numba_includes/"
         :param default_functions_included: load default function lists
         :param customized_env_registrar: CustomizedEnvironmentRegistrar object
             it provides the customized env info (e.g., source code path)for the build
@@ -143,8 +161,8 @@ class NumbaFunctionManager(CUDAFunctionManager):
 
     def initialize_default_functions(self):
         """
-        Default function list defined in the src/core. They can be initialized if
-        the CUDA compilation includes src/core
+        Default function list defined in the numba_includes/core. They can be initialized if
+        the Numba compilation includes numba_includes/core
         """
         default_func_names = [
             "reset_log_mask",
@@ -167,7 +185,7 @@ class NumbaFunctionManager(CUDAFunctionManager):
 
     def initialize_functions(self, func_names: Optional[list] = None):
         """
-        :param func_names: list of kernel function names in the cuda mdoule
+        :param func_names: list of kernel function names
         """
         assert self._NUMBA_module is not None, (
             "NUMBA module has not yet been imported, "
@@ -189,7 +207,7 @@ class NumbaFunctionManager(CUDAFunctionManager):
     def _get_function(self, fname):
         """
         :param fname: function name
-        return: the CUDA function callable by Python
+        return: the Numba function callable by Python
         """
         assert fname in self._numba_function_names, f"{fname} is not defined"
 
@@ -200,53 +218,14 @@ class NumbaFunctionManager(CUDAFunctionManager):
         return self._numba_function_names
 
 
-# @numba_driver.jit(device=True, inline=True)
-# def search_index(distr, p, env_id, agent_id, r):
-#     left = 0
-#     right = r
-#
-#     while left <= right:
-#         mid = left + int((right - left) / 2)
-#         if abs(distr[env_id, agent_id, mid] - p) < 1.0e-8:
-#             return mid
-#         elif distr[env_id, agent_id, mid] < p:
-#             left = mid + 1
-#         else:
-#             right = mid - 1
-#     if left > r:
-#         return r
-#     else:
-#         return left
-
-
-# @numba_driver.jit
-# def sample_speed_debug_helper(rng_states, distr, action_indices, cum_distr, num_actions, out):
-#     env_id = numba_driver.blockIdx.x
-#     # Block id in a 1D grid
-#     agent_id = numba_driver.threadIdx.x
-#     posidx = numba_driver.grid(1)
-#     if posidx >= rng_states.shape[0]:
-#         return
-#     for i in range(10000):
-#         p = xoroshiro128p_uniform_float32(rng_states, posidx)
-#
-#         cum_distr[env_id, agent_id, 0] = distr[env_id, agent_id, 0]
-#
-#         for j in range(1, num_actions):
-#             cum_distr[env_id, agent_id, j] = distr[env_id, agent_id, j] + cum_distr[env_id, agent_id, j - 1]
-#             ind = search_index(cum_distr, p, env_id, agent_id, num_actions - 1)
-#             action_indices[env_id, agent_id] = ind
-#             out[i, env_id, agent_id] = ind
-
-
 class NumbaSampler(CUDASampler):
     """
-    CUDA Sampler: controls probability sampling inside GPU.
+    Numba Sampler: controls probability sampling inside GPU.
     A fast and lightweight implementation compared to the
     functionality provided by torch.Categorical.sample()
     It accepts the Pytorch tensor as distribution and gives out the sampled action index
 
-    prerequisite: CUDAFunctionManager is initialized,
+    prerequisite: NumbaFunctionManager is initialized,
     and the default function list has been successfully launched
 
     Example:
@@ -293,7 +272,7 @@ class NumbaSampler(CUDASampler):
         """
         Sample based on the distribution
 
-        :param data_manager: CUDADataManager object
+        :param data_manager: NumbaDataManager object
         :param distribution: Torch distribution tensor in the shape of
         (num_env, num_agents, num_actions)
         :param action_name: the name of action array that will
@@ -321,41 +300,14 @@ class NumbaSampler(CUDASampler):
             np.int32(n_actions),
         )
 
-    # def sample_speed_debug(self,
-    #                        data_manager: NumbaDataManager,
-    #                        distribution: torch.Tensor,
-    #                        action_name: str,):
-    #     assert torch.is_tensor(distribution)
-    #     assert distribution.shape[0] == self._num_envs
-    #     n_agents = int(distribution.shape[1])
-    #     assert data_manager.get_shape(action_name)[1] == n_agents
-    #     n_actions = distribution.shape[2]
-    #     assert data_manager.get_shape(f"{action_name}_cum_distr")[2] == n_actions
-    #
-    #     # out = numba_driver.as_cuda_array(torch.from_numpy(
-    #     #     np.empty((10000, 2, 5), dtype=np.int32)
-    #     # ).cuda())
-    #     for _ in range(10000):
-    #         distr_cuda = numba_driver.as_cuda_array(distribution)
-    #
-    #     out = numba_driver.to_device(np.empty((10000, 2, 5), dtype=np.int32))
-    #     sample_speed_debug_helper[self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)](
-    #         self.rng_states_dict["rng_states"],
-    #         distr_cuda,
-    #         data_manager.device_data(action_name),
-    #         data_manager.device_data(f"{action_name}_cum_distr"),
-    #         np.int32(n_actions),
-    #         out)
-    #     return out.copy_to_host()
-
 
 class NumbaEnvironmentReset(CUDAEnvironmentReset):
     """
-    CUDA Environment Reset: Manages the env reset when the game is terminated
+    Numba Environment Reset: Manages the env reset when the game is terminated
     inside GPU. With this, the GPU can automatically reset and
     restart example_envs by itself.
 
-    prerequisite: CUDAFunctionManager is initialized, and the default function list
+    prerequisite: NumbaFunctionManager is initialized, and the default function list
     has been successfully launched
 
     Example:
@@ -364,7 +316,7 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
 
     def __init__(self, function_manager: NumbaFunctionManager):
         """
-        :param function_manager: CUDAFunctionManager object
+        :param function_manager: NumbaFunctionManager object
         """
         super().__init__(function_manager)
 
@@ -416,7 +368,7 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         The reset includes copy the starting values of this env back,
         and turn off the done flag. Therefore, this env can safely get restarted.
 
-        :param data_manager: CUDADataManager object
+        :param data_manager: NumbaDataManager object
         :param mode: "if_done": reset an env if done flag is observed for that env,
                      "force_reset": reset all env in a hard way
         :param undo_done_after_reset: If True, turn off the done flag
@@ -497,12 +449,12 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
 
 class NumbaLogController(CUDALogController):
     """
-    CUDA Log Controller: manages the CUDA logger inside GPU for all the data having
+    Numba Log Controller: manages the Numba logger inside GPU for all the data having
     the flag log_data_across_episode = True.
     The log function will only work for one particular env, even there are multiple
     example_envs running together.
 
-    prerequisite: CUDAFunctionManager is initialized, and the default function list
+    prerequisite: NumbaFunctionManager is initialized, and the default function list
     has been successfully launched
 
     Example:
@@ -512,7 +464,7 @@ class NumbaLogController(CUDALogController):
 
     def __init__(self, function_manager: NumbaFunctionManager):
         """
-        :param function_manager: CUDAFunctionManager object
+        :param function_manager: NumbaFunctionManager object
         """
         super().__init__(function_manager)
 

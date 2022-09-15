@@ -29,20 +29,20 @@ All the models are kept in sync via Pytorch’s [DistributedDataParallel](https:
 ![](assets/horizontal_scaling.png)
 
 ## Invoking Distributed Training
-An example end-to-end RL training script that can be used to set up your own custom training pipeline is [here](https://github.com/salesforce/warp-drive/blob/master/warp_drive/training/example_training_script.py). Invoke single-GPU training by using
+An example end-to-end RL training script that can be used to set up your own custom training pipeline is [here](https://github.com/salesforce/warp-drive/blob/master/warp_drive/training/example_training_script_pycuda.py). Invoke single-GPU training by using
 ```shell
-python warp_drive/training/example_training_script.py --env <ENV-NAME>
+python warp_drive/training/example_training_script_pycuda.py --env <ENV-NAME>
 ```
 where `<ENV-NAME>` can be `tag_gridworld` or `tag_continuous` (or any new env that you build).
 
 In order to perform distributed training, the user only needs to provide the `num_gpus` (or `n`) argument to the trainer. Effectively, the training script may be invoked as
 ```shell
-python warp_drive/training/example_training_script.py --env <ENV-NAME> --num_gpus <NUM_GPUS>
+python warp_drive/training/example_training_script_pycuda.py --env <ENV-NAME> --num_gpus <NUM_GPUS>
 ```
 
 The end user can also use the auto-scaling feature to maximize the GPU utilization by simply using the `auto-scale` (`a`) argument. Accordingly, 
 ```shell
-python warp_drive/training/example_training_script.py --env <ENV-NAME> --auto_scale
+python warp_drive/training/example_training_script_pycuda.py --env <ENV-NAME> --auto_scale
 ```
 With auto-scaling, WarpDrive will automatically determine the best block size and training batch size to use. It will also determine the number of available GPUs and perform training on all the GPUs.
 
@@ -54,7 +54,7 @@ If you have your own WarpDrive training script and try to run WarpDrive with mul
 env_wrapper = EnvWrapper(
     env_obj=TagContinuous(**run_config["env"]),
     num_envs=run_config["trainer"]["num_envs"],
-    use_cuda=True,
+    env_backend="pycuda",
     event_messenger=event_messenger,
     process_id=device_id,
 )
@@ -76,10 +76,11 @@ For your reference, all our tutorials are here:
 3. [WarpDrive sampler(pycuda)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-2.a-warp_drive_sampler.ipynb)
 4. [WarpDrive sampler(numba)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-2.b-warp_drive_sampler.ipynb)
 5. [WarpDrive resetter and logger](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-3-warp_drive_reset_and_log.ipynb)
-6. [Create custom environments](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4-create_custom_environments.md)
-7. [Training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb)
-8. [Scaling Up training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md)
-9. [Training with WarpDrive + Pytorch Lightning](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb)
+6. [Create custom environments (pycuda)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4.a-create_custom_environments_pycuda.md)
+7. [Create custom environments (numba)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4.b-create_custom_environments_numba.md)
+8. [Training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb)
+9. [Scaling Up training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md)
+10. [Training with WarpDrive + Pytorch Lightning](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb)
 
 ```python
 

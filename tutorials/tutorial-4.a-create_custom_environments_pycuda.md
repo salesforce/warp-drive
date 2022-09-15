@@ -7,10 +7,10 @@ For full license text, see the LICENSE file in the repo root or https://opensour
 
 In this tutorial, we will describe how to implement your own environment in CUDA C, and integrate it with WarpDrive for simulating the environment dynamics on the GPU.
 
-In case you haven't familiarized yourself with WarpDrive, please see the other tutorials:
+In case you haven't familiarized yourself with WarpDrive and its PyCUDA backend, please see the other tutorials:
 
-- [WarpDrive basics](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-1-warp_drive_basics.ipynb)
-- [WarpDrive sampler](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-2-warp_drive_sampler.ipynb)
+- [WarpDrive basics for PyCUDA](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-1.a-warp_drive_basics.ipynb)
+- [WarpDrive sampler for PyCUDA](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-2.a-warp_drive_sampler.ipynb)
 - [WarpDrive reset and log](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-3-warp_drive_reset_and_log.ipynb)
 
 We follow the OpenAI [gym](https://gym.openai.com/) style. Each simulation should have `__init__`, `reset` and `step` methods. 
@@ -44,7 +44,7 @@ Next, we'll use the *continuous* version of Tag to explain some important elemen
 
 # Managing CUDA Simulations from Python using WarpDrive
 
-We begin with the Python version of the continuous version [Tag](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous.py). The simulation follows the [gym](https://gym.openai.com/) format, implementing `reset` and `step` methods. We now detail all the steps necessary to transform the `step` function into [CUDA code](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous_step.cu) that can be run on a GPU. Importantly, WarpDrive lets you call these CUDA methods from Python, so you can design your own RL workflow entirely in Python.
+We begin with the Python version of the continuous version [Tag](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous.py). The simulation follows the [gym](https://gym.openai.com/) format, implementing `reset` and `step` methods. We now detail all the steps necessary to transform the `step` function into [CUDA code](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous_step_pycuda.cu) that can be run on a GPU. Importantly, WarpDrive lets you call these CUDA methods from Python, so you can design your own RL workflow entirely in Python.
 
 ## 1. Add data to be pushed to GPU via the *DataFeed* class
 
@@ -107,7 +107,7 @@ An important point to note is that CUDA C always uses **32-bit precision**, so i
 After all the relevant data is added to the data dictionary, we need to invoke the CUDA C kernel code for stepping through the environment (when `self.use_cuda` is `True`). The syntax to do this is as follows
 
 ```python
-if self.use_cuda:
+if self.env_backend == "pycuda":
     self.cuda_step(
                 self.cuda_data_manager.device_data("loc_x"),
                 self.cuda_data_manager.device_data("loc_y"),
@@ -201,7 +201,7 @@ be pushed to the GPU. Second, the step-function should call
 the cuda step with the data arrays that the CUDA C step
 function should have access to.
 
-In general, we can use just a single (*dual-mode*) environment class that can run both the Python and the CUDA C modes of the environment code on a GPU. The `use_cuda` flag enables switching between those modes. Note that the environment class will need to subclass `CUDAEnvironmentContext`, which essentially adds attributes to the environment (such as the `cuda_data_manager` and `cuda_function_manager`) that are required for running on a GPU. This also means that the environment itself can be stepped through only on a GPU. Please refer to the [Tag (Continuous)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous.py) for a detailed working example.
+In general, we can use just a single (*dual-mode*) environment class that can run both the Python and the CUDA C modes of the environment code on a GPU. The `env_backend = "pycuda"` enables switching between those modes. Note that the environment class will need to subclass `CUDAEnvironmentContext`, which essentially adds attributes to the environment (such as the `cuda_data_manager` and `cuda_function_manager`) that are required for running on a GPU. This also means that the environment itself can be stepped through only on a GPU. Please refer to the [Tag (Continuous)](https://www.github.com/salesforce/warp-drive/blob/master/example_envs/tag_continuous/tag_continuous.py) for a detailed working example.
 
 ```python
 """
@@ -302,14 +302,14 @@ Here we have some more details about how to use EnvWrapper to identify and build
 
 #### 1. Default Environment
 
-You shall register your default environment in `warp_drive/utils/common` and the function `get_default_env_directory()`. There, you can simply provide the path to your CUDA environment source code. Please remember that the register uses the environment name defined in your environment class as the key so EnvWrapper class can link it to the right environment. 
+You shall register your default environment in `warp_drive/utils/pycuda_utils/misc` and the function `get_default_env_directory()`. There, you can simply provide the path to your CUDA environment source code. Please remember that the register uses the environment name defined in your environment class as the key so EnvWrapper class can link it to the right environment. 
 
 The **FULL_PATH_TO_YOUR_ENV_SRC** can be any path inside or outside WarpDrive. For example, you can develop your own CUDA step function and environment in your codebase and register right here.
 
 ```python
    envs = {
        "TagGridWorld": f"{get_project_root()}/example_envs/tag_gridworld/tag_gridworld_step.cu",
-       "TagContinuous": f"{get_project_root()}/example_envs/tag_continuous/tag_continuous_step.cu",
+       "TagContinuous": f"{get_project_root()}/example_envs/tag_continuous/tag_continuous_step_pycuda.cu",
        "YOUR_ENVIRONMENT": "FULL_PATH_TO_YOUR_ENV_CUDA_SRC",
    }
 ```
@@ -324,11 +324,11 @@ from warp_drive.utils.env_registrar import EnvironmentRegistrar
 import Your_Env_Class
 
 env_registrar = EnvironmentRegistrar()
-env_registrar.add_cuda_env_src_path(Your_Env_Class.name, "FULL_PATH_TO_YOUR_ENV_CUDA_SRC")
+env_registrar.add_cuda_env_src_path(Your_Env_Class.name, "FULL_PATH_TO_YOUR_ENV_CUDA_SRC", env_backend="pycuda")
 env_wrapper = EnvWrapper(
     Your_Env_Class(**run_config["env"]), 
     num_envs=num_envs, 
-    use_cuda=True, 
+    env_backend="numba", 
     env_registrar=env_registrar)
 ```
 
@@ -407,7 +407,7 @@ The `EnvironmentCPUvsGPU` class also takes in a few optional arguments that will
 The build and test can be done automatically by directly go to the CUDA source code folder and make 
 `cd warp_drive/cuda_includes; make compile-test`
 
-Or, you can run `python warp_drive/utils/run_unittests.py`
+Or, you can run `python warp_drive/utils/run_unittests_pycuda.py`
 
 # Important CUDA C Concepts
 
@@ -458,10 +458,11 @@ For your reference, all our tutorials are here:
 3. [WarpDrive sampler(pycuda)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-2.a-warp_drive_sampler.ipynb)
 4. [WarpDrive sampler(numba)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-2.b-warp_drive_sampler.ipynb)
 5. [WarpDrive resetter and logger](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-3-warp_drive_reset_and_log.ipynb)
-6. [Create custom environments](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4-create_custom_environments.md)
-7. [Training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb)
-8. [Scaling Up training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md)
-9. [Training with WarpDrive + Pytorch Lightning](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb)
+6. [Create custom environments (pycuda)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4.a-create_custom_environments_pycuda.md)
+7. [Create custom environments (numba)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4.b-create_custom_environments_numba.md)
+8. [Training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb)
+9. [Scaling Up training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md)
+10. [Training with WarpDrive + Pytorch Lightning](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb)
 
 ```python
 

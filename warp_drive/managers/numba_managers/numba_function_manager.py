@@ -1,28 +1,28 @@
+import importlib
 import logging
 import time
 from typing import Optional
-import importlib
 
-import numpy as np
 import numba.cuda as numba_driver
+import numpy as np
 import torch
+from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 
 from warp_drive.managers.function_manager import (
-    CUDAFunctionManager,
-    CUDASampler,
     CUDAEnvironmentReset,
+    CUDAFunctionFeed,
+    CUDAFunctionManager,
     CUDALogController,
+    CUDASampler,
 )
 from warp_drive.managers.numba_managers.numba_data_manager import NumbaDataManager
 from warp_drive.utils.common import get_project_root
+from warp_drive.utils.env_registrar import EnvironmentRegistrar
 from warp_drive.utils.numba_utils.misc import (
     check_env_header,
     update_env_header,
     update_env_runner,
 )
-from warp_drive.utils.env_registrar import EnvironmentRegistrar
-
-from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 
 
 class NumbaFunctionManager(CUDAFunctionManager):
@@ -46,25 +46,29 @@ class NumbaFunctionManager(CUDAFunctionManager):
     """
 
     def __init__(
-            self,
-            num_agents: int = 1,
-            num_envs: int = 1,
-            blocks_per_env: int = 1,
-            process_id: int = 0,
+        self,
+        num_agents: int = 1,
+        num_envs: int = 1,
+        blocks_per_env: int = 1,
+        process_id: int = 0,
     ):
-        super().__init__(num_agents=num_agents,
-                         num_envs=num_envs,
-                         blocks_per_env=blocks_per_env,
-                         process_id=process_id)
+        super().__init__(
+            num_agents=num_agents,
+            num_envs=num_envs,
+            blocks_per_env=blocks_per_env,
+            process_id=process_id,
+        )
         self._NUMBA_module = None
         # functions from the numba_managers module
         self._numba_functions = {}
         self._numba_function_names = []
         print(f"function_manager: Setting Numba to use CUDA device {process_id}")
 
-    def import_numba_from_source_code(self, numba_path: str, default_functions_included: bool = True):
+    def import_numba_from_source_code(
+        self, numba_path: str, default_functions_included: bool = True
+    ):
         assert (
-                self._NUMBA_module is None
+            self._NUMBA_module is None
         ), "NUMBA module has already been loaded, not allowed to load twice"
 
         self._NUMBA_module = importlib.import_module(numba_path)
@@ -161,8 +165,9 @@ class NumbaFunctionManager(CUDAFunctionManager):
 
     def initialize_default_functions(self):
         """
-        Default function list defined in the numba_includes/core. They can be initialized if
-        the Numba compilation includes numba_includes/core
+        Default function list defined in the numba_includes/core. T
+        hey can be initialized if the Numba compilation
+        includes numba_includes/core
         """
         default_func_names = [
             "reset_log_mask",
@@ -254,8 +259,9 @@ class NumbaSampler(CUDASampler):
                 f"using the current timestamp {seed} as seed"
             )
         seed = np.int32(seed)
-        xoroshiro128p_dtype = np.dtype([('s0', np.uint64), ('s1', np.uint64)],
-                                       align=True)
+        xoroshiro128p_dtype = np.dtype(
+            [("s0", np.uint64), ("s1", np.uint64)], align=True
+        )
         sz = self._function_manager._num_envs * self._function_manager._num_agents
         rng_states = numba_driver.device_array(sz, dtype=xoroshiro128p_dtype)
         init = self._function_manager.get_function("init_random")
@@ -264,10 +270,10 @@ class NumbaSampler(CUDASampler):
         self._random_initialized = True
 
     def sample(
-            self,
-            data_manager: NumbaDataManager,
-            distribution: torch.Tensor,
-            action_name: str,
+        self,
+        data_manager: NumbaDataManager,
+        distribution: torch.Tensor,
+        action_name: str,
     ):
         """
         Sample based on the distribution
@@ -292,7 +298,9 @@ class NumbaSampler(CUDASampler):
         # distribution is a runtime output from pytorch at device,
         # it should not be managed by data manager because
         # it is a temporary output and never sit at the host
-        self.sample_actions[self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)](
+        self.sample_actions[
+            self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)
+        ](
             self.rng_states_dict["rng_states"],
             numba_driver.as_cuda_array(distribution.detach()),
             data_manager.device_data(action_name),
@@ -320,32 +328,34 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         """
         super().__init__(function_manager)
 
-        self.reset_func_1d = self._function_manager.get_function(
-            "reset_when_done_1d"
-        )
-        self.reset_func_2d = self._function_manager.get_function(
-            "reset_when_done_2d"
-        )
-        self.reset_func_3d = self._function_manager.get_function(
-            "reset_when_done_3d"
-        )
+        self.reset_func_1d = self._function_manager.get_function("reset_when_done_1d")
+        self.reset_func_2d = self._function_manager.get_function("reset_when_done_2d")
+        self.reset_func_3d = self._function_manager.get_function("reset_when_done_3d")
         self.undo = self._function_manager.get_function(
             "undo_done_flag_and_reset_timestep"
         )
 
-    def register_custom_reset_function(self, data_manager: NumbaDataManager, reset_function_name=None):
-        if reset_function_name is None or reset_function_name not in self._function_manager._numba_function_names:
+    def register_custom_reset_function(
+        self, data_manager: NumbaDataManager, reset_function_name=None
+    ):
+        if (
+            reset_function_name is None
+            or reset_function_name not in self._function_manager._numba_function_names
+        ):
             return
-        self._cuda_custom_reset = self._function_manager.get_function(reset_function_name)
+        self._cuda_custom_reset = self._function_manager.get_function(
+            reset_function_name
+        )
         self._cuda_reset_feed = CUDAFunctionFeed(data_manager)
 
-    def custom_reset(self,
-                     args: Optional[list] = None,
-                     block=None,
-                     grid=None):
+    def custom_reset(self, args: Optional[list] = None, block=None, grid=None):
 
-        assert self._cuda_custom_reset is not None and self._cuda_reset_feed is not None, \
-            "Custom Reset function is not defined, call register_custom_reset_function() first"
+        assert (
+            self._cuda_custom_reset is not None and self._cuda_reset_feed is not None
+        ), (
+            "Custom Reset function is not defined, call "
+            "register_custom_reset_function() first"
+        )
         assert args is None or isinstance(args, list)
         if block is None:
             block = self._block
@@ -357,10 +367,10 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
             self._cuda_custom_reset[grid, block](*self._cuda_reset_feed(args))
 
     def reset_when_done_deterministic(
-            self,
-            data_manager: NumbaDataManager,
-            mode: str = "if_done",
-            undo_done_after_reset: bool = True,
+        self,
+        data_manager: NumbaDataManager,
+        mode: str = "if_done",
+        undo_done_after_reset: bool = True,
     ):
         """
         Monitor the done flag for each env. If any env is done, it will reset this
@@ -391,7 +401,10 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
             ), "reset function assumes the 0th dimension is n_envs"
             if len(f_shape) >= 3:
                 if len(f_shape) > 3:
-                    raise Exception("Numba environment.reset() temporarily not supports array dimension > 3")
+                    raise Exception(
+                        "Numba environment.reset() temporarily "
+                        "not supports array dimension > 3"
+                    )
                 agent_dim = np.int32(f_shape[1])
                 feature_dim = np.int32(np.prod(f_shape[2:]))
                 data_shape = "is_3d"
@@ -404,26 +417,30 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
 
             dtype = data_manager.get_dtype(name)
             if "float" not in dtype and "int" not in dtype:
-                raise Exception(f"unknown dtype: {dtype}"
-                                )
+                raise Exception(f"unknown dtype: {dtype}")
             if data_shape == "is_3d":
                 reset_func = self.reset_func_3d
-                reset_func[self._grid, (int((agent_dim - 1) // self._blocks_per_env + 1), 1, 1)](
+                reset_func[
+                    self._grid, (int((agent_dim - 1) // self._blocks_per_env + 1), 1, 1)
+                ](
                     data_manager.device_data(name),
                     data_manager.device_data(f"{name}_at_reset"),
                     data_manager.device_data("_done_"),
                     agent_dim,
                     feature_dim,
-                    force_reset
+                    force_reset,
                 )
             elif data_shape == "is_2d":
                 reset_func = self.reset_func_2d
-                reset_func[self._grid, (int((feature_dim - 1) // self._blocks_per_env + 1), 1, 1)](
+                reset_func[
+                    self._grid,
+                    (int((feature_dim - 1) // self._blocks_per_env + 1), 1, 1),
+                ](
                     data_manager.device_data(name),
                     data_manager.device_data(f"{name}_at_reset"),
                     data_manager.device_data("_done_"),
                     feature_dim,
-                    force_reset
+                    force_reset,
                 )
             elif data_shape == "is_1d":
                 reset_func = self.reset_func_1d
@@ -431,19 +448,19 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
                     data_manager.device_data(name),
                     data_manager.device_data(f"{name}_at_reset"),
                     data_manager.device_data("_done_"),
-                    force_reset
+                    force_reset,
                 )
 
         if undo_done_after_reset:
             self._undo_done_flag_and_reset_timestep(data_manager, force_reset)
 
     def _undo_done_flag_and_reset_timestep(
-            self, data_manager: NumbaDataManager, force_reset
+        self, data_manager: NumbaDataManager, force_reset
     ):
-        self.undo[self._grid, (1,1,1)](
+        self.undo[self._grid, (1, 1, 1)](
             data_manager.device_data("_done_"),
             data_manager.device_data("_timestep_"),
-            force_reset
+            force_reset,
         )
 
 
@@ -483,7 +500,9 @@ class NumbaLogController(CUDALogController):
             ), "log function assumes the 1st dimension is n_agents"
             if len(f_shape) >= 3:
                 if len(f_shape) > 3:
-                    raise Exception("Numba environment.log() temporarily not supports array dimension > 3")
+                    raise Exception(
+                        "Numba environment.log() temporarily not supports array dimension > 3"
+                    )
                 feature_dim = np.int32(np.prod(f_shape[2:]))
                 data_shape = "is_3d"
             else:
@@ -530,4 +549,3 @@ class NumbaLogController(CUDALogController):
             data_manager.device_data("_log_mask_"),
             data_manager.meta_info("episode_length"),
         )
-

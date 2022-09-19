@@ -5,10 +5,12 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 
 from numba import cuda as numba_driver
+
 try:
     from warp_drive.numba_includes.env_config import *
-except:
+except ImportError:
     raise Exception("warp_drive.numba_includes.env_config is not available")
+
 
 # we have size of episode_length + 1 timesteps for logging,
 # the 0th timestep is reserved for reset to place the data at reset
@@ -25,7 +27,7 @@ def update_log_mask(log_mask, timestep, episode_length):
     tidx = numba_driver.threadIdx.x
     if tidx == 0 and timestep <= episode_length:
         if timestep >= 1:
-            assert(log_mask[timestep-1] == 1)
+            assert log_mask[timestep - 1] == 1
         log_mask[timestep] = 1
 
 
@@ -62,4 +64,3 @@ def log_one_step_3d(log, data, feature_dim, timestep, episode_length, env_id):
         return
 
     log_one_step_3d_helper(log, data, feature_dim, timestep, agent_id, env_id)
-

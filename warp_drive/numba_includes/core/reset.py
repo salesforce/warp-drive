@@ -1,5 +1,5 @@
-from numba import int32, float32
 from numba import cuda as numba_driver
+from numba import float32, int32
 
 
 @numba_driver.jit
@@ -9,6 +9,7 @@ def reset_when_done_1d(data, ref, done, force_reset):
     if tid == 0:
         if force_reset > 0.5 or done[env_id] > 0.5:
             data[env_id] = ref[env_id]
+
 
 # @numba_driver.jit([(int32[:,::1], int32[:,::1], int32[::1], int32, int32),
 #                    (float32[:,::1], float32[:,::1], int32[::1], int32, int32)])
@@ -42,5 +43,3 @@ def undo_done_flag_and_reset_timestep(done, timestep, force_reset):
         if agent_id == 0:
             done[env_id] = 0
             timestep[env_id] = 0
-
-

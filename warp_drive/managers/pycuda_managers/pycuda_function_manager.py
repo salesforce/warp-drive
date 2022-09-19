@@ -13,28 +13,31 @@ import time
 from typing import Optional
 
 import numpy as np
-
-import pycuda.driver as cuda_driver
 import pycuda.autoinit
+import pycuda.driver as cuda_driver
 import torch
 from pycuda.compiler import SourceModule
 from pycuda.driver import Context
 
 from warp_drive.managers.function_manager import (
-    CUDAFunctionManager,
-    CUDASampler,
     CUDAEnvironmentReset,
+    CUDAFunctionFeed,
+    CUDAFunctionManager,
     CUDALogController,
+    CUDASampler,
 )
-from warp_drive.managers.pycuda_managers.pycuda_data_manager import PyCUDADataManager, CudaTensorHolder
+from warp_drive.managers.pycuda_managers.pycuda_data_manager import (
+    CudaTensorHolder,
+    PyCUDADataManager,
+)
 from warp_drive.utils.architecture_validate import validate_device_setup
 from warp_drive.utils.common import get_project_root
+from warp_drive.utils.env_registrar import EnvironmentRegistrar
 from warp_drive.utils.pycuda_utils.misc import (
     check_env_header,
     update_env_header,
     update_env_runner,
 )
-from warp_drive.utils.env_registrar import EnvironmentRegistrar
 
 
 class PyCUDAFunctionManager(CUDAFunctionManager):
@@ -60,16 +63,18 @@ class PyCUDAFunctionManager(CUDAFunctionManager):
     """
 
     def __init__(
-            self,
-            num_agents: int = 1,
-            num_envs: int = 1,
-            blocks_per_env: int = 1,
-            process_id: int = 0,
+        self,
+        num_agents: int = 1,
+        num_envs: int = 1,
+        blocks_per_env: int = 1,
+        process_id: int = 0,
     ):
-        super().__init__(num_agents=num_agents,
-                         num_envs=num_envs,
-                         blocks_per_env=blocks_per_env,
-                         process_id=process_id)
+        super().__init__(
+            num_agents=num_agents,
+            num_envs=num_envs,
+            blocks_per_env=blocks_per_env,
+            process_id=process_id,
+        )
         self._CUDA_module = None
 
         # functions from the cuda module
@@ -411,7 +416,9 @@ class PyCUDALogController(CUDALogController):
         """
         super().__init__(function_manager)
 
-    def _log_one_step(self, data_manager: PyCUDADataManager, step: int, env_id: int = 0):
+    def _log_one_step(
+        self, data_manager: PyCUDADataManager, step: int, env_id: int = 0
+    ):
         step = np.int32(step)
         assert env_id < data_manager.meta_info("n_envs")
         env_id = np.int32(env_id)
@@ -522,10 +529,10 @@ class PyCUDASampler(CUDASampler):
         self._random_initialized = True
 
     def sample(
-            self,
-            data_manager: PyCUDADataManager,
-            distribution: torch.Tensor,
-            action_name: str,
+        self,
+        data_manager: PyCUDADataManager,
+        distribution: torch.Tensor,
+        action_name: str,
     ):
         """
         Sample based on the distribution
@@ -614,19 +621,27 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
             "undo_done_flag_and_reset_timestep"
         )
 
-    def register_custom_reset_function(self, data_manager: PyCUDADataManager, reset_function_name=None):
-        if reset_function_name is None or reset_function_name not in self._function_manager._cuda_function_names:
+    def register_custom_reset_function(
+        self, data_manager: PyCUDADataManager, reset_function_name=None
+    ):
+        if (
+            reset_function_name is None
+            or reset_function_name not in self._function_manager._cuda_function_names
+        ):
             return
-        self._cuda_custom_reset = self._function_manager.get_function(reset_function_name)
+        self._cuda_custom_reset = self._function_manager.get_function(
+            reset_function_name
+        )
         self._cuda_reset_feed = CUDAFunctionFeed(data_manager)
 
-    def custom_reset(self,
-                     args: Optional[list] = None,
-                     block=None,
-                     grid=None):
+    def custom_reset(self, args: Optional[list] = None, block=None, grid=None):
 
-        assert self._cuda_custom_reset is not None and self._cuda_reset_feed is not None, \
-            "Custom Reset function is not defined, call register_custom_reset_function() first"
+        assert (
+            self._cuda_custom_reset is not None and self._cuda_reset_feed is not None
+        ), (
+            "Custom Reset function is not defined, call "
+            "register_custom_reset_function() first"
+        )
         assert args is None or isinstance(args, list)
         if block is None:
             block = self._block
@@ -635,13 +650,15 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
         if args is None or len(args) == 0:
             self._cuda_custom_reset(block=block, grid=grid)
         else:
-            self._cuda_custom_reset(*self._cuda_reset_feed(args), block=block, grid=grid)
+            self._cuda_custom_reset(
+                *self._cuda_reset_feed(args), block=block, grid=grid
+            )
 
     def reset_when_done_deterministic(
-            self,
-            data_manager: PyCUDADataManager,
-            mode: str = "if_done",
-            undo_done_after_reset: bool = True,
+        self,
+        data_manager: PyCUDADataManager,
+        mode: str = "if_done",
+        undo_done_after_reset: bool = True,
     ):
         """
         Monitor the done flag for each env. If any env is done, it will reset this
@@ -719,7 +736,7 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
             self._undo_done_flag_and_reset_timestep(data_manager, force_reset)
 
     def _undo_done_flag_and_reset_timestep(
-            self, data_manager: PyCUDADataManager, force_reset
+        self, data_manager: PyCUDADataManager, force_reset
     ):
         self.undo(
             data_manager.device_data("_done_"),
@@ -728,5 +745,3 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
             block=(1, 1, 1),
             grid=self._grid,
         )
-
-

@@ -116,9 +116,14 @@ def update_env_runner(
     env_numba = None
     if (
         customized_env_registrar is not None
-        and customized_env_registrar.get_cuda_env_src_path(env_name, env_backend="numba") is not None
+        and customized_env_registrar.get_cuda_env_src_path(
+            env_name, env_backend="numba"
+        )
+        is not None
     ):
-        env_numba = customized_env_registrar.get_cuda_env_src_path(env_name, env_backend="numba")
+        env_numba = customized_env_registrar.get_cuda_env_src_path(
+            env_name, env_backend="numba"
+        )
         logging.info(
             f"Finding the targeting environment source code "
             f"from the customized environment directory: {env_numba}"

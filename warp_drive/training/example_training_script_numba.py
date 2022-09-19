@@ -20,7 +20,9 @@ import yaml
 from example_envs.tag_continuous.tag_continuous import TagContinuous
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.trainer import Trainer
-from warp_drive.training.utils.distributed_train.distributed_trainer_numba import perform_distributed_training
+from warp_drive.training.utils.distributed_train.distributed_trainer_numba import (
+    perform_distributed_training,
+)
 from warp_drive.training.utils.vertical_scaler import perform_auto_vertical_scaling
 from warp_drive.utils.common import get_project_root
 
@@ -64,9 +66,7 @@ def setup_trainer_and_train(
         )
     else:
         raise NotImplementedError(
-            f"Currently, the environments supported are ["
-            f"{_TAG_CONTINUOUS}"
-            f"]",
+            f"Currently, the environments supported are [" f"{_TAG_CONTINUOUS}" f"]",
         )
     # Policy mapping to agent ids: agents can share models
     # The policy_tag_to_agent_id_map dictionary maps

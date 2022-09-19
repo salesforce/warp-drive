@@ -9,9 +9,9 @@
 from typing import Optional
 
 import numpy as np
-import torch
-import pycuda.driver as pycuda_driver
 import pycuda.autoinit
+import pycuda.driver as pycuda_driver
+import torch
 
 from warp_drive.managers.data_manager import CUDADataManager
 
@@ -63,19 +63,21 @@ class PyCUDADataManager(CUDADataManager):
     """
 
     def __init__(
-            self,
-            num_agents: int = None,
-            num_envs: int = None,
-            blocks_per_env: int = 1,
-            episode_length: int = None,
+        self,
+        num_agents: int = None,
+        num_envs: int = None,
+        blocks_per_env: int = 1,
+        episode_length: int = None,
     ):
-        super().__init__(num_agents=num_agents,
-                         num_envs=num_envs,
-                         blocks_per_env=blocks_per_env,
-                         episode_length=episode_length)
-    
+        super().__init__(
+            num_agents=num_agents,
+            num_envs=num_envs,
+            blocks_per_env=blocks_per_env,
+            episode_length=episode_length,
+        )
+
     def pull_data_from_device(self, name: str):
-        
+
         assert name in self._host_data
         if name in self._scalar_data_list:
             return self._host_data[name]
@@ -100,7 +102,7 @@ class PyCUDADataManager(CUDADataManager):
             for key, host_array in self._host_data.items():
                 device_array_ptr = self._device_data_pointer[key]
                 pycuda_driver.memcpy_htod(device_array_ptr, host_array)
-                
+
     def _to_device(
         self,
         name: str,

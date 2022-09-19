@@ -843,7 +843,7 @@ class TagContinuous(CUDAEnvironmentContext):
                 ("n_agents", "meta"),
                 ("episode_length", "meta"),
             ]
-            
+
             if self.env_backend == "pycuda":
                 self.cuda_step(
                     *self.cuda_step_function_feed(args),
@@ -851,10 +851,9 @@ class TagContinuous(CUDAEnvironmentContext):
                     grid=self.cuda_function_manager.grid,
                 )
             elif self.env_backend == "numba":
-                self.cuda_step[self.cuda_function_manager.grid,
-                               self.cuda_function_manager.block](
-                    *self.cuda_step_function_feed(args)
-                )
+                self.cuda_step[
+                    self.cuda_function_manager.grid, self.cuda_function_manager.block
+                ](*self.cuda_step_function_feed(args))
             result = None  # do not return anything
         else:
             assert isinstance(actions, dict)

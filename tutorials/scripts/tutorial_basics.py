@@ -1,5 +1,6 @@
 import numba.cuda as numba_driver
 
+
 @numba_driver.jit
 def cuda_increment(data, num_agents):
     env_id = numba_driver.blockIdx.x

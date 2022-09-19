@@ -424,7 +424,8 @@ class CUDADataManager:
 
     def _type_warning_helper(self, key: str, old: str, new: str, comment=None):
         logging.warning(
-            f"{self.__class__.__name__} casts the data '{key}' " f"from type {old} to {new}"
+            f"{self.__class__.__name__} casts the data '{key}' "
+            f"from type {old} to {new}"
         )
         if comment:
             logging.warning(comment)

@@ -21,7 +21,9 @@ from example_envs.tag_continuous.tag_continuous import TagContinuous
 from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.trainer import Trainer
-from warp_drive.training.utils.distributed_train.distributed_trainer_pycuda import perform_distributed_training
+from warp_drive.training.utils.distributed_train.distributed_trainer_pycuda import (
+    perform_distributed_training,
+)
 from warp_drive.training.utils.vertical_scaler import perform_auto_vertical_scaling
 from warp_drive.utils.common import get_project_root
 

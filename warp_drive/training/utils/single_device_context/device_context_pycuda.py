@@ -37,4 +37,3 @@ class PyCUDASingleDeviceContext:
 def clear_context(context):
     context.pop()
     clear_context_caches()
-

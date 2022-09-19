@@ -37,5 +37,3 @@ class NumbaSingleDeviceContext:
             raise RuntimeError("Context hasn't been initialized yet")
 
         return object.__getattribute__(self, "_context").__getattribute__(name)
-
-

@@ -15,7 +15,6 @@ import torch
 
 # TODO: remove this once numba_managers works on independent sampler and reset
 from warp_drive.managers.data_manager import CUDADataManager
-
 from warp_drive.utils.data_feed import DataFeed
 
 
@@ -148,6 +147,7 @@ class CUDASampler:
     Example:
         Please refer to tutorials
     """
+
     def __init__(self, function_manager: CUDAFunctionManager):
         """
         :param function_manager: CUDAFunctionManager object
@@ -224,13 +224,12 @@ class CUDAEnvironmentReset:
         self._cuda_custom_reset = None
         self._cuda_reset_feed = None
 
-    def register_custom_reset_function(self, data_manager: CUDADataManager, reset_function_name=None):
+    def register_custom_reset_function(
+        self, data_manager: CUDADataManager, reset_function_name=None
+    ):
         raise NotImplementedError
 
-    def custom_reset(self,
-                     args: Optional[list] = None,
-                     block=None,
-                     grid=None):
+    def custom_reset(self, args: Optional[list] = None, block=None, grid=None):
         raise NotImplementedError
 
     def reset_when_done(
@@ -391,4 +390,3 @@ class CUDALogController:
             f"dense_log_mask = {last_valid_step} "
             f"and the step() function = {self.last_valid_step}"
         )
-

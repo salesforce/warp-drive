@@ -7,9 +7,10 @@
 import logging
 import subprocess
 
-from warp_drive.managers.pycuda_managers.pycuda_function_manager import PyCUDAFunctionManager
+from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
+    PyCUDAFunctionManager,
+)
 from warp_drive.utils.common import get_project_root
-
 
 if __name__ == "__main__":
     cuda_function_manager = PyCUDAFunctionManager()

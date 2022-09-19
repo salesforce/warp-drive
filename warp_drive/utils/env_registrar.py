@@ -43,7 +43,9 @@ class EnvironmentRegistrar:
                             f"define a different class name "
                         )
                     if cuda_env_src_path is not None:
-                        self.add_cuda_env_src_path(cls_name, cuda_env_src_path, env_backend)
+                        self.add_cuda_env_src_path(
+                            cls_name, cuda_env_src_path, env_backend
+                        )
                 elif backend == "numba":
                     if cls_name not in self._numba_envs:
                         self._numba_envs[cls_name] = cls
@@ -54,7 +56,9 @@ class EnvironmentRegistrar:
                             f"define a different class name "
                         )
                     if cuda_env_src_path is not None:
-                        self.add_cuda_env_src_path(cls_name, cuda_env_src_path, env_backend)
+                        self.add_cuda_env_src_path(
+                            cls_name, cuda_env_src_path, env_backend
+                        )
                 else:
                     raise Exception("Invalid device: only support CPU and CUDA/GPU")
             return cls

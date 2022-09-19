@@ -5,14 +5,18 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 
 import os
-import yaml
 import unittest
 import warnings
+
 import torch
-from warp_drive.utils.common import get_project_root
-from warp_drive.training.utils.child_process_base import ProcessWrapper
+import yaml
+
 from warp_drive.training.example_training_script_pycuda import setup_trainer_and_train
-from warp_drive.training.utils.distributed_train.distributed_trainer_pycuda import perform_distributed_training
+from warp_drive.training.utils.child_process_base import ProcessWrapper
+from warp_drive.training.utils.distributed_train.distributed_trainer_pycuda import (
+    perform_distributed_training,
+)
+from warp_drive.utils.common import get_project_root
 
 _ROOT_DIR = get_project_root()
 
@@ -32,6 +36,7 @@ class MyTestCase(unittest.TestCase):
     """
     Test the end-to-end training loop
     """
+
     num_gpus = torch.cuda.device_count()
 
     def get_config(self, env_name):
@@ -72,7 +77,9 @@ class MyTestCase(unittest.TestCase):
 
     def test_tag_gridworld_training_with_multiple_devices(self):
         if self.num_gpus <= 1:
-            warnings.warn("Only single GPU is detected, we skip trainer test for multiple devices")
+            warnings.warn(
+                "Only single GPU is detected, we skip trainer test for multiple devices"
+            )
             return
 
         run_config = self.get_config("tag_gridworld")
@@ -80,4 +87,6 @@ class MyTestCase(unittest.TestCase):
         try:
             perform_distributed_training(setup_trainer_and_train, run_config)
         except AssertionError:
-            self.fail(f"TagGridWorld environment training failed for {self.num_gpus} GPUs")
+            self.fail(
+                f"TagGridWorld environment training failed for {self.num_gpus} GPUs"
+            )

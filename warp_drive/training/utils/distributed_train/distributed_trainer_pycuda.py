@@ -1,10 +1,12 @@
 import time
 
-import pycuda.driver as pycuda_driver
 import pycuda.autoinit
+import pycuda.driver as pycuda_driver
+
 from warp_drive.training.utils.child_process_base import event_messenger
-from warp_drive.training.utils.device_child_process.child_process_pycuda import \
-            PyCUDADeviceContextProcessWrapper
+from warp_drive.training.utils.device_child_process.child_process_pycuda import (
+    PyCUDADeviceContextProcessWrapper,
+)
 
 
 def perform_distributed_training(setup_trainer_and_train, config, results_dir=None):

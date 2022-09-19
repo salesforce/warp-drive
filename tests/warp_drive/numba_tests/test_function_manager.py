@@ -61,9 +61,11 @@ class TestFunctionManager(unittest.TestCase):
             num_agents=int(self.dm.meta_info("n_agents")),
             num_envs=int(self.dm.meta_info("n_envs")),
         )
-        self.fm.dynamic_import_numba(env_name="DummyEnv",
-                                     template_header_file="template_env_config.txt",
-                                     template_runner_file="template_env_runner.txt")
+        self.fm.dynamic_import_numba(
+            env_name="DummyEnv",
+            template_header_file="template_env_config.txt",
+            template_runner_file="template_env_runner.txt",
+        )
         self.dc = NumbaLogController(function_manager=self.fm)
         self.resetter = NumbaEnvironmentReset(function_manager=self.fm)
 

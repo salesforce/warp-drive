@@ -61,12 +61,13 @@ assert torch.cuda.device_count() > 0, "This notebook needs a GPU to run!"
 # %%
 import logging
 
-from example_envs.tag_continuous.tag_continuous import TagContinuous
+from IPython.display import HTML
+from pytorch_lightning import Trainer
+
 from example_envs.tag_continuous.generate_rollout_animation import (
     generate_tag_env_rollout_animation,
 )
-from IPython.display import HTML
-from pytorch_lightning import Trainer
+from example_envs.tag_continuous.tag_continuous import TagContinuous
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.pytorch_lightning import (
     CUDACallback,
@@ -224,7 +225,7 @@ trainer = Trainer(
     devices=num_gpus,
     callbacks=[cuda_callback, perf_stats_callback],
     max_epochs=num_epochs,
-    reload_dataloaders_every_n_epochs=1
+    reload_dataloaders_every_n_epochs=1,
 )
 
 # %%

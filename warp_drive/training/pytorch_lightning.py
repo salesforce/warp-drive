@@ -242,13 +242,21 @@ class WarpDriveModule(LightningModule):
         )
 
         if env_wrapper.env_backend == "pycuda":
-            from warp_drive.managers.pycuda_managers.pycuda_function_manager import PyCUDASampler
+            from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
+                PyCUDASampler,
+            )
 
-            self.cuda_sample_controller = PyCUDASampler(self.cuda_envs.cuda_function_manager)
+            self.cuda_sample_controller = PyCUDASampler(
+                self.cuda_envs.cuda_function_manager
+            )
         elif env_wrapper.env_backend == "numba":
-            from warp_drive.managers.numba_managers.numba_function_manager import NumbaSampler
+            from warp_drive.managers.numba_managers.numba_function_manager import (
+                NumbaSampler,
+            )
 
-            self.cuda_sample_controller = NumbaSampler(self.cuda_envs.cuda_function_manager)
+            self.cuda_sample_controller = NumbaSampler(
+                self.cuda_envs.cuda_function_manager
+            )
 
         # Register action placeholders
         if self.create_separate_placeholders_for_each_policy:

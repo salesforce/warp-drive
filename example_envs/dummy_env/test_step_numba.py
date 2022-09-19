@@ -5,11 +5,12 @@
 # or https://opensource.org/licenses/BSD-3-Clause
 
 # test data transfer between CPU and GPU, and the updates in place
-from numba import int32
 from numba import cuda as numba_driver
+from numba import int32
+
 try:
     from warp_drive.numba_includes.env_config import *
-except:
+except ImportError:
     raise Exception("warp_drive.numba_includes.env_config is not available")
 
 
@@ -18,7 +19,8 @@ def testkernel(x, y, done, actions, multiplier, target, step, episode_length):
     reach_target = numba_driver.shared.array(1, dtype=int32)
     env_id = numba_driver.blockIdx.x
     agent_id = numba_driver.threadIdx.x
-    # this serves as the leading agent for each block since we have shared memory residing in each block
+    # this serves as the leading agent for each block
+    # since we have shared memory residing in each block
     action_dim = 3
 
     if agent_id == 0:

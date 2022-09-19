@@ -1,5 +1,5 @@
-from numba import int32, float32
 from numba import cuda as numba_driver
+from numba import float32, int32
 from numba.cuda.random import init_xoroshiro128p_states, xoroshiro128p_uniform_float32
 
 kEps = 1.0e-8
@@ -43,8 +43,9 @@ def sample_actions(rng_states, distr, action_indices, cum_distr, num_actions):
     cum_distr[env_id, agent_id, 0] = distr[env_id, agent_id, 0]
 
     for i in range(1, num_actions):
-        cum_distr[env_id, agent_id, i] = distr[env_id, agent_id, i] + cum_distr[env_id, agent_id, i - 1]
+        cum_distr[env_id, agent_id, i] = (
+            distr[env_id, agent_id, i] + cum_distr[env_id, agent_id, i - 1]
+        )
 
     ind = search_index(cum_distr, p, env_id, agent_id, num_actions - 1)
     action_indices[env_id, agent_id] = ind
-

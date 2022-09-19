@@ -2,6 +2,7 @@ import logging
 import multiprocessing as mp
 
 import torch
+
 from warp_drive.training.utils import process_group_torch
 
 mp.set_start_method("spawn", force=True)
@@ -33,7 +34,6 @@ class ProcessWrapper(mp.Process):
 
 
 class DeviceContextProcessWrapper(ProcessWrapper):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cuda_context = None

@@ -3,13 +3,12 @@
 # For full license text, see the LICENSE file in the repo root
 # or https://opensource.org/licenses/BSD-3-Clause
 
+import logging
 from typing import Optional
 
-import logging
+import numba.cuda as numba_driver
 import numpy as np
 import torch
-
-import numba.cuda as numba_driver
 
 from warp_drive.managers.data_manager import CUDADataManager
 
@@ -72,7 +71,9 @@ class NumbaDataManager(CUDADataManager):
             assert name in self._device_data_pointer
             assert name in self._host_data
 
-            self._device_data_pointer[name] = numba_driver.to_device(self._host_data[name])
+            self._device_data_pointer[name] = numba_driver.to_device(
+                self._host_data[name]
+            )
         else:
             for name, host_array in self._host_data.items():
                 self._device_data_pointer[name] = numba_driver.to_device(host_array)
@@ -89,8 +90,12 @@ class NumbaDataManager(CUDADataManager):
             name_on_device = name
         assert name_on_device not in self._device_data_pointer
         if not torch_accessible:
-            self._device_data_pointer[name_on_device] = numba_driver.to_device(host_array)
+            self._device_data_pointer[name_on_device] = numba_driver.to_device(
+                host_array
+            )
         else:
             torch_tensor_device = torch.from_numpy(host_array).cuda()
             self._device_data_via_torch[name_on_device] = torch_tensor_device
-            self._device_data_pointer[name_on_device] = numba_driver.as_cuda_array(torch_tensor_device)
+            self._device_data_pointer[name_on_device] = numba_driver.as_cuda_array(
+                torch_tensor_device
+            )

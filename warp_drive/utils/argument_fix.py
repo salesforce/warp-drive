@@ -5,6 +5,16 @@ import warnings
 class Argfix:
     """Decorator ensuring backward compatibility when an argument name is
     modified in a function definition.
+
+    One important use case:
+    For versions <= 1.7.0, it has
+        `use_cuda = True or False`
+    For versions after, it has
+    `env_backend = cpu, pycuda or numba`.
+    For users who are using the old API for their application but have the
+    new library installed, it will not work. So we add a runtime arg fixer
+    that if old API arg is seen by the new library, it will raise a warning
+    and convert to the new syntax. It will not do anything otherwise.
     """
 
     def __init__(self, arg_mapping):

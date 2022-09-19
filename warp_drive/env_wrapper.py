@@ -25,6 +25,7 @@ _CUBIN_FILEPATH = f"{get_project_root()}/warp_drive/cuda_bin"
 _NUMBA_FILEPATH = "warp_drive.numba_includes"
 
 
+# Argfix is for the backward compatibility before v1.7.0, see note
 @Argfix(arg_mapping={"use_cuda": "env_backend"})
 class EnvWrapper:
     """
@@ -36,6 +37,11 @@ class EnvWrapper:
     If the environment runs on the GPU, only the first reset() happens on the CPU,
     all the relevant data is copied over the GPU after, and the subsequent steps
     all happen on the GPU.
+
+    Note: Versions <= 1.7.0 has `use_cuda = True or False`. For users who are using the
+    old API for their application but have the new library installed, we add a runtime
+    arg fixer that if old API arg is seen by the new library, it will raise a warning
+    and convert to the new syntax. It will not do anything otherwise.
     """
 
     def __init__(

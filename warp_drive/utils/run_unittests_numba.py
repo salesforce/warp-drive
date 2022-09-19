@@ -34,8 +34,8 @@ if __name__ == "__main__":
     cuda_function_manager = NumbaFunctionManager()
     create_test_env_config()
     cmds = [
-        f"pytest {get_project_root()}/tests/warp_drive/numba_codes",
-        f"pytest {get_project_root()}/tests/example_envs/numba_codes"
+        f"pytest {get_project_root()}/tests/warp_drive/numba_tests",
+        f"pytest {get_project_root()}/tests/example_envs/numba_tests"
     ]
     for cmd in cmds:
         print(f"Running Unit tests: {cmd} ")

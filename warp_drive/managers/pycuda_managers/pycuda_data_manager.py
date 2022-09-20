@@ -27,7 +27,7 @@ class CudaTensorHolder(pycuda_driver.PointerHolderBase):
 
 
 class PyCUDADataManager(CUDADataManager):
-
+    """"""
     """
     Example:
         cuda_data_manager = PyCUDADataManager(

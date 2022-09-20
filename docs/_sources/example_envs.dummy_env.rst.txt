@@ -1,0 +1,21 @@
+example\_envs.dummy\_env package
+================================
+
+Submodules
+----------
+
+example\_envs.dummy\_env.test\_step\_numba module
+-------------------------------------------------
+
+.. automodule:: example_envs.dummy_env.test_step_numba
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: example_envs.dummy_env
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,33 +1,56 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>warp_drive.managers package &mdash; WarpDrive 1.0 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="https://assets.readthedocs.org/static/css/badge_only.css" type="text/css" />
+  
+  <title>warp_drive.managers package &mdash; WarpDrive 1.8.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="https://assets.readthedocs.org/static/css/badge_only.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script async="async" src="https://assets.readthedocs.org/static/javascript/readthedocs-doc-embed.js"></script>
-    <script src="_static/js/theme.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="warp_drive.training package" href="warp_drive.training.html" />
+    <link rel="next" title="warp_drive.managers.numba_managers package" href="warp_drive.managers.numba_managers.html" />
     <link rel="prev" title="warp_drive package" href="warp_drive.html" /> 
 
 <!-- RTD Extra Head -->
 
 <link rel="stylesheet" href="https://assets.readthedocs.org/static/css/readthedocs-doc-embed.css" type="text/css" />
 
-<script type="application/json" id="READTHEDOCS_DATA">{"ad_free": "", "api_host": "", "build_date": "2022-02-23T00:27:34Z", "builder": "sphinx", "canonical_url": "", "commit": "", "docroot": "", "features": {"docsearch_disabled": false}, "global_analytics_code": null, "language": "", "page": "warp_drive.managers", "programming_language": "", "project": "", "source_suffix": ".rst", "subprojects": {}, "theme": "", "user_analytics_code": null, "version": ""}</script>
+<script type="application/json" id="READTHEDOCS_DATA">{"ad_free": "", "api_host": "", "build_date": "2022-09-20T18:13:48Z", "builder": "sphinx", "canonical_url": "", "commit": "", "docroot": "", "features": {"docsearch_disabled": false}, "global_analytics_code": null, "language": "", "page": "warp_drive.managers", "programming_language": "", "project": "", "source_suffix": ".rst", "subprojects": {}, "theme": "", "user_analytics_code": null, "version": ""}</script>
 
 <!--
 Using this variable directly instead of using `JSON.parse` is deprecated.
@@ -42,13 +65,29 @@ READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerH
 <!-- end RTD <extrahead> -->
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+
+   
   <div class="wy-grid-for-nav">
+    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+          
+
+          
             <a href="index.html" class="icon icon-home"> WarpDrive
+          
+
+          
           </a>
+
+          
+            
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -56,111 +95,145 @@ READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerH
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="warp_drive.html">warp_drive package</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="warp_drive.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">warp_drive.managers package</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-warp_drive.managers.data_manager">warp_drive.managers.data_manager module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-warp_drive.managers.function_manager">warp_drive.managers.function_manager module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-warp_drive.managers">Module contents</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">warp-drive</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="example_envs.html">example_envs package</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="warp_drive.html">warp_drive package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="warp_drive.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">warp_drive.managers package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="warp_drive.training.html">warp_drive.training package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="warp_drive.utils.html">warp_drive.utils package</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="warp_drive.training.html">warp_drive.training package</a></li>
-<li class="toctree-l3"><a class="reference internal" href="warp_drive.utils.html">warp_drive.utils package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_cpu_gpu_consistency_checker">warp_drive.env_cpu_gpu_consistency_checker module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_wrapper">warp_drive.env_wrapper module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#module-warp_drive">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="warp_drive.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_cpu_gpu_consistency_checker">warp_drive.env_cpu_gpu_consistency_checker module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_wrapper">warp_drive.env_wrapper module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="warp_drive.html#module-warp_drive">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="example_envs.html">example_envs package</a></li>
 </ul>
 
+            
+          
         </div>
+        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">WarpDrive</a>
+        
       </nav>
 
+
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
+    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="modules.html">&lt;no title&gt;</a> &raquo;</li>
+        
+          <li><a href="modules.html">warp-drive</a> &raquo;</li>
+        
           <li><a href="warp_drive.html">warp_drive package</a> &raquo;</li>
+        
       <li>warp_drive.managers package</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
+        
+          
             <a href="_sources/warp_drive.managers.rst.txt" rel="nofollow"> View page source</a>
+          
+        
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-             
-  <section id="warp-drive-managers-package">
-<h1>warp_drive.managers package<a class="headerlink" href="#warp-drive-managers-package" title="Permalink to this headline"></a></h1>
-<section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
-</section>
-<section id="module-warp_drive.managers.data_manager">
-<span id="warp-drive-managers-data-manager-module"></span><h2>warp_drive.managers.data_manager module<a class="headerlink" href="#module-warp_drive.managers.data_manager" title="Permalink to this headline"></a></h2>
+            
+  <div class="section" id="warp-drive-managers-package">
+<h1>warp_drive.managers package<a class="headerlink" href="#warp-drive-managers-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="warp_drive.managers.numba_managers.html">warp_drive.managers.numba_managers package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.managers.numba_managers.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.managers.numba_managers.html#module-warp_drive.managers.numba_managers.numba_data_manager">warp_drive.managers.numba_managers.numba_data_manager module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.managers.numba_managers.html#module-warp_drive.managers.numba_managers.numba_function_manager">warp_drive.managers.numba_managers.numba_function_manager module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.managers.numba_managers.html#module-warp_drive.managers.numba_managers">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="warp_drive.managers.pycuda_managers.html">warp_drive.managers.pycuda_managers package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.managers.pycuda_managers.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.managers.pycuda_managers.html#module-warp_drive.managers.pycuda_managers.pycuda_data_manager">warp_drive.managers.pycuda_managers.pycuda_data_manager module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.managers.pycuda_managers.html#module-warp_drive.managers.pycuda_managers.pycuda_function_manager">warp_drive.managers.pycuda_managers.pycuda_function_manager module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.managers.pycuda_managers.html#module-warp_drive.managers.pycuda_managers">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-warp_drive.managers.data_manager">
+<span id="warp-drive-managers-data-manager-module"></span><h2>warp_drive.managers.data_manager module<a class="headerlink" href="#module-warp_drive.managers.data_manager" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.data_manager.</span></span><span class="sig-name descname"><span class="pre">CUDADataManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_agents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.data_manager.</span></span><span class="sig-name descname"><span class="pre">CUDADataManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_agents</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocks_per_env</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_length</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>CUDA Data Manager: manages the data initialization of GPU,
+<p>Base CUDA Data Manager: manages the data initialization of GPU,
 and data transfer between CPU host and GPU device</p>
-<p class="rubric">Example</p>
-<p>cuda_data_manager = CUDADataManager(
-num_agents=10, num_envs=5, episode_length=100
-)</p>
-<p>data1 = DataFeed()
-data1.add_data(name=”X”, data=np.array([[1, 2, 3, 4, 5],</p>
-<blockquote>
-<div><blockquote>
-<div><p>[0, 0, 0, 0, 0],
-[0, 0, 0, 0, 0]])</p>
-</div></blockquote>
-<p>)</p>
-</div></blockquote>
-<p>data1.add_data(name=”a”, data=100)
-cuda_data_manager.push_data_to_device(data)</p>
-<p>data2 = DataFeed()
-data2.add_data(name=”Y”, data=[[0.1,0.2,0.3,0.4,0.5],</p>
-<blockquote>
-<div><blockquote>
-<div><p>[0.0,0.0,0.0,0.0,0.0],
-[0.0,0.0,0.0,0.0,0.0]]</p>
-</div></blockquote>
-<p>)</p>
-</div></blockquote>
-<p>cuda_data_manager.push_data_to_device(data2, torch_accessible=True)</p>
-<p>X_copy_at_host = cuda_data_manager.pull_data_from_device(name=”X”)
-Y_copy_at_host = cuda_data_manager.pull_data_from_device(name=”Y”)</p>
-<dl class="simple">
-<dt>if cuda_data_manager.is_data_on_device_via_torch(“Y”):</dt><dd><p>Y_tensor_accessible_by_torch =
-cuda_data_manager.data_on_device_via_torch(“Y”)</p>
-</dd>
-</dl>
-<p># cuda_function here assumes a compiled CUDA C function
-cuda_function(cuda_data_manager.device_data(“X”),</p>
-<blockquote>
-<div><p>cuda_data_manager.device_data(“Y”),
-block=(10,1,1), grid=(5,1))</p>
-</div></blockquote>
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.add_meta_info">
-<span class="sig-name descname"><span class="pre">add_meta_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.add_meta_info" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">add_meta_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.add_meta_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add meta information to the data manager, only accepts scalar integer or float</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -171,7 +244,7 @@ block=(10,1,1), grid=(5,1))</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.add_shared_constants">
-<span class="sig-name descname"><span class="pre">add_shared_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">constants</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.add_shared_constants" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">add_shared_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">constants</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.add_shared_constants" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add shared constants to the data manager</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -182,7 +255,7 @@ block=(10,1,1), grid=(5,1))</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.data_on_device_via_torch">
-<span class="sig-name descname"><span class="pre">data_on_device_via_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.data_on_device_via_torch" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">data_on_device_via_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.data_on_device_via_torch" title="Permalink to this definition">¶</a></dt>
 <dd><p>The data on the device. This is used for Pytorch default access within GPU.
 To fetch the tensor back to the host,
 call pull_data_from_device()</p>
@@ -196,7 +269,7 @@ call pull_data_from_device()</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.device_data">
-<span class="sig-name descname"><span class="pre">device_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.device_data" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">device_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.device_data" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>name</strong> – name of the device data</p>
@@ -207,27 +280,27 @@ call pull_data_from_device()</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.get_dtype">
-<span class="sig-name descname"><span class="pre">get_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.get_dtype" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.get_dtype" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.get_shape">
-<span class="sig-name descname"><span class="pre">get_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.get_shape" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.get_shape" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.host_data">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">host_data</span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.host_data" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">host_data</span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.host_data" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.is_data_on_device">
-<span class="sig-name descname"><span class="pre">is_data_on_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.is_data_on_device" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">is_data_on_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.is_data_on_device" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.is_data_on_device_via_torch">
-<span class="sig-name descname"><span class="pre">is_data_on_device_via_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.is_data_on_device_via_torch" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">is_data_on_device_via_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.is_data_on_device_via_torch" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is used to check if the data exist and accessible
 via Pytorch default access within GPU.
 name: name of the device</p>
@@ -235,17 +308,17 @@ name: name of the device</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.log_data_list">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">log_data_list</span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.log_data_list" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">log_data_list</span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.log_data_list" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.meta_info">
-<span class="sig-name descname"><span class="pre">meta_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.meta_info" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">meta_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.meta_info" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.pull_data_from_device">
-<span class="sig-name descname"><span class="pre">pull_data_from_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.pull_data_from_device" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">pull_data_from_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.pull_data_from_device" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetch the values of device array back to the host</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -258,7 +331,7 @@ fetched back from the device array</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.push_data_to_device">
-<span class="sig-name descname"><span class="pre">push_data_to_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">torch_accessible</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.push_data_to_device" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">push_data_to_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">torch_accessible</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.push_data_to_device" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register data to the host, and push to the device
 (1) register at self._host_data
 (2) push to device and register at self._device_data_pointer,
@@ -278,12 +351,12 @@ This data dictionary can be constructed by warp_drive.utils.data_feed.DataFeed
 
 <dl class="py property">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.reset_data_list">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reset_data_list</span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.reset_data_list" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">reset_data_list</span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.reset_data_list" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.reset_device">
-<span class="sig-name descname"><span class="pre">reset_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.reset_device" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">reset_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.reset_device" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reset the device array values back to the host array values
 Note: this reset is not a device-only execution,
 but incurs data transfer from host to device</p>
@@ -296,31 +369,24 @@ but incurs data transfer from host to device</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.scalar_data_list">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scalar_data_list</span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.scalar_data_list" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">scalar_data_list</span></span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.scalar_data_list" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.data_manager.CUDADataManager.shared_constant">
-<span class="sig-name descname"><span class="pre">shared_constant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.shared_constant" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">shared_constant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CUDADataManager.shared_constant" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="warp_drive.managers.data_manager.CudaTensorHolder">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.data_manager.</span></span><span class="sig-name descname"><span class="pre">CudaTensorHolder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.data_manager.CudaTensorHolder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pycuda._driver.PointerHolderBase</span></code></p>
-<p>A class that facilitates casting tensors to pointers.</p>
-</dd></dl>
-
-</section>
-<section id="module-warp_drive.managers.function_manager">
-<span id="warp-drive-managers-function-manager-module"></span><h2>warp_drive.managers.function_manager module<a class="headerlink" href="#module-warp_drive.managers.function_manager" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="module-warp_drive.managers.function_manager">
+<span id="warp-drive-managers-function-manager-module"></span><h2>warp_drive.managers.function_manager module<a class="headerlink" href="#module-warp_drive.managers.function_manager" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAEnvironmentReset">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDAEnvironmentReset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.function_manager.CUDAFunctionManager" title="warp_drive.managers.function_manager.CUDAFunctionManager"><span class="pre">warp_drive.managers.function_manager.CUDAFunctionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAEnvironmentReset" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDAEnvironmentReset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.function_manager.CUDAFunctionManager" title="warp_drive.managers.function_manager.CUDAFunctionManager"><span class="pre">warp_drive.managers.function_manager.CUDAFunctionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAEnvironmentReset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>CUDA Environment Reset: Manages the env reset when the game is terminated
+<p>Base CUDA Environment Reset: Manages the env reset when the game is terminated
 inside GPU. With this, the GPU can automatically reset and
 restart example_envs by itself.</p>
 <p>prerequisite: CUDAFunctionManager is initialized, and the default function list
@@ -328,36 +394,30 @@ has been successfully launched</p>
 <p class="rubric">Example</p>
 <p>Please refer to tutorials</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAEnvironmentReset.custom_reset">
+<span class="sig-name descname"><span class="pre">custom_reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAEnvironmentReset.custom_reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAEnvironmentReset.register_custom_reset_function">
+<span class="sig-name descname"><span class="pre">register_custom_reset_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_function_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAEnvironmentReset.register_custom_reset_function" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAEnvironmentReset.reset_when_done">
-<span class="sig-name descname"><span class="pre">reset_when_done</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'if_done'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">undo_done_after_reset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_random_reset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAEnvironmentReset.reset_when_done" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">reset_when_done</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'if_done'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">undo_done_after_reset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_random_reset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAEnvironmentReset.reset_when_done" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAEnvironmentReset.reset_when_done_deterministic">
-<span class="sig-name descname"><span class="pre">reset_when_done_deterministic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'if_done'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">undo_done_after_reset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAEnvironmentReset.reset_when_done_deterministic" title="Permalink to this definition"></a></dt>
-<dd><p>Monitor the done flag for each env. If any env is done, it will reset this
-particular env without interrupting other example_envs.
-The reset includes copy the starting values of this env back,
-and turn off the done flag. Therefore, this env can safely get restarted.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>data_manager</strong> – CUDADataManager object</p></li>
-<li><p><strong>mode</strong> – “if_done”: reset an env if done flag is observed for that env,
-“force_reset”: reset all env in a hard way</p></li>
-<li><p><strong>undo_done_after_reset</strong> – If True, turn off the done flag</p></li>
-</ul>
-</dd>
-</dl>
-<p>and reset timestep after all data have been reset
-(the flag should be True for most cases)</p>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">reset_when_done_deterministic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'if_done'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">undo_done_after_reset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAEnvironmentReset.reset_when_done_deterministic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionFeed">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDAFunctionFeed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionFeed" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDAFunctionFeed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionFeed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>CUDAFunctionFeed as the intermediate layer to feed data arguments
 into the CUDA function. Please make sure that the order of data
@@ -366,139 +426,47 @@ aligns with the CUDA function signature.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDAFunctionManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_agents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDAFunctionManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_agents</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocks_per_env</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_id</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>CUDA Function Manager: manages the CUDA module
+<p>Base CUDA Function Manager: manages the CUDA module
 and the kernel functions defined therein</p>
-<p class="rubric">Example</p>
-<p>cuda_function_manager = CUDAFunctionManager(num_agents=10, num_envs=5)</p>
-<p># if load from a source code directly
-cuda_function_manager.load_cuda_from_source_code(code)</p>
-<p># if load from a pre-compiled bin
-cuda_function_manager.load_cuda_from_binary_file(fname)</p>
-<p># if compile a template source code (so num_agents and num_envs
-can be populated at compile time)
-cuda_function_manager.compile_and_load_cuda(template_header_file)</p>
-<p>cuda_function_manager.initialize_functions([“step”, “test”])</p>
-<p>cuda_step_func = cuda_function_manager.get_function(“step”)</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.block">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">block</span></span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.block" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">block</span></span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.block" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.compile">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">compile</span></span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.compile" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.compile_and_load_cuda">
-<span class="sig-name descname"><span class="pre">compile_and_load_cuda</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_header_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_runner_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_functions_included</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">customized_env_registrar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">warp_drive.utils.env_registrar.EnvironmentRegistrar</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_messenger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.compile_and_load_cuda" title="Permalink to this definition"></a></dt>
-<dd><p>Compile a template source code, so self.num_agents and self.num_envs
-will replace the template code at compile time.
-Note: self.num_agents: total number of agents for each env,
-it defines the default block size
-self.num_envs: number of example_envs in parallel,</p>
-<blockquote>
-<div><p>it defines the default grid size</p>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>env_name</strong> – name of the environment for the build</p></li>
-<li><p><strong>template_header_file</strong> – template header,
-e.g., “template_env_config.h”</p></li>
-<li><p><strong>template_runner_file</strong> – template runner,
-e.g., “template_env_runner.cu”</p></li>
-<li><p><strong>template_path</strong> – template path, by default,</p></li>
-</ul>
-</dd>
-</dl>
-<p>it is f”{ROOT_PATH}/warp_drive/cuda_includes/”
-:param default_functions_included: load default function lists
-:param customized_env_registrar: CustomizedEnvironmentRegistrar object</p>
-<blockquote>
-<div><p>it provides the customized env info (e.g., source code path)for the build</p>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>event_messenger</strong> – multiprocessing Event to sync up the build</p>
-</dd>
-</dl>
-<p>when using multiple processes</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.cuda_function_names">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cuda_function_names</span></span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.cuda_function_names" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.blocks_per_env">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">blocks_per_env</span></span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.blocks_per_env" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.get_function">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_function</span></span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.get_function" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_function</span></span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.get_function" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.grid">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">grid</span></span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.grid" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">grid</span></span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.grid" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.initialize_default_functions">
-<span class="sig-name descname"><span class="pre">initialize_default_functions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.initialize_default_functions" title="Permalink to this definition"></a></dt>
-<dd><p>Default function list defined in the src/core. They can be initialized if
-the CUDA compilation includes src/core</p>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">initialize_default_functions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.initialize_default_functions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.initialize_functions">
-<span class="sig-name descname"><span class="pre">initialize_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.initialize_functions" title="Permalink to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>func_names</strong> – list of kernel function names in the cuda mdoule</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.initialize_shared_constants">
-<span class="sig-name descname"><span class="pre">initialize_shared_constants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.initialize_shared_constants" title="Permalink to this definition"></a></dt>
-<dd><p>Initialize the shared constants in the runtime.
-:param data_manager: CUDADataManager object
-:param constant_names: names of constants managed by CUDADataManager</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.load_cuda_from_binary_file">
-<span class="sig-name descname"><span class="pre">load_cuda_from_binary_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cubin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_functions_included</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.load_cuda_from_binary_file" title="Permalink to this definition"></a></dt>
-<dd><p>Load cuda module from the pre-compiled cubin file</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>cubin</strong> – the binary (.cubin) directory</p></li>
-<li><p><strong>default_functions_included</strong> – load default function lists</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDAFunctionManager.load_cuda_from_source_code">
-<span class="sig-name descname"><span class="pre">load_cuda_from_source_code</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_functions_included</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.load_cuda_from_source_code" title="Permalink to this definition"></a></dt>
-<dd><p>Load cuda module from the source code
-NOTE: the source code is in string text format,
-not the directory of the source code.
-:param code: source code in the string text format
-:param default_functions_included: load default function lists</p>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">initialize_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_names</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDAFunctionManager.initialize_functions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDALogController">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDALogController</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.function_manager.CUDAFunctionManager" title="warp_drive.managers.function_manager.CUDAFunctionManager"><span class="pre">warp_drive.managers.function_manager.CUDAFunctionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDALogController" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDALogController</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.function_manager.CUDAFunctionManager" title="warp_drive.managers.function_manager.CUDAFunctionManager"><span class="pre">warp_drive.managers.function_manager.CUDAFunctionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDALogController" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>CUDA Log Controller: manages the CUDA logger inside GPU for all the data having
+<p>Base CUDA Log Controller: manages the CUDA logger inside GPU for all the data having
 the flag log_data_across_episode = True.
 The log function will only work for one particular env, even there are multiple
 example_envs running together.</p>
@@ -508,7 +476,7 @@ has been successfully launched</p>
 <p>Please refer to tutorials</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDALogController.fetch_log">
-<span class="sig-name descname"><span class="pre">fetch_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_last_valid_step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDALogController.fetch_log" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">fetch_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_step</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_last_valid_step</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDALogController.fetch_log" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetch the complete log back to the host.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -526,7 +494,7 @@ has been successfully launched</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDALogController.reset_log">
-<span class="sig-name descname"><span class="pre">reset_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDALogController.reset_log" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">reset_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_id</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDALogController.reset_log" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reset the dense log mask back to [1, 0, 0, 0 ….]</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -541,7 +509,7 @@ has been successfully launched</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDALogController.update_log">
-<span class="sig-name descname"><span class="pre">update_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDALogController.update_log" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">update_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDALogController.update_log" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update the log for all the data having the flag log_data_across_episode = True</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -557,9 +525,9 @@ has been successfully launched</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDASampler">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDASampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.function_manager.CUDAFunctionManager" title="warp_drive.managers.function_manager.CUDAFunctionManager"><span class="pre">warp_drive.managers.function_manager.CUDAFunctionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDASampler" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.function_manager.</span></span><span class="sig-name descname"><span class="pre">CUDASampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.function_manager.CUDAFunctionManager" title="warp_drive.managers.function_manager.CUDAFunctionManager"><span class="pre">warp_drive.managers.function_manager.CUDAFunctionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDASampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>CUDA Sampler: controls probability sampling inside GPU.
+<p>Base CUDA Sampler: controls probability sampling inside GPU.
 A fast and lightweight implementation compared to the
 functionality provided by torch.Categorical.sample()
 It accepts the Pytorch tensor as distribution and gives out the sampled action index</p>
@@ -568,26 +536,13 @@ and the default function list has been successfully launched</p>
 <p class="rubric">Example</p>
 <p>Please refer to tutorials</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDASampler.assign">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">assign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">actions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDASampler.assign" title="Permalink to this definition"></a></dt>
-<dd><p>Assign action to the action array directly. T
-his may be used for env testing or debugging purpose.
-:param data_manager: CUDADataManager object
-:param actions: actions array provided by the user
-:param action_name: the name of action array that will
-record the sampled actions</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDASampler.init_random">
-<span class="sig-name descname"><span class="pre">init_random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDASampler.init_random" title="Permalink to this definition"></a></dt>
-<dd><p>Init random function for all the threads
-:param seed: random seed selected for the initialization</p>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">init_random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDASampler.init_random" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDASampler.register_actions">
-<span class="sig-name descname"><span class="pre">register_actions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_actions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDASampler.register_actions" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">register_actions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_actions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDASampler.register_actions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register an action
 :param data_manager: CUDADataManager object
 :param action_name: the name of action array that will
@@ -598,58 +553,63 @@ record the sampled actions
 
 <dl class="py method">
 <dt class="sig sig-object py" id="warp_drive.managers.function_manager.CUDASampler.sample">
-<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">distribution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDASampler.sample" title="Permalink to this definition"></a></dt>
-<dd><p>Sample based on the distribution</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>data_manager</strong> – CUDADataManager object</p></li>
-<li><p><strong>distribution</strong> – Torch distribution tensor in the shape of</p></li>
-</ul>
-</dd>
-</dl>
-<p>(num_env, num_agents, num_actions)
-:param action_name: the name of action array that will
-record the sampled actions</p>
-</dd></dl>
+<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">distribution</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.function_manager.CUDASampler.sample" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
-</section>
-<section id="module-warp_drive.managers">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-warp_drive.managers" title="Permalink to this headline"></a></h2>
-</section>
-</section>
+</div>
+<div class="section" id="module-warp_drive.managers">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-warp_drive.managers" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
 
 
            </div>
+           
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="warp_drive.managers.numba_managers.html" class="btn btn-neutral float-right" title="warp_drive.managers.numba_managers package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="warp_drive.html" class="btn btn-neutral float-left" title="warp_drive package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="warp_drive.training.html" class="btn btn-neutral float-right" title="warp_drive.training package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Tian Lan, Sunil Srinivasa, Stephan Zheng.</p>
-  </div>
+    <p>
+        &#169; Copyright 2022, Tian Lan, Sunil Srinivasa, Brenton Chu, Stephan Zheng.
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
         </div>
       </div>
+
     </section>
+
   </div>
-  <script>
+  
+
+  <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

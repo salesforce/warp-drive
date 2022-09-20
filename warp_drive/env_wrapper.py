@@ -25,8 +25,6 @@ _CUBIN_FILEPATH = f"{get_project_root()}/warp_drive/cuda_bin"
 _NUMBA_FILEPATH = "warp_drive.numba_includes"
 
 
-# Argfix is for the backward compatibility before v1.7.0, see note
-@Argfix(arg_mapping={"use_cuda": "env_backend"})
 class EnvWrapper:
     """
     The environment wrapper class.
@@ -44,6 +42,7 @@ class EnvWrapper:
     and convert to the new syntax. It will not do anything otherwise.
     """
 
+    @Argfix(arg_mapping={"use_cuda": "env_backend"})
     def __init__(
         self,
         env_obj=None,
@@ -59,28 +58,28 @@ class EnvWrapper:
         process_id=0,
     ):
         """
-        'env_obj': an environment object
-        'env_name': an environment name that is registered on the
+        :param env_obj: an environment object
+        :param env_name: an environment name that is registered on the
             WarpDrive environment registrar
-        'env_config': environment configuration to instantiate
+        :param env_config: environment configuration to instantiate
             an environment from the registrar
-        'num_envs': the number of parallel environments to instantiate. Note: this is
+        :param num_envs: the number of parallel environments to instantiate. Note: this is
             only relevant when env_backend is pycuda or numba
-        'blocks_per_env': number of blocks to cover one environment
+        :param blocks_per_env: number of blocks to cover one environment
             default is None, the utility function will estimate it
             otherwise it will be reinforced
-        'env_backend': environment backend, choose between pycuda, numba, or cpu.
+        :param env_backend: environment backend, choose between pycuda, numba, or cpu.
             Before version 1.8, the old argument is 'use_cuda' = True or False
-        'use_cuda': deprecated since version 1.8
-        'testing_mode': a flag used to determine whether to simply load the .cubin (when
+        :param use_cuda: deprecated since version 1.8
+        :param testing_mode: a flag used to determine whether to simply load the .cubin (when
             testing) or compile the .cu source code to create a .cubin and use that.
-        'testing_bin_filename': load the specified .cubin or .fatbin directly,
+        :param testing_bin_filename: load the specified .cubin or .fatbin directly,
             only required when testing_mode is True.
-        'env_registrar': EnvironmentRegistrar object
+        :param env_registrar: EnvironmentRegistrar object
             it provides the customized env info (like src path) for the build
-        'event_messenger': multiprocessing Event to sync up the build
+        :param event_messenger: multiprocessing Event to sync up the build
             when using multiple processes
-        'process_id': id of the process running WarpDrive
+        :param process_id: id of the process running WarpDrive
         """
 
         # backward compatibility with old argument use_cuda = True or False

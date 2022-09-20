@@ -1,0 +1,465 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>warp_drive.managers.numba_managers package &mdash; WarpDrive 1.8.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="https://assets.readthedocs.org/static/css/badge_only.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://assets.readthedocs.org/static/javascript/readthedocs-doc-embed.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="warp_drive.managers.pycuda_managers package" href="warp_drive.managers.pycuda_managers.html" />
+    <link rel="prev" title="warp_drive.managers package" href="warp_drive.managers.html" /> 
+
+<!-- RTD Extra Head -->
+
+<link rel="stylesheet" href="https://assets.readthedocs.org/static/css/readthedocs-doc-embed.css" type="text/css" />
+
+<script type="application/json" id="READTHEDOCS_DATA">{"ad_free": "", "api_host": "", "build_date": "2022-09-20T18:13:48Z", "builder": "sphinx", "canonical_url": "", "commit": "", "docroot": "", "features": {"docsearch_disabled": false}, "global_analytics_code": null, "language": "", "page": "warp_drive.managers.numba_managers", "programming_language": "", "project": "", "source_suffix": ".rst", "subprojects": {}, "theme": "", "user_analytics_code": null, "version": ""}</script>
+
+<!--
+Using this variable directly instead of using `JSON.parse` is deprecated.
+The READTHEDOCS_DATA global variable will be removed in the future.
+-->
+<script type="text/javascript">
+READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerHTML);
+</script>
+
+<script type="text/javascript" src="https://assets.readthedocs.org/static/javascript/readthedocs-analytics.js" async="async"></script>
+
+<!-- end RTD <extrahead> -->
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> WarpDrive
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">warp-drive</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="example_envs.html">example_envs package</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="warp_drive.html">warp_drive package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="warp_drive.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="warp_drive.managers.html">warp_drive.managers package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="warp_drive.training.html">warp_drive.training package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="warp_drive.utils.html">warp_drive.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_cpu_gpu_consistency_checker">warp_drive.env_cpu_gpu_consistency_checker module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_wrapper">warp_drive.env_wrapper module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#module-warp_drive">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">WarpDrive</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="modules.html">warp-drive</a> &raquo;</li>
+        
+          <li><a href="warp_drive.html">warp_drive package</a> &raquo;</li>
+        
+          <li><a href="warp_drive.managers.html">warp_drive.managers package</a> &raquo;</li>
+        
+      <li>warp_drive.managers.numba_managers package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/warp_drive.managers.numba_managers.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="warp-drive-managers-numba-managers-package">
+<h1>warp_drive.managers.numba_managers package<a class="headerlink" href="#warp-drive-managers-numba-managers-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-warp_drive.managers.numba_managers.numba_data_manager">
+<span id="warp-drive-managers-numba-managers-numba-data-manager-module"></span><h2>warp_drive.managers.numba_managers.numba_data_manager module<a class="headerlink" href="#module-warp_drive.managers.numba_managers.numba_data_manager" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.numba_managers.numba_data_manager.</span></span><span class="sig-name descname"><span class="pre">NumbaDataManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_agents</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocks_per_env</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_length</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="warp_drive.managers.html#warp_drive.managers.data_manager.CUDADataManager" title="warp_drive.managers.data_manager.CUDADataManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">warp_drive.managers.data_manager.CUDADataManager</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager.pull_data_from_device">
+<span class="sig-name descname"><span class="pre">pull_data_from_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager.pull_data_from_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch the values of device array back to the host</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – name of the device array</p>
+</dd>
+</dl>
+<p>returns: a host copy of scalar data or numpy array
+fetched back from the device array</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager.reset_device">
+<span class="sig-name descname"><span class="pre">reset_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager.reset_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the device array values back to the host array values
+Note: this reset is not a device-only execution,
+but incurs data transfer from host to device</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – (optional) reset a device array by name, if None, reset all arrays</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-warp_drive.managers.numba_managers.numba_function_manager">
+<span id="warp-drive-managers-numba-managers-numba-function-manager-module"></span><h2>warp_drive.managers.numba_managers.numba_function_manager module<a class="headerlink" href="#module-warp_drive.managers.numba_managers.numba_function_manager" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaEnvironmentReset">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.numba_managers.numba_function_manager.</span></span><span class="sig-name descname"><span class="pre">NumbaEnvironmentReset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager" title="warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager"><span class="pre">warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaEnvironmentReset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="warp_drive.managers.html#warp_drive.managers.function_manager.CUDAEnvironmentReset" title="warp_drive.managers.function_manager.CUDAEnvironmentReset"><code class="xref py py-class docutils literal notranslate"><span class="pre">warp_drive.managers.function_manager.CUDAEnvironmentReset</span></code></a></p>
+<p>Numba Environment Reset: Manages the env reset when the game is terminated
+inside GPU. With this, the GPU can automatically reset and
+restart example_envs by itself.</p>
+<p>prerequisite: NumbaFunctionManager is initialized, and the default function list
+has been successfully launched</p>
+<p class="rubric">Example</p>
+<p>Please refer to tutorials</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaEnvironmentReset.custom_reset">
+<span class="sig-name descname"><span class="pre">custom_reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaEnvironmentReset.custom_reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaEnvironmentReset.register_custom_reset_function">
+<span class="sig-name descname"><span class="pre">register_custom_reset_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager" title="warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager"><span class="pre">warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_function_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaEnvironmentReset.register_custom_reset_function" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaEnvironmentReset.reset_when_done_deterministic">
+<span class="sig-name descname"><span class="pre">reset_when_done_deterministic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager" title="warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager"><span class="pre">warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'if_done'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">undo_done_after_reset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaEnvironmentReset.reset_when_done_deterministic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Monitor the done flag for each env. If any env is done, it will reset this
+particular env without interrupting other example_envs.
+The reset includes copy the starting values of this env back,
+and turn off the done flag. Therefore, this env can safely get restarted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_manager</strong> – NumbaDataManager object</p></li>
+<li><p><strong>mode</strong> – “if_done”: reset an env if done flag is observed for that env,
+“force_reset”: reset all env in a hard way</p></li>
+<li><p><strong>undo_done_after_reset</strong> – If True, turn off the done flag</p></li>
+</ul>
+</dd>
+</dl>
+<p>and reset timestep after all data have been reset
+(the flag should be True for most cases)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.numba_managers.numba_function_manager.</span></span><span class="sig-name descname"><span class="pre">NumbaFunctionManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_agents</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocks_per_env</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">process_id</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="warp_drive.managers.html#warp_drive.managers.function_manager.CUDAFunctionManager" title="warp_drive.managers.function_manager.CUDAFunctionManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">warp_drive.managers.function_manager.CUDAFunctionManager</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.dynamic_import_numba">
+<span class="sig-name descname"><span class="pre">dynamic_import_numba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_header_file</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_runner_file</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_functions_included</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">customized_env_registrar</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="warp_drive.utils.html#warp_drive.utils.env_registrar.EnvironmentRegistrar" title="warp_drive.utils.env_registrar.EnvironmentRegistrar"><span class="pre">warp_drive.utils.env_registrar.EnvironmentRegistrar</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_messenger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.dynamic_import_numba" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dynamic import a template source code, so self.num_agents and self.num_envs
+will replace the template code at JIT compile time.
+Note: self.num_agents: total number of agents for each env,
+it defines the default block size
+self.num_envs: number of example_envs in parallel,</p>
+<blockquote>
+<div><p>it defines the default grid size</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>env_name</strong> – name of the environment for the build</p></li>
+<li><p><strong>template_header_file</strong> – template header,
+e.g., “template_env_config.txt”</p></li>
+<li><p><strong>template_runner_file</strong> – template runner,
+e.g., “template_env_runner.txt”</p></li>
+<li><p><strong>template_path</strong> – template path, by default,</p></li>
+</ul>
+</dd>
+</dl>
+<p>it is f”{ROOT_PATH}.warp_drive.numba_includes/”
+:param default_functions_included: load default function lists
+:param customized_env_registrar: CustomizedEnvironmentRegistrar object</p>
+<blockquote>
+<div><p>it provides the customized env info (e.g., source code path)for the build</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>event_messenger</strong> – multiprocessing Event to sync up the build</p>
+</dd>
+</dl>
+<p>when using multiple processes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.import_numba_from_source_code">
+<span class="sig-name descname"><span class="pre">import_numba_from_source_code</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">numba_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_functions_included</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.import_numba_from_source_code" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.initialize_default_functions">
+<span class="sig-name descname"><span class="pre">initialize_default_functions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.initialize_default_functions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default function list defined in the numba_includes/core. T
+hey can be initialized if the Numba compilation
+includes numba_includes/core</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.initialize_functions">
+<span class="sig-name descname"><span class="pre">initialize_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func_names</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.initialize_functions" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>func_names</strong> – list of kernel function names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.numba_function_names">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">numba_function_names</span></span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager.numba_function_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaLogController">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.numba_managers.numba_function_manager.</span></span><span class="sig-name descname"><span class="pre">NumbaLogController</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager" title="warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager"><span class="pre">warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaLogController" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="warp_drive.managers.html#warp_drive.managers.function_manager.CUDALogController" title="warp_drive.managers.function_manager.CUDALogController"><code class="xref py py-class docutils literal notranslate"><span class="pre">warp_drive.managers.function_manager.CUDALogController</span></code></a></p>
+<p>Numba Log Controller: manages the Numba logger inside GPU for all the data having
+the flag log_data_across_episode = True.
+The log function will only work for one particular env, even there are multiple
+example_envs running together.</p>
+<p>prerequisite: NumbaFunctionManager is initialized, and the default function list
+has been successfully launched</p>
+<p class="rubric">Example</p>
+<p>Please refer to tutorials</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaSampler">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.managers.numba_managers.numba_function_manager.</span></span><span class="sig-name descname"><span class="pre">NumbaSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager" title="warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager"><span class="pre">warp_drive.managers.numba_managers.numba_function_manager.NumbaFunctionManager</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaSampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="warp_drive.managers.html#warp_drive.managers.function_manager.CUDASampler" title="warp_drive.managers.function_manager.CUDASampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">warp_drive.managers.function_manager.CUDASampler</span></code></a></p>
+<p>Numba Sampler: controls probability sampling inside GPU.
+A fast and lightweight implementation compared to the
+functionality provided by torch.Categorical.sample()
+It accepts the Pytorch tensor as distribution and gives out the sampled action index</p>
+<p>prerequisite: NumbaFunctionManager is initialized,
+and the default function list has been successfully launched</p>
+<p class="rubric">Example</p>
+<p>Please refer to tutorials</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaSampler.init_random">
+<span class="sig-name descname"><span class="pre">init_random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaSampler.init_random" title="Permalink to this definition">¶</a></dt>
+<dd><p>Init random function for all the threads
+:param seed: random seed selected for the initialization</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.managers.numba_managers.numba_function_manager.NumbaSampler.sample">
+<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_manager</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager" title="warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager"><span class="pre">warp_drive.managers.numba_managers.numba_data_manager.NumbaDataManager</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">distribution</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.managers.numba_managers.numba_function_manager.NumbaSampler.sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample based on the distribution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_manager</strong> – NumbaDataManager object</p></li>
+<li><p><strong>distribution</strong> – Torch distribution tensor in the shape of</p></li>
+</ul>
+</dd>
+</dl>
+<p>(num_env, num_agents, num_actions)
+:param action_name: the name of action array that will
+record the sampled actions</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-warp_drive.managers.numba_managers">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-warp_drive.managers.numba_managers" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="warp_drive.managers.pycuda_managers.html" class="btn btn-neutral float-right" title="warp_drive.managers.pycuda_managers package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="warp_drive.managers.html" class="btn btn-neutral float-left" title="warp_drive.managers package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2022, Tian Lan, Sunil Srinivasa, Brenton Chu, Stephan Zheng.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -14,10 +14,26 @@ Subpackages
 Submodules
 ----------
 
-warp\_drive.training.example\_training\_script module
------------------------------------------------------
+warp\_drive.training.example\_training\_script\_numba module
+------------------------------------------------------------
 
-.. automodule:: warp_drive.training.example_training_script
+.. automodule:: warp_drive.training.example_training_script_numba
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+warp\_drive.training.example\_training\_script\_pycuda module
+-------------------------------------------------------------
+
+.. automodule:: warp_drive.training.example_training_script_pycuda
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+warp\_drive.training.pytorch\_lightning module
+----------------------------------------------
+
+.. automodule:: warp_drive.training.pytorch_lightning
    :members:
    :undoc-members:
    :show-inheritance:

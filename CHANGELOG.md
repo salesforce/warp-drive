@@ -1,4 +1,10 @@
 # Changelog
+# Release 1.8 (2022-09-20)
+- Added core library for Numba.  
+- Numba as another environment backend, while CUDA C is still the default.
+- Environment
+  - tag (continuous version) implemented in Numba.
+ 
 # Release 1.7 (2022-09-08)
 - Update PyCUDA version to 2022.1
 

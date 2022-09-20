@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    warp_drive.managers
+   warp_drive.numba_includes
    warp_drive.training
    warp_drive.utils
 

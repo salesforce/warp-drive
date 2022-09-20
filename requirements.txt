@@ -1,7 +1,8 @@
-gym>=0.18
+gym>=0.18, <0.26
 matplotlib>=3.2.1
 numpy>=1.18.1
 pycuda==2022.1
 pytest>=6.1.0
 pyyaml>=5.4
 torch>=1.9, <1.11
+numba==0.54.0

@@ -65,7 +65,7 @@ class TagContinuous(CUDAEnvironmentContext):
         step_reward_for_runner=0.0,
         end_of_game_reward_for_runner=1.0,
         runner_exits_game_after_tagged=True,
-        use_cuda=False,
+        env_backend="cpu",
     ):
         """
         Args:
@@ -119,9 +119,9 @@ class TagContinuous(CUDAEnvironmentContext):
             runner_exits_game_after_tagged (bool, optional): [boolean indicating
                 whether runners exit the game after getting tagged or can remain in and
                 continue to get tagged]. Defaults to True.
-            use_cuda (bool, optional): [boolean to indicate whether to use the CPU
-                or the GPU. (cuda) for stepping through the environment].
-                Defaults to False.
+            env_backend (string, optional): [indicate whether to use the CPU
+                or the GPU (either pycuda or numba) for stepping through the environment].
+                Defaults to "cpu".
         """
         super().__init__()
 
@@ -300,9 +300,7 @@ class TagContinuous(CUDAEnvironmentContext):
         self.still_in_the_game = None
 
         # These will also be set via the env_wrapper
-        # use_cuda will be set to True (by the env_wrapper), if needed
-        # to be simulated on the GPU
-        self.use_cuda = use_cuda
+        self.env_backend = env_backend
 
         # Copy runners dict for applying at reset
         self.runners_at_reset = copy.deepcopy(self.runners)
@@ -732,7 +730,7 @@ class TagContinuous(CUDAEnvironmentContext):
         )
         data_dict.add_data(
             name="neighbor_distances",
-            data=np.zeros((self.num_agents, self.num_agents - 1), dtype=np.int32),
+            data=np.zeros((self.num_agents, self.num_agents - 1), dtype=np.float32),
             save_copy_and_apply_at_reset=True,
         )
         data_dict.add_data(
@@ -805,7 +803,7 @@ class TagContinuous(CUDAEnvironmentContext):
         Env step() - The GPU version calls the corresponding CUDA kernels
         """
         self.timestep += 1
-        if self.use_cuda:
+        if not self.env_backend == "cpu":
             # CUDA version of step()
             # This subsumes update_state(), generate_observation(),
             # and compute_reward()
@@ -845,11 +843,17 @@ class TagContinuous(CUDAEnvironmentContext):
                 ("n_agents", "meta"),
                 ("episode_length", "meta"),
             ]
-            self.cuda_step(
-                *self.cuda_step_function_feed(args),
-                block=self.cuda_function_manager.block,
-                grid=self.cuda_function_manager.grid,
-            )
+
+            if self.env_backend == "pycuda":
+                self.cuda_step(
+                    *self.cuda_step_function_feed(args),
+                    block=self.cuda_function_manager.block,
+                    grid=self.cuda_function_manager.grid,
+                )
+            elif self.env_backend == "numba":
+                self.cuda_step[
+                    self.cuda_function_manager.grid, self.cuda_function_manager.block
+                ](*self.cuda_step_function_feed(args))
             result = None  # do not return anything
         else:
             assert isinstance(actions, dict)
@@ -873,7 +877,7 @@ class TagContinuous(CUDAEnvironmentContext):
 
             # Update state and generate observation
             self.update_state(delta_accelerations, delta_turns)
-            if not self.use_cuda:
+            if self.env_backend == "cpu":
                 obs = self.generate_observation()
 
             # Compute rewards and done

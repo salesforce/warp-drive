@@ -84,6 +84,7 @@ class EnvironmentCPUvsGPU:
         blocks_per_env=None,
         assert_equal_num_agents_per_block=False,
         num_episodes=2,
+        gpu_env_backend="pycuda",
         use_gpu_testing_mode=False,
         testing_bin_filename=None,
         env_registrar=None,
@@ -106,6 +107,7 @@ class EnvironmentCPUvsGPU:
         :param num_episodes: number of episodes in the test
             hint: number >=2 is recommended
             since it can fully test the reset
+        :param gpu_env_backend: "pycuda" or "numba"
         :param use_gpu_testing_mode: a flag to determine whether to simply load
             the cuda binaries (.cubin) or compile the cuda source code (.cu)
             each time to create a binary.`
@@ -151,6 +153,7 @@ class EnvironmentCPUvsGPU:
             self.cuda_env_class = cuda_env_class
 
         self.env_configs = env_configs
+        self.gpu_env_backend = gpu_env_backend
         if use_gpu_testing_mode:
             logging.warning(
                 f"enforce num_envs = {num_envs} because you have "
@@ -189,14 +192,14 @@ class EnvironmentCPUvsGPU:
             obs_cpu = []
             for env_id in range(self.num_envs):
                 if self.env_registrar is not None and self.env_registrar.has_env(
-                    self.cpu_env_class.name, device="cpu"
+                    self.cpu_env_class.name, env_backend="cpu"
                 ):
                     env_cpu[env_id] = self.env_registrar.get(
-                        self.cpu_env_class.name, use_cuda=False
+                        self.cpu_env_class.name, env_backend="cpu"
                     )(**env_config)
                 else:
                     env_cpu[env_id] = self.env_wrapper(
-                        env_obj=self.cpu_env_class(**env_config), use_cuda=False
+                        env_obj=self.cpu_env_class(**env_config), env_backend="cpu"
                     )
                 if self.use_gpu_testing_mode:
                     assert env_cpu[env_id].n_agents == 5
@@ -208,7 +211,7 @@ class EnvironmentCPUvsGPU:
             # GPU version of env
             # ------------------
             if self.env_registrar is not None and self.env_registrar.has_env(
-                self.cuda_env_class.name, device="cuda"
+                self.cuda_env_class.name, env_backend=self.gpu_env_backend
             ):
                 # we use env_registrar to instantiate env object
                 env_obj = None
@@ -221,7 +224,7 @@ class EnvironmentCPUvsGPU:
                 "env_config": env_config,
                 "num_envs": self.num_envs,
                 "blocks_per_env": self.blocks_per_env,
-                "use_cuda": True,
+                "env_backend": self.gpu_env_backend,
                 "env_registrar": self.env_registrar,
             }
             # Testing mode

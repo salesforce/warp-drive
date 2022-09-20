@@ -1,33 +1,56 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>warp_drive.training.utils package &mdash; WarpDrive 1.0 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="https://assets.readthedocs.org/static/css/badge_only.css" type="text/css" />
+  
+  <title>warp_drive.training.utils package &mdash; WarpDrive 1.8.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="https://assets.readthedocs.org/static/css/badge_only.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script async="async" src="https://assets.readthedocs.org/static/javascript/readthedocs-doc-embed.js"></script>
-    <script src="_static/js/theme.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="warp_drive.utils package" href="warp_drive.utils.html" />
+    <link rel="next" title="warp_drive.training.utils.device_child_process package" href="warp_drive.training.utils.device_child_process.html" />
     <link rel="prev" title="warp_drive.training.models package" href="warp_drive.training.models.html" /> 
 
 <!-- RTD Extra Head -->
 
 <link rel="stylesheet" href="https://assets.readthedocs.org/static/css/readthedocs-doc-embed.css" type="text/css" />
 
-<script type="application/json" id="READTHEDOCS_DATA">{"ad_free": "", "api_host": "", "build_date": "2022-02-23T00:27:34Z", "builder": "sphinx", "canonical_url": "", "commit": "", "docroot": "", "features": {"docsearch_disabled": false}, "global_analytics_code": null, "language": "", "page": "warp_drive.training.utils", "programming_language": "", "project": "", "source_suffix": ".rst", "subprojects": {}, "theme": "", "user_analytics_code": null, "version": ""}</script>
+<script type="application/json" id="READTHEDOCS_DATA">{"ad_free": "", "api_host": "", "build_date": "2022-09-20T18:13:49Z", "builder": "sphinx", "canonical_url": "", "commit": "", "docroot": "", "features": {"docsearch_disabled": false}, "global_analytics_code": null, "language": "", "page": "warp_drive.training.utils", "programming_language": "", "project": "", "source_suffix": ".rst", "subprojects": {}, "theme": "", "user_analytics_code": null, "version": ""}</script>
 
 <!--
 Using this variable directly instead of using `JSON.parse` is deprecated.
@@ -42,13 +65,29 @@ READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerH
 <!-- end RTD <extrahead> -->
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+
+   
   <div class="wy-grid-for-nav">
+    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+          
+
+          
             <a href="index.html" class="icon icon-home"> WarpDrive
+          
+
+          
           </a>
+
+          
+            
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -56,75 +95,185 @@ READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerH
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="warp_drive.html">warp_drive package</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="warp_drive.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="warp_drive.managers.html">warp_drive.managers package</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="warp_drive.training.html">warp_drive.training package</a><ul class="current">
-<li class="toctree-l4 current"><a class="reference internal" href="warp_drive.training.html#subpackages">Subpackages</a></li>
-<li class="toctree-l4"><a class="reference internal" href="warp_drive.training.html#submodules">Submodules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="warp_drive.training.html#module-warp_drive.training.example_training_script">warp_drive.training.example_training_script module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="warp_drive.training.html#module-warp_drive.training.trainer">warp_drive.training.trainer module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="warp_drive.training.html#module-warp_drive.training">Module contents</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">warp-drive</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="example_envs.html">example_envs package</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="warp_drive.html">warp_drive package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="warp_drive.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="warp_drive.managers.html">warp_drive.managers package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="warp_drive.training.html">warp_drive.training package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="warp_drive.utils.html">warp_drive.utils package</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="warp_drive.utils.html">warp_drive.utils package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_cpu_gpu_consistency_checker">warp_drive.env_cpu_gpu_consistency_checker module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_wrapper">warp_drive.env_wrapper module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="warp_drive.html#module-warp_drive">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="warp_drive.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_cpu_gpu_consistency_checker">warp_drive.env_cpu_gpu_consistency_checker module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="warp_drive.html#module-warp_drive.env_wrapper">warp_drive.env_wrapper module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="warp_drive.html#module-warp_drive">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="example_envs.html">example_envs package</a></li>
 </ul>
 
+            
+          
         </div>
+        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">WarpDrive</a>
+        
       </nav>
 
+
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
+    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="modules.html">&lt;no title&gt;</a> &raquo;</li>
+        
+          <li><a href="modules.html">warp-drive</a> &raquo;</li>
+        
           <li><a href="warp_drive.html">warp_drive package</a> &raquo;</li>
+        
           <li><a href="warp_drive.training.html">warp_drive.training package</a> &raquo;</li>
+        
       <li>warp_drive.training.utils package</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
+        
+          
             <a href="_sources/warp_drive.training.utils.rst.txt" rel="nofollow"> View page source</a>
+          
+        
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-             
-  <section id="warp-drive-training-utils-package">
-<h1>warp_drive.training.utils package<a class="headerlink" href="#warp-drive-training-utils-package" title="Permalink to this headline"></a></h1>
-<section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
-</section>
-<section id="module-warp_drive.training.utils.data_loader">
-<span id="warp-drive-training-utils-data-loader-module"></span><h2>warp_drive.training.utils.data_loader module<a class="headerlink" href="#module-warp_drive.training.utils.data_loader" title="Permalink to this headline"></a></h2>
+            
+  <div class="section" id="warp-drive-training-utils-package">
+<h1>warp_drive.training.utils package<a class="headerlink" href="#warp-drive-training-utils-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="warp_drive.training.utils.device_child_process.html">warp_drive.training.utils.device_child_process package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.training.utils.device_child_process.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.training.utils.device_child_process.html#module-warp_drive.training.utils.device_child_process.child_process_numba">warp_drive.training.utils.device_child_process.child_process_numba module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.training.utils.device_child_process.html#module-warp_drive.training.utils.device_child_process.child_process_pycuda">warp_drive.training.utils.device_child_process.child_process_pycuda module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.training.utils.device_child_process.html#module-warp_drive.training.utils.device_child_process">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="warp_drive.training.utils.single_device_context.html">warp_drive.training.utils.single_device_context package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.training.utils.single_device_context.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.training.utils.single_device_context.html#module-warp_drive.training.utils.single_device_context.device_context_numba">warp_drive.training.utils.single_device_context.device_context_numba module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.training.utils.single_device_context.html#module-warp_drive.training.utils.single_device_context.device_context_pycuda">warp_drive.training.utils.single_device_context.device_context_pycuda module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="warp_drive.training.utils.single_device_context.html#module-warp_drive.training.utils.single_device_context">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-warp_drive.training.utils.child_process_base">
+<span id="warp-drive-training-utils-child-process-base-module"></span><h2>warp_drive.training.utils.child_process_base module<a class="headerlink" href="#module-warp_drive.training.utils.child_process_base" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="warp_drive.training.utils.child_process_base.DeviceContextProcessWrapper">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.child_process_base.</span></span><span class="sig-name descname"><span class="pre">DeviceContextProcessWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.child_process_base.DeviceContextProcessWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#warp_drive.training.utils.child_process_base.ProcessWrapper" title="warp_drive.training.utils.child_process_base.ProcessWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">warp_drive.training.utils.child_process_base.ProcessWrapper</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.training.utils.child_process_base.DeviceContextProcessWrapper.assert_context_consistency">
+<span class="sig-name descname"><span class="pre">assert_context_consistency</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.child_process_base.DeviceContextProcessWrapper.assert_context_consistency" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.training.utils.child_process_base.DeviceContextProcessWrapper.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.child_process_base.DeviceContextProcessWrapper.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to be run in sub-process; can be overridden in sub-class</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="warp_drive.training.utils.child_process_base.ProcessWrapper">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.child_process_base.</span></span><span class="sig-name descname"><span class="pre">ProcessWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.child_process_base.ProcessWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">multiprocessing.context.Process</span></code></p>
+<p>A process wrapper to catch exceptions when they occur.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="warp_drive.training.utils.child_process_base.ProcessWrapper.exception">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">exception</span></span><a class="headerlink" href="#warp_drive.training.utils.child_process_base.ProcessWrapper.exception" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.training.utils.child_process_base.ProcessWrapper.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.child_process_base.ProcessWrapper.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to be run in sub-process; can be overridden in sub-class</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-warp_drive.training.utils.data_loader">
+<span id="warp-drive-training-utils-data-loader-module"></span><h2>warp_drive.training.utils.data_loader module<a class="headerlink" href="#module-warp_drive.training.utils.data_loader" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="warp_drive.training.utils.data_loader.all_equal">
-<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.data_loader.</span></span><span class="sig-name descname"><span class="pre">all_equal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.data_loader.all_equal" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.data_loader.</span></span><span class="sig-name descname"><span class="pre">all_equal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.data_loader.all_equal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check all elements of an iterable (e.g., list) are identical</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="warp_drive.training.utils.data_loader.create_and_push_data_placeholders">
-<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.data_loader.</span></span><span class="sig-name descname"><span class="pre">create_and_push_data_placeholders</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_wrapper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy_tag_to_agent_id_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_separate_placeholders_for_each_policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obs_dim_corresponding_to_num_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'first'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_batch_size_per_env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_data_batch_placeholders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.data_loader.create_and_push_data_placeholders" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.data_loader.</span></span><span class="sig-name descname"><span class="pre">create_and_push_data_placeholders</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_wrapper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy_tag_to_agent_id_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_separate_placeholders_for_each_policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obs_dim_corresponding_to_num_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'first'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_batch_size_per_env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_data_batch_placeholders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.data_loader.create_and_push_data_placeholders" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create observations, sampled_actions, rewards and done flags placeholders
 and push to the device; this is required for generating environment
 roll-outs as well as training.
@@ -164,44 +313,147 @@ Defaults to True.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="warp_drive.training.utils.data_loader.get_obs">
-<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.data_loader.</span></span><span class="sig-name descname"><span class="pre">get_obs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obs_dim_corresponding_to_num_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'first'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.data_loader.get_obs" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.data_loader.</span></span><span class="sig-name descname"><span class="pre">get_obs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obs_dim_corresponding_to_num_agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'first'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.data_loader.get_obs" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</section>
-<section id="module-warp_drive.training.utils">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-warp_drive.training.utils" title="Permalink to this headline"></a></h2>
-</section>
-</section>
+</div>
+<div class="section" id="module-warp_drive.training.utils.param_scheduler">
+<span id="warp-drive-training-utils-param-scheduler-module"></span><h2>warp_drive.training.utils.param_scheduler module<a class="headerlink" href="#module-warp_drive.training.utils.param_scheduler" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="warp_drive.training.utils.param_scheduler.LRScheduler">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.param_scheduler.</span></span><span class="sig-name descname"><span class="pre">LRScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_timestep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timesteps_per_iteration</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.param_scheduler.LRScheduler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#warp_drive.training.utils.param_scheduler.ParamScheduler" title="warp_drive.training.utils.param_scheduler.ParamScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">warp_drive.training.utils.param_scheduler.ParamScheduler</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.lr_scheduler.LambdaLR</span></code></p>
+<p>A learning rate scheduler with Pytorch-style APIs,
+compatible with Pytorch Lightning.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="warp_drive.training.utils.param_scheduler.ParamScheduler">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.param_scheduler.</span></span><span class="sig-name descname"><span class="pre">ParamScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schedule</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.param_scheduler.ParamScheduler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A generic scheduler for the adapting parameters such as
+learning rate and entropy coefficient.
+Available scheduler types are [“constant”, “piecewise_linear”].</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="warp_drive.training.utils.param_scheduler.ParamScheduler.get_param_value">
+<span class="sig-name descname"><span class="pre">get_param_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestep</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.param_scheduler.ParamScheduler.get_param_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the parameter value at a desired timestep.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-warp_drive.training.utils.process_group_torch">
+<span id="warp-drive-training-utils-process-group-torch-module"></span><h2>warp_drive.training.utils.process_group_torch module<a class="headerlink" href="#module-warp_drive.training.utils.process_group_torch" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="warp_drive.training.utils.process_group_torch.clear_torch_process_group">
+<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.process_group_torch.</span></span><span class="sig-name descname"><span class="pre">clear_torch_process_group</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.process_group_torch.clear_torch_process_group" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="warp_drive.training.utils.process_group_torch.setup_torch_process_group">
+<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.process_group_torch.</span></span><span class="sig-name descname"><span class="pre">setup_torch_process_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">master_addr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'127.0.0.1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">master_port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'8888'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gloo'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.process_group_torch.setup_torch_process_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup code comes directly from the docs:</p>
+<p><a class="reference external" href="https://pytorch.org/tutorials/intermediate/ddp_tutorial.html">https://pytorch.org/tutorials/intermediate/ddp_tutorial.html</a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-warp_drive.training.utils.vertical_scaler">
+<span id="warp-drive-training-utils-vertical-scaler-module"></span><h2>warp_drive.training.utils.vertical_scaler module<a class="headerlink" href="#module-warp_drive.training.utils.vertical_scaler" title="Permalink to this headline">¶</a></h2>
+<p>Automatic Vertical Scaling
+Perform a binary search to figure out the max. values of the training parameters:
+‘num_envs’ and ‘train_batch_size’ to use on a GPU.
+The highest ‘num_envs’ is chosen that maximizes the GPU utilization
+(i.e., uses up as many GPU blocks possible). The highest ‘train_batch_size’
+is then chosen in order to maximize the GPU memory usage.
+These two parameters essentially determine the largest data batch size that
+can be used towards training on a GPU.
+Note: As the num_envs is increased further and further, the GPU eventually
+runs out of blocks and the function run will throw a
+‘cuMemFree failed: an illegal memory access was encountered` error.
+As the batch size is increased further and further (for a chosen num_envs),
+the GPU runs out of memory, and the function run will throw a
+<cite>CUDA out of memory</cite> error.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="warp_drive.training.utils.vertical_scaler.best_param_search">
+<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.vertical_scaler.</span></span><span class="sig-name descname"><span class="pre">best_param_search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">low</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.vertical_scaler.best_param_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform a binary search to determine the best parameter value.
+In this specific context, the best
+parameter is (the highest) value of the parameter (e.g. batch size)
+that can be used to run a func(tion)
+(e.g., training) successfully. Beyond a certain value,
+the function fails to run for reasons such as out-of-memory.
+param low: a starting low value to start searching from (defaults to 1).
+param margin: denotes the margin allowed when choosing the</p>
+<blockquote>
+<div><p>configuration parameter (and the optimal parameter).</p>
+</div></blockquote>
+<dl class="simple">
+<dt>param func: the function that is required to be run with the</dt><dd><p>configuration parameter.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="warp_drive.training.utils.vertical_scaler.perform_auto_vertical_scaling">
+<span class="sig-prename descclassname"><span class="pre">warp_drive.training.utils.vertical_scaler.</span></span><span class="sig-name descname"><span class="pre">perform_auto_vertical_scaling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">setup_trainer_and_train</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_iters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#warp_drive.training.utils.vertical_scaler.perform_auto_vertical_scaling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Auto-scale the number of envs and batch size to maximize GPU utilization.
+param num_iters: number of iterations to use when performing automatic
+vertical scaling.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-warp_drive.training.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-warp_drive.training.utils" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
 
 
            </div>
+           
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="warp_drive.training.utils.device_child_process.html" class="btn btn-neutral float-right" title="warp_drive.training.utils.device_child_process package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="warp_drive.training.models.html" class="btn btn-neutral float-left" title="warp_drive.training.models package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="warp_drive.utils.html" class="btn btn-neutral float-right" title="warp_drive.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Tian Lan, Sunil Srinivasa, Stephan Zheng.</p>
-  </div>
+    <p>
+        &#169; Copyright 2022, Tian Lan, Sunil Srinivasa, Brenton Chu, Stephan Zheng.
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
         </div>
       </div>
+
     </section>
+
   </div>
-  <script>
+  
+
+  <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

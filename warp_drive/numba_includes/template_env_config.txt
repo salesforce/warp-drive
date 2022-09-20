@@ -1,0 +1,10 @@
+# The followings are fundamental global constants for WarpDrive simulation and the template
+# will be populated from Python function_manager API based on the user configuration
+# `wk` represents WarpDrive Constant
+# `NumberEnvs`: number of environments
+# `NumberAgents`: number of agents per environment
+# `BlocksPerEnv`: number of blocks covering one environment, default is 1
+
+wkNumberEnvs = <<N_ENVS>>
+wkNumberAgents = <<N_AGENTS>>
+wkBlocksPerEnv = 1

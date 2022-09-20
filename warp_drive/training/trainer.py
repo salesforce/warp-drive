@@ -21,7 +21,6 @@ from gym.spaces import Discrete, MultiDiscrete
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from warp_drive.managers.function_manager import CUDASampler
 from warp_drive.training.algorithms.a2c import A2C
 from warp_drive.training.algorithms.ppo import PPO
 from warp_drive.training.models.fully_connected import FullyConnected
@@ -122,7 +121,7 @@ class Trainer:
                 Defaults to True.
         """
         assert env_wrapper is not None
-        assert env_wrapper.use_cuda
+        assert not env_wrapper.env_backend == "cpu"
         assert config is not None
         assert isinstance(create_separate_placeholders_for_each_policy, bool)
         assert obs_dim_corresponding_to_num_agents in ["first", "last"]
@@ -220,8 +219,22 @@ class Trainer:
             self.obs_dim_corresponding_to_num_agents,
             self.training_batch_size_per_env,
         )
+        if env_wrapper.env_backend == "pycuda":
+            from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
+                PyCUDASampler,
+            )
 
-        self.cuda_sample_controller = CUDASampler(self.cuda_envs.cuda_function_manager)
+            self.cuda_sample_controller = PyCUDASampler(
+                self.cuda_envs.cuda_function_manager
+            )
+        elif env_wrapper.env_backend == "numba":
+            from warp_drive.managers.numba_managers.numba_function_manager import (
+                NumbaSampler,
+            )
+
+            self.cuda_sample_controller = NumbaSampler(
+                self.cuda_envs.cuda_function_manager
+            )
 
         # Register action placeholders
         if self.create_separate_placeholders_for_each_policy:
@@ -704,12 +717,10 @@ class Trainer:
                     f"{_PROCESSED_OBSERVATIONS}_batch_{policy}"
                 )
             )
-
             # Policy evaluation for the entire batch
             probabilities_batch, value_functions_batch = self.models[policy](
                 obs=processed_obs_batch
             )
-
             # Loss and metrics computation
             loss, metrics = self.trainers[policy].compute_loss_and_metrics(
                 self.current_timestep[policy],
@@ -720,7 +731,6 @@ class Trainer:
                 value_functions_batch,
                 perform_logging=logging_flag,
             )
-
             # Compute the gradient norm
             grad_norm = 0.0
             for param in list(
@@ -739,14 +749,12 @@ class Trainer:
             # Loss backpropagation and optimization step
             self.optimizers[policy].zero_grad()
             loss.backward()
-
             if self.clip_grad_norm[policy]:
                 nn.utils.clip_grad_norm_(
                     self.models[policy].parameters(), self.max_grad_norm[policy]
                 )
 
             self.optimizers[policy].step()
-
             # Logging
             if logging_flag:
                 metrics_dict[policy] = metrics

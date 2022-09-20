@@ -1,0 +1,29 @@
+warp\_drive.training.utils.device\_child\_process package
+=========================================================
+
+Submodules
+----------
+
+warp\_drive.training.utils.device\_child\_process.child\_process\_numba module
+------------------------------------------------------------------------------
+
+.. automodule:: warp_drive.training.utils.device_child_process.child_process_numba
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+warp\_drive.training.utils.device\_child\_process.child\_process\_pycuda module
+-------------------------------------------------------------------------------
+
+.. automodule:: warp_drive.training.utils.device_child_process.child_process_pycuda
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: warp_drive.training.utils.device_child_process
+   :members:
+   :undoc-members:
+   :show-inheritance:

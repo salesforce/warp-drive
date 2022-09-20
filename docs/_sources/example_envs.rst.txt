@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   example_envs.dummy_env
    example_envs.tag_continuous
    example_envs.tag_gridworld
 

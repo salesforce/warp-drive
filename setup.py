@@ -14,8 +14,8 @@ with open("requirements.txt") as f:
 
 setup(
     name="rl-warp-drive",
-    version="1.7.0",
-    author="Tian Lan, Sunil Srinivasa, Stephan Zheng",
+    version="2.0",
+    author="Tian Lan, Sunil Srinivasa, Brenton Chu, Stephan Zheng",
     author_email="stephan.zheng@salesforce.com",
     description="Framework for fast end-to-end "
     "multi-agent reinforcement learning on GPUs.",
@@ -30,6 +30,7 @@ setup(
             "cuda_bin/*",
             "cuda_includes/*",
             "cuda_includes/core/*.*",
+            "numba_includes/*.txt",
             "training/run_configs/default_configs.yaml",
         ],
     },

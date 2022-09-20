@@ -1,4 +1,15 @@
 # Changelog
+# Release 2.0 (2022-09-20)
+Big release:
+- WarpDrive:
+  - Added data and function managers for both CUDA C and Numba.
+  - Added core library (sampler and reset) for Numba.  
+  - Dual environment backends, supporting both CUDA C and Numba.
+  - Training pipeline compatible with both CUDA C and Numba.
+  - Full backward compatibility with version 1.
+- Environments
+  - tag (continuous version) implemented in Numba.
+ 
 # Release 1.7 (2022-09-08)
 - Update PyCUDA version to 2022.1
 

@@ -5,13 +5,14 @@ framework that implements end-to-end multi-agent RL on a single or multiple GPUs
 
 Using the extreme parallelization capability of GPUs, WarpDrive enables orders-of-magnitude 
 faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, 
-and runs simulations across multiple agents and multiple environment replicas in parallel. WarpDrive also provides the auto scaling tools to achieve the optimal throughput per device (version 1.3), to perform the distributed asynchronous training among multiple GPU devices (version 1.4), to combine multiple GPU blocks for one environment replica (version 1.6).
+and runs simulations across multiple agents and multiple environment replicas in parallel. WarpDrive also provides the auto scaling tools to achieve the optimal throughput per device (version 1.3), to perform the distributed asynchronous training among multiple GPU devices (version 1.4), to combine multiple GPU blocks for one environment replica (version 1.6). 
 Together, these allow the user to run thousands of concurrent multi-agent simulations and train 
 on extremely large batches of experience, achieving over 100x throughput over CPU-based counterparts.
+Since version 2.0, WarpDrive supports the dual backends of CUDA C (pre-compiled ) and Numba (JIT compiled). 
 
-Our current release includes several multi-agent environments
+We include several default multi-agent environments
 based on the game of "Tag", where taggers are trying to run after
-and tag the runners. Supported by WarpDrive, several much more complex environments such as Covid-19 environment and climate change environment have been developed, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
+and tag the runners. Several much more complex environments such as Covid-19 environment and climate change environment have been developed based on WarpDrive, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
 
 Below, we show multi-agent RL policies 
 trained for different tagger:runner speed ratios using WarpDrive. 
@@ -26,11 +27,11 @@ Here is a short example to train tagger and runner agents:
 
 ```python
 # Create a wrapped environment object via the EnvWrapper
-# Ensure that use_cuda is set to True (in order to run on the GPU)
+# Ensure that env_backend is set to 'pycuda' or 'numba' (in order to run on the GPU)
 env_wrapper = EnvWrapper(
     TagContinuous(**run_config["env"]),
     num_envs=run_config["trainer"]["num_envs"], 
-    use_cuda=True
+    env_backend="pycuda"
 )
 
 # Agents can share policy models: this dictionary maps policy model names to agent ids.
@@ -57,7 +58,7 @@ node versus a single A100 GPU (using WarpDrive), for the Tag environment with 10
 
 
 ## Code Structure
-WarpDrive provides a CUDA + Python framework and quality-of-life tools, so you can quickly build fast, flexible and massively distributed multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA step function at the CUDA environment layer, while the rest is a pure Python interface. We have step-by-step tutorials for you to master the workflow.
+WarpDrive provides a CUDA (or Numba) + Python framework and quality-of-life tools, so you can quickly build fast, flexible and massively distributed multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA or Numba step function at the CUDA environment layer, while the rest is a pure Python interface. We have step-by-step tutorials for you to master the workflow.
 
 <img src="https://user-images.githubusercontent.com/31748898/151683116-299943b9-4e70-4a7b-8feb-16a3a351ca91.png" width="780" height="580"/>
 
@@ -82,18 +83,16 @@ If you're using WarpDrive in your research or applications, please cite using th
 
 Familiarize yourself with WarpDrive by running these tutorials on Colab or [NGC container](https://catalog.ngc.nvidia.com/orgs/nvidia/resources/warp_drive)!
 
-- [A simple end-to-end RL training example](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/simple-end-to-end-example.ipynb): Explains how to get started with
-  multi-agent RL training with just a few lines of code.
-- [WarpDrive basics](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-1-warp_drive_basics.ipynb): Explains the basics of Python APIs in the host managing the
-  CUDA data and kernel functions in the GPU.
-- [WarpDrive sampler](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-2-warp_drive_sampler.ipynb): Explains Python APIs controlling the GPU action sampler.
-- [WarpDrive resetter and logger](https://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-3-warp_drive_reset_and_log.ipynb): Explains Python APIs controlling the GPU
-  environment resetter and rollout history logger.
-- [Create custom environments](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4-create_custom_environments.md): Explains how to create your own custom RL
-  environment in CUDA C, and integrate it with WarpDrive.
-- [Training with WarpDrive](http://colab.research.google.com/github/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb): Explains how to train your environment on the
-  GPU.
-- [Scaling Up training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md): Explains how to scale up the training throughput on a single GPU and/or across multiple GPUs.
+- [WarpDrive basics(Introdunction and PyCUDA)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-1.a-warp_drive_basics.ipynb)
+- [WarpDrive basics(Numba)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-1.b-warp_drive_basics.ipynb)
+- [WarpDrive sampler(PyCUDA)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-2.a-warp_drive_sampler.ipynb)
+- [WarpDrive sampler(Numba)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-2.b-warp_drive_sampler.ipynb)
+- [WarpDrive resetter and logger](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-3-warp_drive_reset_and_log.ipynb)
+- [Create custom environments (PyCUDA)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4.a-create_custom_environments_pycuda.md)
+- [Create custom environments (Numba)](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-4.b-create_custom_environments_numba.md)
+- [Training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-5-training_with_warp_drive.ipynb)
+- [Scaling Up training with WarpDrive](https://www.github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-6-scaling_up_training_with_warp_drive.md)
+- [Training with WarpDrive + Pytorch Lightning](https://github.com/salesforce/warp-drive/blob/master/tutorials/tutorial-7-training_with_warp_drive_and_pytorch_lightning.ipynb)
 
 Note: You may also run these [tutorials](www.github.com/salesforce/warp-drive/blob/master/tutorials) *locally*, but you will need a GPU machine with nvcc compiler installed 
 and a compatible Nvidia GPU driver. You will also need [Jupyter](https://jupyter.org). 

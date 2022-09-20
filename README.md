@@ -183,8 +183,9 @@ pip install rl_warp_drive
 
 You can call directly from Python command to test all modules and the end-to-end training workflow.
 ```
-python warp_drive/utils/run_unittests.py
-python warp_drive/utils/run_trainer_tests.py
+python warp_drive/utils/unittests/run_unittests_pycuda.py
+python warp_drive/utils/unittests/run_unittests_numba.py
+python warp_drive/utils/unittests/run_trainer_tests.py
 ```
 
 ## Learn More

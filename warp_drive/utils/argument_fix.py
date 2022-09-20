@@ -7,7 +7,7 @@ class Argfix:
     modified in a function definition.
 
     One important use case:
-    For versions <= 1.7.0, it has
+    Before version 2.0, it has
         `use_cuda = True or False`
     For versions after, it has
     `env_backend = cpu, pycuda or numba`.

@@ -69,7 +69,7 @@ class EnvWrapper:
             default is None, the utility function will estimate it
             otherwise it will be reinforced
         :param env_backend: environment backend, choose between pycuda, numba, or cpu.
-            Before version 1.8, the old argument is 'use_cuda' = True or False
+            Before version 2.0, the old argument is 'use_cuda' = True or False
         :param use_cuda: deprecated since version 1.8
         :param testing_mode: a flag used to determine whether to simply load the .cubin (when
             testing) or compile the .cu source code to create a .cubin and use that.

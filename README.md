@@ -5,10 +5,11 @@ framework that implements end-to-end multi-agent RL on a single or multiple GPUs
 
 Using the extreme parallelization capability of GPUs, WarpDrive enables orders-of-magnitude 
 faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, 
-and runs simulations across multiple agents and multiple environment replicas in parallel. WarpDrive also provides the auto scaling tools to achieve the optimal throughput per device (version 1.3), to perform the distributed asynchronous training among multiple GPU devices (version 1.4), to combine multiple GPU blocks for one environment replica (version 1.6). 
+and runs simulations across multiple agents and multiple environment replicas in parallel. 
+WarpDrive (version 2.0) supports the dual backends of both CUDA C and JIT compiled Numba.
+WarpDrive also provides the auto scaling tools to achieve the optimal throughput per device (version 1.3), to perform the distributed asynchronous training among multiple GPU devices (version 1.4), to combine multiple GPU blocks for one environment replica (version 1.6). 
 Together, these allow the user to run thousands of concurrent multi-agent simulations and train 
-on extremely large batches of experience, achieving over 100x throughput over CPU-based counterparts.
-Since version 2.0, WarpDrive supports the dual backends of CUDA C (pre-compiled ) and Numba (JIT compiled). 
+on extremely large batches of experience, achieving over 100x throughput over CPU-based counterparts. 
 
 We include several default multi-agent environments
 based on the game of "Tag", where taggers are trying to run after

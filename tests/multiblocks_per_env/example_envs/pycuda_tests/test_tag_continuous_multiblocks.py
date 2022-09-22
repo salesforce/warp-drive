@@ -94,7 +94,7 @@ class MyTestCase(unittest.TestCase):
             blocks_per_env=2,
             assert_equal_num_agents_per_block=False,
             num_episodes=2,
-            use_gpu_testing_mode=False,
+            use_gpu_testing_mode=True,
             testing_bin_filename="test_build_multiblocks.fatbin",
         )
 

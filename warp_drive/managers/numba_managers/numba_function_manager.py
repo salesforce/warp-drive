@@ -65,7 +65,9 @@ class NumbaFunctionManager(CUDAFunctionManager):
         print(f"function_manager: Setting Numba to use CUDA device {process_id}")
 
     def import_numba_from_source_code(
-        self, numba_path: str, default_functions_included: bool = True
+        self,
+        numba_path: str,
+        default_functions_included: bool = True,
     ):
         assert (
             self._NUMBA_module is None
@@ -75,6 +77,21 @@ class NumbaFunctionManager(CUDAFunctionManager):
         logging.info("Successfully import the source code")
         if default_functions_included:
             self.initialize_default_functions()
+
+    def import_numba_env_config(
+        self,
+        template_header_file: str,
+        template_path: Optional[str] = None,
+    ):
+        if template_path is None:
+            template_path = f"{get_project_root()}/warp_drive/numba_includes"
+        update_env_header(
+            template_header_file=template_header_file,
+            path=template_path,
+            num_agents=self._num_agents,
+            num_envs=self._num_envs,
+            blocks_per_env=self._blocks_per_env,
+        )
 
     def dynamic_import_numba(
         self,

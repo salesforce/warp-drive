@@ -9,6 +9,7 @@ Big release:
   - Full backward compatibility with version 1.
 - Environments
   - tag (continuous version) implemented in Numba.
+  - tag (gridworld version) implemented in Numba.
  
 # Release 1.7 (2022-09-08)
 - Update PyCUDA version to 2022.1

@@ -249,7 +249,8 @@ class EnvironmentCPUvsGPU:
 
             # if the environment has explicit definition about
             # how action index to the action step
-            if hasattr(env_gpu.env, "step_actions"):
+            if hasattr(env_gpu.env, "step_actions") and \
+                    hasattr(env_gpu.cuda_function_manager, "initialize_shared_constants"):
                 k_index_to_action_arr = env_gpu.env.step_actions
                 env_gpu.cuda_data_manager.add_shared_constants(
                     {"kIndexToActionArr": k_index_to_action_arr}

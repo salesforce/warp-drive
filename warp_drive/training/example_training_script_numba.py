@@ -18,6 +18,7 @@ import torch
 import yaml
 
 from example_envs.tag_continuous.tag_continuous import TagContinuous
+from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.trainer import Trainer
 from warp_drive.training.utils.distributed_train.distributed_trainer_numba import (
@@ -64,9 +65,20 @@ def setup_trainer_and_train(
             event_messenger=event_messenger,
             process_id=device_id,
         )
+    elif run_configuration["name"] == _TAG_GRIDWORLD:
+        env_wrapper = EnvWrapper(
+            CUDATagGridWorld(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
     else:
         raise NotImplementedError(
-            f"Currently, the environments supported are [" f"{_TAG_CONTINUOUS}" f"]",
+            f"Currently, the environments supported are ["
+            f"{_TAG_GRIDWORLD}, "
+            f"{_TAG_CONTINUOUS}"
+            f"]",
         )
     # Policy mapping to agent ids: agents can share models
     # The policy_tag_to_agent_id_map dictionary maps

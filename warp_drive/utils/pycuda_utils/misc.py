@@ -15,7 +15,7 @@ from warp_drive.utils.env_registrar import EnvironmentRegistrar
 def get_default_env_directory(env_name):
     envs = {
         "TagGridWorld": f"{get_project_root()}"
-        f"/example_envs/tag_gridworld/tag_gridworld_step.cu",
+        f"/example_envs/tag_gridworld/tag_gridworld_step_pycuda.cu",
         "TagContinuous": f"{get_project_root()}"
         f"/example_envs/tag_continuous/tag_continuous_step_pycuda.cu",
         "YOUR_ENVIRONMENT": "FULL_PATH_TO_YOUR_ENV_SRC",

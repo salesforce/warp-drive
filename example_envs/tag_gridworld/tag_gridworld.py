@@ -41,6 +41,7 @@ class TagGridWorld:
         tag_penalty_for_runner=2.0,
         step_cost_for_tagger=0.01,
         use_full_observation=True,
+        env_backend="cpu"
     ):
         """
         :param num_taggers (int): the total number of taggers. In this env,
@@ -123,6 +124,8 @@ class TagGridWorld:
         self.reward_penalty = np.zeros(self.num_agents)
         self.reward_tag = np.zeros(self.num_agents)
         self.use_full_observation = use_full_observation
+
+        self.env_backend = env_backend
 
     name = "TagGridWorld"
 
@@ -273,6 +276,7 @@ class TagGridWorld:
         return obs
 
     def reset(self):
+        assert self.env_backend == "cpu"
         # Reset time to the beginning
         self.timestep = 0
 
@@ -291,6 +295,7 @@ class TagGridWorld:
         actions=None,
     ):
         self.timestep += 1
+        assert self.env_backend == "cpu"
         assert isinstance(actions, dict)
         assert len(actions) == self.num_agents
 
@@ -368,8 +373,15 @@ class CUDATagGridWorld(TagGridWorld, CUDAEnvironmentContext):
             "_timestep_",
             ("episode_length", "meta"),
         ]
-        self.cuda_step(
-            *self.cuda_step_function_feed(args),
-            block=self.cuda_function_manager.block,
-            grid=self.cuda_function_manager.grid,
-        )
+        if self.env_backend == "pycuda":
+            self.cuda_step(
+                *self.cuda_step_function_feed(args),
+                block=self.cuda_function_manager.block,
+                grid=self.cuda_function_manager.grid,
+            )
+        elif self.env_backend == "numba":
+            self.cuda_step[
+                self.cuda_function_manager.grid, self.cuda_function_manager.block
+            ](*self.cuda_step_function_feed(args))
+        else:
+            raise Exception("CUDATagGridWorld expects env_backend = 'pycuda' or 'numba' ")

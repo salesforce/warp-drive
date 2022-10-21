@@ -15,6 +15,7 @@ from warp_drive.utils.env_registrar import EnvironmentRegistrar
 def get_default_env_directory(env_name):
     envs = {
         "DummyEnv": "example_envs.dummy_env.test_step_numba",
+        "TagGridWorld": "example_envs.tag_gridworld.tag_gridworld_step_numba",
         "TagContinuous": "example_envs.tag_continuous.tag_continuous_step_numba",
         "YOUR_ENVIRONMENT": "PYTHON_PATH_TO_YOUR_ENV_SRC",
     }

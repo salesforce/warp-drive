@@ -6,6 +6,10 @@
 import math
 import numpy as np
 import numba.cuda as numba_driver
+try:
+    from warp_drive.numba_includes.env_config import *
+except ImportError:
+    raise Exception("warp_drive.numba_includes.env_config is not available")
 
 kIndexToActionArr = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
 
@@ -39,7 +43,7 @@ def NumbaTagGridWorldGenerateObservation(
     else:
         # obs shape is (num_envs, num_agents, 6)
         # state shape is (num_envs, num_agents,)
-        distance = numba_driver.cuda.shared.array(shape=(wkNumberAgents,), dtype=np.int32)
+        distance = numba_driver.shared.array(shape=(wkNumberAgents,), dtype=np.int32)
         obs_arr[env_id, agent_id, 0] = states_x_arr[env_id, agent_id] / float(world_boundary)
         obs_arr[env_id, agent_id, 1] = states_y_arr[env_id, agent_id] / float(world_boundary)
 
@@ -64,7 +68,7 @@ def NumbaTagGridWorldGenerateObservation(
             obs_arr[env_id, agent_id, 3] = states_y_arr[env_id, closest_agent_id] / float(world_boundary)
 
         obs_arr[env_id, agent_id, 4] = 1.0 * int(agent_id == wkNumberAgents - 1)
-        obs_arr[obs_start_index + 5] = env_timestep_arr[env_id] / float(episode_length)
+        obs_arr[env_id, agent_id, 5] = env_timestep_arr[env_id] / float(episode_length)
 
 
 @numba_driver.jit
@@ -89,7 +93,9 @@ def NumbaTagGridWorldStep(
     # The taggers try to tag the runner.
     kEnvId = numba_driver.blockIdx.x
     kThisAgentId = numba_driver.threadIdx.x
-    num_total_tagged = numba_driver.cuda.shared.array(shape=(1), dtype=np.int32)
+    is_tagger = (kThisAgentId < wkNumberAgents - 1)
+
+    num_total_tagged = numba_driver.shared.array(shape=(1,), dtype=np.int32)
 
     kAction = numba_driver.const.array_like(kIndexToActionArr)
 
@@ -97,7 +103,7 @@ def NumbaTagGridWorldStep(
     # Initialize the shared variable that counts how many runners are tagged.
     if kThisAgentId == 0:
         env_timestep_arr[kEnvId] += 1
-        num_total_tagged = 0
+        num_total_tagged[0] = 0
 
     numba_driver.syncthreads()
 
@@ -121,14 +127,14 @@ def NumbaTagGridWorldStep(
         states_x_arr[kEnvId, kThisAgentId] = 0
         __rew -= wall_hit_penalty
     elif states_x_arr[kEnvId, kThisAgentId] > world_boundary:
-        states_x_arr[state_index] = world_boundary
+        states_x_arr[kEnvId, kThisAgentId] = world_boundary
         __rew -= wall_hit_penalty
 
     if states_y_arr[kEnvId, kThisAgentId] < 0:
         states_y_arr[kEnvId, kThisAgentId] = 0
         __rew -= wall_hit_penalty
-    elif states_y_arr[state_index] > world_boundary:
-        states_y_arr[state_index] = world_boundary
+    elif states_y_arr[kEnvId, kThisAgentId] > world_boundary:
+        states_y_arr[kEnvId, kThisAgentId] = world_boundary
         __rew -= wall_hit_penalty
 
     # make sure all agents have finished their movements
@@ -140,7 +146,7 @@ def NumbaTagGridWorldStep(
     if is_tagger:
         if states_x_arr[kEnvId, kThisAgentId] == states_x_arr[kEnvId, wkNumberAgents - 1] and \
                 states_y_arr[kEnvId, kThisAgentId] == states_y_arr[kEnvId, wkNumberAgents - 1]:
-            numba_driver.cuda.atomic.add(num_total_tagged, 0, 1)
+            numba_driver.atomic.add(num_total_tagged, 0, 1)
 
     # make sure all agents have finished tag count
     numba_driver.syncthreads()
@@ -149,12 +155,12 @@ def NumbaTagGridWorldStep(
     # Rewards
     # -----------------------------------
     if is_tagger:
-        if num_total_tagged > 0:
+        if num_total_tagged[0] > 0:
             __rew += tag_reward_for_tagger
         else:
             __rew -= step_cost_for_tagger
     else:
-        if num_total_tagged > 0:
+        if num_total_tagged[0] > 0:
             __rew -= tag_penalty_for_runner
         else:
             __rew += step_cost_for_tagger
@@ -179,6 +185,6 @@ def NumbaTagGridWorldStep(
     # End condition
     # -----------------------------------
     # Determine if we're done (the runner is tagged or not).
-    if env_timestep_arr[kEnvId] == episode_length or num_total_tagged > 0:
+    if env_timestep_arr[kEnvId] == episode_length or num_total_tagged[0] > 0:
         if kThisAgentId == 0:
             done_arr[kEnvId] = 1

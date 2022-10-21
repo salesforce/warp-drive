@@ -276,7 +276,6 @@ class TagGridWorld:
         return obs
 
     def reset(self):
-        assert self.env_backend == "cpu"
         # Reset time to the beginning
         self.timestep = 0
 
@@ -295,7 +294,6 @@ class TagGridWorld:
         actions=None,
     ):
         self.timestep += 1
-        assert self.env_backend == "cpu"
         assert isinstance(actions, dict)
         assert len(actions) == self.num_agents
 

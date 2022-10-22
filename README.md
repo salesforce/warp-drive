@@ -106,7 +106,7 @@ and a compatible Nvidia GPU driver. You will also need [Jupyter](https://jupyter
 See [https://jupyter.readthedocs.io/en/latest/install.html](https://jupyter.readthedocs.io/en/latest/install.html) for installation instructions
 
 #### Example Training Script
-We also provide some example scripts for you to jump start the end-to-end training.
+We provide some example scripts for you to quickly start the end-to-end training.
 For example, if you want to train tag_continuous environment (10 taggers and 100 runners) with 2 GPUs and CUDA C backend
 ```
 python example_training_script_pycuda.py -e tag_continuous -n 2

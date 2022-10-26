@@ -53,7 +53,7 @@ assert torch.cuda.device_count() > 0, "This notebook needs a GPU to run!"
 # %%
 # ! pip install -U rl_warp_drive
 
-# ! pip install 'pytorch_lightning>=1.4'
+# ! pip install 'pytorch_lightning==1.6.5'
 
 # Also ,install ffmpeg for visualizing animations
 # ! apt install ffmpeg --yes
@@ -157,15 +157,21 @@ run_config = dict(
 # # Instantiate the WarpDrive Module
 
 # %% [markdown]
-# In order to instantiate the WarpDrive module, we first use an environment wrapper to specify that the environment needs to be run on the GPU (via the `use_cuda` flag). Also, agents in the environment can share policy models; so we specify a dictionary to map each policy network model to the list of agent ids using that model.
+# In order to instantiate the WarpDrive module,
+# we first use an environment wrapper to specify that the environment needs to
+# be run on the GPU (via the `env_backend` flag).
+# Also, agents in the environment can share policy models;
+# so we specify a dictionary to map each policy network model to the list of agent ids using that model.
 
 # %%
-# Create a wrapped environment object via the EnvWrapper.
-# Ensure that use_cuda is set to True (in order to run on the GPU).
+# Create a wrapped environment object via the EnvWrapper
+# Ensure that env_backend is set to be "pycuda" (in order to run on the GPU)
+# WarpDrive v2 also supports JIT numba backend,
+# if you have installed Numba, you can set "numba" instead of "pycuda" too.
 env_wrapper = EnvWrapper(
     TagContinuous(**run_config["env"]),
     num_envs=run_config["trainer"]["num_envs"],
-    use_cuda=True,
+    env_backend="pycuda",
 )
 
 # Agents can share policy models: this dictionary maps policy model names to agent ids.

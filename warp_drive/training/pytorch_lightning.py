@@ -144,7 +144,7 @@ class WarpDriveModule(LightningModule):
         super().__init__()
 
         assert env_wrapper is not None
-        assert env_wrapper.use_cuda
+        assert env_wrapper.env_backend == "pycuda" or env_wrapper.env_backend == "numba"
         assert config is not None
         assert isinstance(create_separate_placeholders_for_each_policy, bool)
         assert obs_dim_corresponding_to_num_agents in ["first", "last"]

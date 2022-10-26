@@ -53,7 +53,7 @@ assert torch.cuda.device_count() > 0, "This notebook needs a GPU to run!"
 # %%
 # ! pip install -U rl_warp_drive
 
-# ! pip install 'pytorch_lightning==1.6.5'
+# ! pip install 'pytorch_lightning>=1.4'
 
 # Also ,install ffmpeg for visualizing animations
 # ! apt install ffmpeg --yes
@@ -222,7 +222,7 @@ num_gpus = 1
 num_episodes = run_config["trainer"]["num_episodes"]
 episode_length = run_config["env"]["episode_length"]
 training_batch_size = run_config["trainer"]["train_batch_size"]
-num_epochs = num_episodes * episode_length / training_batch_size
+num_epochs = int(num_episodes * episode_length / training_batch_size)
 
 # Set reload_dataloaders_every_n_epochs=1 to invoke
 # train_dataloader() each epoch.

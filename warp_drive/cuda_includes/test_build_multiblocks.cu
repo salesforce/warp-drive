@@ -12,7 +12,7 @@ const int wkBlocksPerEnv = 2;
 
 #include "./core_service.h"
 #include "../../example_envs/dummy_env/test_step.cu"
-#include "../../example_envs/tag_gridworld/tag_gridworld_step.cu"
+#include "../../example_envs/tag_gridworld/tag_gridworld_step_pycuda.cu"
 #include "../../example_envs/tag_continuous/tag_continuous_step_pycuda.cu"
 
 #endif  // CUDA_INCLUDES_TEST_BUILD_CONST_H_

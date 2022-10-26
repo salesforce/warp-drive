@@ -1,4 +1,7 @@
 # Changelog
+# Release 2.1 (2022-10-26)
+- v2 trainer integration with Pytorch Lightning
+
 # Release 2.0 (2022-09-20)
 Big release:
 - WarpDrive:

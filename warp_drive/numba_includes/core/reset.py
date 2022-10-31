@@ -36,7 +36,7 @@ def reset_when_done_3d(data, ref, done, agent_dim, feature_dim, force_reset):
                 data[env_id, tid, i] = ref[env_id, tid, i]
 
 
-@numba_driver.jit((int32[:], int32[:], int32))
+@numba_driver.jit((int32[::1], int32[::1], int32))
 def undo_done_flag_and_reset_timestep(done, timestep, force_reset):
     agent_id = numba_driver.threadIdx.x
     env_id = numba_driver.blockIdx.x

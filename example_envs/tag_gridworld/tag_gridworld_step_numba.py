@@ -6,6 +6,7 @@
 import math
 import numpy as np
 import numba.cuda as numba_driver
+from numba import float32, int32, boolean
 try:
     from warp_drive.numba_includes.env_config import *
 except ImportError:
@@ -14,7 +15,16 @@ except ImportError:
 kIndexToActionArr = np.array([[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]])
 
 
-@numba_driver.jit(device=True)
+@numba_driver.jit((int32[:, ::1],
+                   int32[:, ::1],
+                   float32[:, :, ::1],
+                   int32,
+                   int32[::1],
+                   int32,
+                   int32,
+                   int32,
+                   boolean),
+                  device=True)
 def NumbaTagGridWorldGenerateObservation(
     states_x_arr,
     states_y_arr,
@@ -71,7 +81,20 @@ def NumbaTagGridWorldGenerateObservation(
         obs_arr[env_id, agent_id, 5] = env_timestep_arr[env_id] / float(episode_length)
 
 
-@numba_driver.jit
+@numba_driver.jit((int32[:, ::1],
+                   int32[:, ::1],
+                   int32[:, ::1],
+                   int32[::1],
+                   float32[:, ::1],
+                   float32[:, :, ::1],
+                   float32,
+                   float32,
+                   float32,
+                   float32,
+                   boolean,
+                   int32,
+                   int32[::1],
+                   int32))
 def NumbaTagGridWorldStep(
     states_x_arr,
     states_y_arr,

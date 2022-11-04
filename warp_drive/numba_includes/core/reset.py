@@ -2,6 +2,8 @@ from numba import cuda as numba_driver
 from numba import float32, int32
 
 
+# @numba_driver.jit([(int32[:], int32[:], int32[:], int32),
+#                    (float32[:], float32[:], int32[:], int32)])
 @numba_driver.jit
 def reset_when_done_1d(data, ref, done, force_reset):
     env_id = numba_driver.blockIdx.x
@@ -11,8 +13,8 @@ def reset_when_done_1d(data, ref, done, force_reset):
             data[env_id] = ref[env_id]
 
 
-# @numba_driver.jit([(int32[:,::1], int32[:,::1], int32[::1], int32, int32),
-#                    (float32[:,::1], float32[:,::1], int32[::1], int32, int32)])
+# @numba_driver.jit([(int32[:, :], int32[:, :], int32[:], int32, int32),
+#                    (float32[:, :], float32[:, :], int32[:], int32, int32)])
 @numba_driver.jit
 def reset_when_done_2d(data, ref, done, feature_dim, force_reset):
     env_id = numba_driver.blockIdx.x
@@ -22,8 +24,8 @@ def reset_when_done_2d(data, ref, done, feature_dim, force_reset):
             data[env_id, tid] = ref[env_id, tid]
 
 
-# @numba_driver.jit([(int32[:,:,::1], int32[:,:,::1], int32[::1], int32, int32, int32),
-#                    (float32[:,:,::1], float32[:,:,::1], int32[::1], int32, int32, int32)])
+# @numba_driver.jit([(int32[:, :, :], int32[:, :, :], int32[:], int32, int32, int32),
+#                    (float32[:, :, :], float32[:, :, :], int32[:], int32, int32, int32)])
 @numba_driver.jit
 def reset_when_done_3d(data, ref, done, agent_dim, feature_dim, force_reset):
     env_id = numba_driver.blockIdx.x
@@ -34,8 +36,7 @@ def reset_when_done_3d(data, ref, done, agent_dim, feature_dim, force_reset):
                 data[env_id, tid, i] = ref[env_id, tid, i]
 
 
-# @numba_driver.jit(int32[::1], int32[::1], int32)
-@numba_driver.jit
+@numba_driver.jit((int32[::1], int32[::1], int32))
 def undo_done_flag_and_reset_timestep(done, timestep, force_reset):
     agent_id = numba_driver.threadIdx.x
     env_id = numba_driver.blockIdx.x

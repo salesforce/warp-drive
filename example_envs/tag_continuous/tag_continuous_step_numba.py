@@ -7,13 +7,21 @@
 import math
 
 import numba.cuda as numba_driver
+from numba import float32, int32, boolean
 
 kTwoPi = 6.283185308
 kEpsilon = 1.0e-10
 
 
 # Device helper function to compute distances between two agents
-@numba_driver.jit(device=True)
+@numba_driver.jit((float32[:, ::1],
+                   float32[:, ::1],
+                   int32,
+                   int32,
+                   int32,
+                   int32),
+                  device=True,
+                  inline=True)
 def ComputeDistance(
     loc_x_arr, loc_y_arr, kThisAgentId1, kThisAgentId2, kEnvId, kNumAgents
 ):
@@ -24,7 +32,27 @@ def ComputeDistance(
 
 
 # Device helper function to generate observation
-@numba_driver.jit(device=True)
+@numba_driver.jit((float32[:, ::1],
+                   float32[:, ::1],
+                   float32[:, ::1],
+                   float32[:, ::1],
+                   float32[:, ::1],
+                   int32[::1],
+                   float32,
+                   float32,
+                   int32,
+                   int32[:, ::1],
+                   boolean,
+                   float32[:, :, ::1],
+                   float32[:, :, ::1],
+                   int32[:, :, ::1],
+                   int32[:, :, ::1],
+                   int32[::1],
+                   int32,
+                   int32,
+                   int32,
+                   int32),
+                  device=True)
 def CudaTagContinuousGenerateObservation(
     loc_x_arr,
     loc_y_arr,
@@ -249,7 +277,27 @@ def CudaTagContinuousGenerateObservation(
 
 
 # Device helper function to compute rewards
-@numba_driver.jit(device=True)
+@numba_driver.jit((float32[:, ::1],
+                   float32[:, ::1],
+                   float32[:, ::1],
+                   float32,
+                   float32[:, ::1],
+                   float32[::1],
+                   int32[::1],
+                   int32[::1],
+                   float32,
+                   float32,
+                   float32,
+                   float32,
+                   boolean,
+                   int32[:, ::1],
+                   int32[::1],
+                   int32[::1],
+                   int32,
+                   int32,
+                   int32,
+                   int32),
+                  device=True)
 def CudaTagContinuousComputeReward(
     rewards_arr,
     loc_x_arr,
@@ -327,7 +375,39 @@ def CudaTagContinuousComputeReward(
             done_arr[kEnvId] = 1
 
 
-@numba_driver.jit
+@numba_driver.jit((float32[:, ::1],
+                   float32[:, ::1],
+                   float32[:, ::1],
+                   float32[:, ::1],
+                   float32[:, ::1],
+                   int32[::1],
+                   float32[:, ::1],
+                   float32,
+                   float32,
+                   float32[::1],
+                   float32[::1],
+                   float32,
+                   int32,
+                   float32[::1],
+                   boolean,
+                   int32[:, ::1],
+                   boolean,
+                   float32[:, :, ::1],
+                   int32[:, :, ::1],
+                   float32[:, :, ::1],
+                   int32[:, :, ::1],
+                   int32[:, :, ::1],
+                   float32[:, ::1],
+                   float32[::1],
+                   int32[::1],
+                   float32,
+                   float32,
+                   float32,
+                   float32,
+                   int32[::1],
+                   int32[::1],
+                   int32,
+                   int32))
 def NumbaTagContinuousStep(
     loc_x_arr,
     loc_y_arr,

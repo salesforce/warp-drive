@@ -68,20 +68,33 @@ WarpDrive provides a CUDA (or Numba) + Python framework and quality-of-life tool
 
 <img src="https://user-images.githubusercontent.com/31748898/151683116-299943b9-4e70-4a7b-8feb-16a3a351ca91.png" width="780" height="580"/>
 
-## White Paper and Citing WarpDrive
+## Papers and Citing WarpDrive
 
 You can find more details in our white paper: [https://arxiv.org/abs/2108.13976](https://arxiv.org/abs/2108.13976).
+
+and our paper published at Journal of Machine Learning Research [https://jmlr.org/papers/v23/22-0185.html](https://jmlr.org/papers/v23/22-0185.html)
 
 If you're using WarpDrive in your research or applications, please cite using this BibTeX:
 
 ```
+@article{JMLR:v23:22-0185,
+  author  = {Tian Lan and Sunil Srinivasa and Huan Wang and Stephan Zheng},
+  title   = {WarpDrive: Fast End-to-End Deep Multi-Agent Reinforcement Learning on a GPU},
+  journal = {Journal of Machine Learning Research},
+  year    = {2022},
+  volume  = {23},
+  number  = {316},
+  pages   = {1--6},
+  url     = {http://jmlr.org/papers/v23/22-0185.html}
+}
+
 @misc{lan2021warpdrive,
-      title={WarpDrive: Extremely Fast End-to-End Deep Multi-Agent Reinforcement Learning on a GPU}, 
-      author={Tian Lan and Sunil Srinivasa and Huan Wang and Caiming Xiong and Silvio Savarese and Stephan Zheng},
-      year={2021},
-      eprint={2108.13976},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG}
+  title={WarpDrive: Extremely Fast End-to-End Deep Multi-Agent Reinforcement Learning on a GPU}, 
+  author={Tian Lan and Sunil Srinivasa and Huan Wang and Caiming Xiong and Silvio Savarese and Stephan Zheng},
+  year={2021},
+  eprint={2108.13976},
+  archivePrefix={arXiv},
+  primaryClass={cs.LG}
 }
 ```
 

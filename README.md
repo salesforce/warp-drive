@@ -11,7 +11,7 @@ We have some main updates since its initial open source,
 - version 1.3: provides the auto scaling tools to achieve the optimal throughput per device.
 - version 1.4: supports the distributed asynchronous training among multiple GPU devices.
 - version 1.6: supports the aggregation of multiple GPU blocks for one environment replica. 
-- version 2.0: supports the dual backends of both CUDA C and JIT compiled Numba.
+- version 2.0: supports the dual backends of both CUDA C and JIT compiled Numba. [(Our Blog article)](https://blog.salesforceairesearch.com/warpdrive-v2-numba-nvidia-gpu-simulations/)
 
 Together, these allow the user to run thousands of concurrent multi-agent simulations and train 
 on extremely large batches of experience, achieving over 100x throughput over CPU-based counterparts. 
@@ -70,9 +70,7 @@ WarpDrive provides a CUDA (or Numba) + Python framework and quality-of-life tool
 
 ## Papers and Citing WarpDrive
 
-You can find more details in our white paper: [https://arxiv.org/abs/2108.13976](https://arxiv.org/abs/2108.13976).
-
-and our paper published at Journal of Machine Learning Research [https://jmlr.org/papers/v23/22-0185.html](https://jmlr.org/papers/v23/22-0185.html)
+Our paper published at *Journal of Machine Learning Research* (JMLR) [https://jmlr.org/papers/v23/22-0185.html](https://jmlr.org/papers/v23/22-0185.html). You can also find more details in our white paper: [https://arxiv.org/abs/2108.13976](https://arxiv.org/abs/2108.13976).
 
 If you're using WarpDrive in your research or applications, please cite using this BibTeX:
 

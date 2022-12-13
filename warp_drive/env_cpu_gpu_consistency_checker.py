@@ -239,12 +239,14 @@ class EnvironmentCPUvsGPU:
             env_gpu.reset_all_envs()
 
             # Push obs, sampled actions, rewards and done flags placeholders
-            # to the device
+            # to the device, we do not start the real production action_sampler
+            # for the test, but assign random actions for testing purpose
             create_and_push_data_placeholders(
-                env_gpu,
-                self.policy_tag_to_agent_id_map,
-                self.create_separate_placeholders_for_each_policy,
-                self.obs_dim_corresponding_to_num_agents,
+                env_wrapper=env_gpu,
+                action_sampler=None,
+                policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
+                create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
+                obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
             )
 
             # if the environment has explicit definition about

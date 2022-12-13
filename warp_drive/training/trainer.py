@@ -211,14 +211,6 @@ class Trainer:
         # upon resetting environments for the very first time.
         self.cuda_envs.reset_all_envs()
 
-        # Create and push data placeholders to the device
-        create_and_push_data_placeholders(
-            self.cuda_envs,
-            self.policy_tag_to_agent_id_map,
-            self.create_separate_placeholders_for_each_policy,
-            self.obs_dim_corresponding_to_num_agents,
-            self.training_batch_size_per_env,
-        )
         if env_wrapper.env_backend == "pycuda":
             from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
                 PyCUDASampler,
@@ -236,20 +228,15 @@ class Trainer:
                 self.cuda_envs.cuda_function_manager
             )
 
-        # Register action placeholders
-        if self.create_separate_placeholders_for_each_policy:
-            for policy in self.policies:
-                sample_agent_id = self.policy_tag_to_agent_id_map[policy][0]
-                action_space = self.cuda_envs.env.action_space[sample_agent_id]
-
-                self._register_actions(action_space, suffix=f"_{policy}")
-        else:
-            sample_policy = self.policies[0]
-            sample_agent_id = self.policy_tag_to_agent_id_map[sample_policy][0]
-            action_space = self.cuda_envs.env.action_space[sample_agent_id]
-
-            self._register_actions(action_space)
-
+        # Create and push data placeholders to the device
+        create_and_push_data_placeholders(
+            env_wrapper=self.cuda_envs,
+            action_sampler=self.cuda_sample_controller,
+            policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
+            create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
+            obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
+            training_batch_size_per_env=self.training_batch_size_per_env,
+        )
         # Seeding (device_id is included for distributed training)
         seed = (
             self.config["trainer"].get("seed", np.int32(time.time())) + self.device_id
@@ -459,7 +446,7 @@ class Trainer:
             self.cuda_envs.step_all_envs()
 
             # Bookkeeping rewards and done flags
-            _, done_flags = self._bookkeep_rewards_and_done_flags(batch_index)
+            _, done_flags = self._bookkeep_rewards_and_done_flags(batch_index=batch_index)
 
             # Reset all the environments that are in done state.
             if done_flags.any():
@@ -477,9 +464,7 @@ class Trainer:
         assert isinstance(batch_index, int)
         probabilities = {}
         for policy in self.policies:
-            probabilities[policy], _ = self.models[policy](
-                batch_index=batch_index, batch_size=self.training_batch_size_per_env
-            )
+            probabilities[policy], _ = self.models[policy](batch_index=batch_index)
 
         # Combine probabilities across policies if there are multiple policies,
         # yet they share the same action placeholders.
@@ -500,53 +485,28 @@ class Trainer:
             first_policy = list(probabilities.keys())[0]
             num_action_types = num_action_types[first_policy]
 
-            first_action_idx = 0
-            num_envs = probabilities[first_policy][first_action_idx].shape[0]
+            first_action_type_id = 0
+            num_envs = probabilities[first_policy][first_action_type_id].shape[0]
             num_agents = self.cuda_envs.env.num_agents
 
             combined_probabilities = [None for _ in range(num_action_types)]
-            for action_type in range(num_action_types):
-                action_dim = probabilities[first_policy][action_type].shape[-1]
-                combined_probabilities[action_type] = torch.zeros(
+            for action_type_id in range(num_action_types):
+                action_dim = probabilities[first_policy][action_type_id].shape[-1]
+                combined_probabilities[action_type_id] = torch.zeros(
                     (num_envs, num_agents, action_dim)
                 ).cuda()
 
             # Combine the probabilities across policies
-            for action_idx in range(num_action_types):
+            for action_type_id in range(num_action_types):
                 for policy, prob_values in probabilities.items():
                     agent_to_id_mapping = self.policy_tag_to_agent_id_map[policy]
-                    combined_probabilities[action_idx][
+                    combined_probabilities[action_type_id][
                         :, agent_to_id_mapping
-                    ] = prob_values[action_idx]
+                    ] = prob_values[action_type_id]
 
             probabilities = {_COMBINED: combined_probabilities}
 
         return probabilities
-
-    def _register_actions(self, action_space, suffix=""):
-        if isinstance(action_space, Discrete):
-            # Single action
-            action_dim = [action_space.n]
-        elif isinstance(action_space, MultiDiscrete):
-            # Multiple actions
-            action_dim = action_space.nvec
-        else:
-            raise NotImplementedError(
-                "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"
-            )
-        if len(action_dim) == 1:
-            self.cuda_sample_controller.register_actions(
-                self.cuda_envs.cuda_data_manager,
-                action_name=_ACTIONS + suffix,
-                num_actions=action_dim[0],
-            )
-        else:
-            for action_idx, _ in enumerate(action_dim):
-                self.cuda_sample_controller.register_actions(
-                    self.cuda_envs.cuda_data_manager,
-                    action_name=f"{_ACTIONS}_{action_idx}" + suffix,
-                    num_actions=action_dim[action_idx],
-                )
 
     def _sample_actions(self, probabilities, batch_index=0):
         """
@@ -555,48 +515,62 @@ class Trainer:
         assert isinstance(batch_index, int)
         if self.create_separate_placeholders_for_each_policy:
             for policy in self.policies:
-                suffix = f"_{policy}"
+                # Sample each individual policy
+                policy_suffix = f"_{policy}"
                 self._sample_actions_helper(
-                    probabilities[policy], batch_index, suffix=suffix
+                    probabilities[policy], policy_suffix=policy_suffix
                 )
+                # Push the actions to the batch
+                actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    _ACTIONS + policy_suffix
+                )
+                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    name=f"{_ACTIONS}_batch" + policy_suffix
+                )[batch_index] = actions
         else:
             assert len(probabilities) == 1
             policy = list(probabilities.keys())[0]
-            self._sample_actions_helper(probabilities[policy], batch_index)
+            # sample a single or a combined policy
+            self._sample_actions_helper(probabilities[policy])
+            actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                _ACTIONS
+            )
+            # Push the actions to the batch, if action sampler has no policy tag
+            # (1) there is only one policy, then action -> action_batch_policy
+            # (2) there are multiple policies, then action[policy_tag_to_agent_id[policy]] -> action_batch_policy
+            for policy in self.policies:
+                if len(self.policies) > 1:
+                    agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        name=f"{_ACTIONS}_batch_{policy}"
+                    )[batch_index] = actions[:, agent_ids_for_policy]
+                else:
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        name=f"{_ACTIONS}_batch_{policy}"
+                    )[batch_index] = actions
 
-    def _sample_actions_helper(self, probabilities, batch_index, suffix=""):
-
+    def _sample_actions_helper(self, probabilities, policy_suffix=""):
+        # Sample actions with policy_suffix tag
         num_action_types = len(probabilities)
 
         if num_action_types == 1:
-            action_name = _ACTIONS + suffix
+            action_name = _ACTIONS + policy_suffix
             self.cuda_sample_controller.sample(
                 self.cuda_envs.cuda_data_manager, probabilities[0], action_name
             )
-            # Push actions to the batch of actions
-            actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                action_name
-            )
-            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                name=f"{_ACTIONS}_batch" + suffix
-            )[batch_index, :, :, num_action_types - 1] = actions
-
         else:
-            for action_idx, probs in enumerate(probabilities):
-                action_name = f"{_ACTIONS}_{action_idx}" + suffix
+            for action_type_id, probs in enumerate(probabilities):
+                action_name = f"{_ACTIONS}_{action_type_id}" + policy_suffix
                 self.cuda_sample_controller.sample(
                     self.cuda_envs.cuda_data_manager, probs, action_name
                 )
-                # Push (indexed) actions to 'actions' and 'actions_batch'
+                # Push (indexed) actions to 'actions'
                 actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     action_name
                 )
                 self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=_ACTIONS + suffix
-                )[:, :, action_idx] = actions
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=f"{_ACTIONS}_batch" + suffix
-                )[batch_index, :, :, action_idx] = actions
+                    name=_ACTIONS + policy_suffix
+                )[:, :, action_type_id] = actions
 
     def _bookkeep_rewards_and_done_flags(self, batch_index):
         """
@@ -631,9 +605,16 @@ class Trainer:
             rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                 _REWARDS
             )
-            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                name=f"{_REWARDS}_batch"
-            )[batch_index] = rewards
+            for policy in self.policies:
+                if len(self.policies) > 1:
+                    agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        name=f"{_REWARDS}_batch_{policy}"
+                    )[batch_index] = rewards[:, agent_ids_for_policy]
+                else:
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        name=f"{_REWARDS}_batch_{policy}"
+                    )[batch_index] = rewards
 
             # Update the episodic rewards
             # (sum of individual step rewards over an episode)
@@ -672,18 +653,6 @@ class Trainer:
 
         metrics_dict = {}
 
-        # Fetch the actions and rewards batches for all agents
-        if not self.create_separate_placeholders_for_each_policy:
-            all_actions_batch = (
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    f"{_ACTIONS}_batch"
-                )
-            )
-            all_rewards_batch = (
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    f"{_REWARDS}_batch"
-                )
-            )
         done_flags_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
             f"{_DONE_FLAGS}_batch"
         )
@@ -693,25 +662,16 @@ class Trainer:
         # done_flags_batch is shaped (batch_size, num_envs)
         # Perform training sequentially for each policy
         for policy in self.policies_to_train:
-            if self.create_separate_placeholders_for_each_policy:
-                actions_batch = (
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        f"{_ACTIONS}_batch_{policy}"
-                    )
+            actions_batch = (
+                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    f"{_ACTIONS}_batch_{policy}"
                 )
-                rewards_batch = (
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        f"{_REWARDS}_batch_{policy}"
-                    )
+            )
+            rewards_batch = (
+                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    f"{_REWARDS}_batch_{policy}"
                 )
-            else:
-                # Filter the actions and rewards only for the agents
-                # corresponding to a particular policy
-                agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                actions_batch = all_actions_batch[:, :, agent_ids_for_policy, :]
-                rewards_batch = all_rewards_batch[:, :, agent_ids_for_policy]
-
-            # Fetch the (processed) observations batch to pass through the model
+            )
             processed_obs_batch = (
                 self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     f"{_PROCESSED_OBSERVATIONS}_batch_{policy}"

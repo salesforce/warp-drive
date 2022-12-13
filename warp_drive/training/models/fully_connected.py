@@ -16,6 +16,7 @@ from torch import nn
 
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
+from warp_drive.training.utils.data_loader import get_flattened_obs_size
 
 _OBSERVATIONS = Constants.OBSERVATIONS
 _PROCESSED_OBSERVATIONS = Constants.PROCESSED_OBSERVATIONS
@@ -71,7 +72,7 @@ class FullyConnected(nn.Module):
         sample_agent_id = self.policy_tag_to_agent_id_map[self.policy][0]
         # Flatten obs space
         self.observation_space = self.env.env.observation_space[sample_agent_id]
-        flattened_obs_size = self.get_flattened_obs_size()
+        self.flattened_obs_size = self.get_flattened_obs_size(self.observation_space)
 
         if isinstance(self.env.env.action_space[sample_agent_id], Discrete):
             action_space = [self.env.env.action_space[sample_agent_id].n]
@@ -80,7 +81,7 @@ class FullyConnected(nn.Module):
         else:
             raise NotImplementedError
 
-        input_dims = [flattened_obs_size] + fc_dims[:-1]
+        input_dims = [self.flattened_obs_size] + fc_dims[:-1]
         output_dims = fc_dims
 
         self.fc = nn.ModuleDict()
@@ -104,20 +105,13 @@ class FullyConnected(nn.Module):
         # used for action masking
         self.action_mask = None
 
-    def get_flattened_obs_size(self):
+        # max batch size allowed
+        name = f"{_PROCESSED_OBSERVATIONS}_batch_{self.policy}"
+        self.batch_size = self.env.cuda_data_manager.get_shape(name=name)[0]
+
+    def get_flattened_obs_size(self, observation_space):
         """Get the total size of the observations after flattening"""
-        if isinstance(self.observation_space, Box):
-            obs_size = np.prod(self.observation_space.shape)
-        elif isinstance(self.observation_space, Dict):
-            obs_size = 0
-            for key in self.observation_space:
-                if key == _ACTION_MASK:
-                    pass
-                else:
-                    obs_size += np.prod(self.observation_space[key].shape)
-        else:
-            raise NotImplementedError("Observation space must be of Box or Dict type")
-        return int(obs_size)
+        return get_flattened_obs_size(observation_space)
 
     def reshape_and_flatten_obs(self, obs):
         """
@@ -188,15 +182,20 @@ class FullyConnected(nn.Module):
             flattened_obs = torch.cat(list(flattened_obs_dict.values()), dim=-1)
         else:
             raise NotImplementedError("Observation space must be of Box or Dict type")
+
+        assert flattened_obs.shape[-1] == self.flattened_obs_size, \
+            f"The flattened observation size of {flattened_obs.shape[-1]} is different " \
+            f"from the designated size of {self.flattened_obs_size} "
+
         return flattened_obs
 
-    def forward(self, obs=None, batch_index=None, batch_size=None):
+    def forward(self, obs=None, batch_index=None):
         """
         Forward pass through the model.
         Returns action probabilities and value functions.
         """
         if obs is None:
-            assert batch_index < batch_size
+            assert batch_index < self.batch_size
             # Read in observation from the placeholders and flatten them
             # before passing through the fully connected layers.
             # This is particularly relevant if the observations space is a Dict.
@@ -211,7 +210,7 @@ class FullyConnected(nn.Module):
             # Push the processed (in this case, flattened) obs to the GPU (device).
             # The writing happens to a specific batch index in the processed obs batch.
             # The processed obs batch is required for training.
-            self.push_processed_obs_to_batch(batch_index, batch_size, ip)
+            self.push_processed_obs_to_batch(batch_index, ip)
 
         else:
             ip = obs
@@ -238,15 +237,8 @@ class FullyConnected(nn.Module):
 
         return action_probs, vals
 
-    def push_processed_obs_to_batch(self, batch_index, batch_size, processed_obs):
+    def push_processed_obs_to_batch(self, batch_index, processed_obs):
         name = f"{_PROCESSED_OBSERVATIONS}_batch_{self.policy}"
-        if not self.env.cuda_data_manager.is_data_on_device_via_torch(name):
-            processed_obs_batch = np.zeros((batch_size,) + processed_obs.shape)
-            processed_obs_feed = DataFeed()
-            processed_obs_feed.add_data(name=name, data=processed_obs_batch)
-            self.env.cuda_data_manager.push_data_to_device(
-                processed_obs_feed, torch_accessible=True
-            )
         self.env.cuda_data_manager.data_on_device_via_torch(name=name)[
             batch_index
         ] = processed_obs

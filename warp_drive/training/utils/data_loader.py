@@ -13,7 +13,9 @@ from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
 
 _OBSERVATIONS = Constants.OBSERVATIONS
+_PROCESSED_OBSERVATIONS = Constants.PROCESSED_OBSERVATIONS
 _ACTIONS = Constants.ACTIONS
+_ACTION_MASK = Constants.ACTION_MASK
 _REWARDS = Constants.REWARDS
 _DONE_FLAGS = Constants.DONE_FLAGS
 
@@ -27,6 +29,7 @@ def all_equal(iterable):
 
 def create_and_push_data_placeholders(
     env_wrapper=None,
+    action_sampler=None,
     policy_tag_to_agent_id_map=None,
     create_separate_placeholders_for_each_policy=False,
     obs_dim_corresponding_to_num_agents="first",
@@ -38,6 +41,7 @@ def create_and_push_data_placeholders(
     and push to the device; this is required for generating environment
     roll-outs as well as training.
     env_wrapper: the wrapped environment object.
+    action_sampler: the sample controller to register and sample actions
     policy_tag_to_agent_id_map:
         a dictionary mapping policy tag to agent ids.
     create_separate_placeholders_for_each_policy:
@@ -45,11 +49,13 @@ def create_and_push_data_placeholders(
         actions and rewards placeholders, for each policy,
         as designed in the step function. The placeholders will be
         used in the step() function and during training.
-        When there's only a single policy, this flag will be False.
-        It can also be True when there are multiple policies, yet
-        all the agents have the same obs and action space shapes,
-        so we can share the same placeholder.
+        This flag will be False when there's only a single policy, or
+        when there are multiple policies, yet all the agents have the same
+        obs and action space shapes, so we may share the same placeholder.
         Defaults to False.
+        Note: starting from version 2.2, and this flag is not for batch data anymore.
+        Training batches are always separated by policies because the training
+        is always separated by policies.
     obs_dim_corresponding_to_num_agents:
         indicative of which dimension in the observation corresponds
         to the number of agents, as designed in the step function.
@@ -84,32 +90,85 @@ def create_and_push_data_placeholders(
                 _validate_obs_action_spaces(relevant_agent_ids, env_wrapper)
             # Create separate observations, sampled_actions and rewards placeholders
             # for each policy.
-            _create_and_push_data_placeholders_helper(
+            _create_observation_placeholders_helper(
                 env_wrapper,
-                policy_tag_to_agent_id_map,
+                relevant_agent_ids,
                 obs_dim_corresponding_to_num_agents,
-                training_batch_size_per_env,
-                push_data_batch_placeholders,
-                suffix=f"_{pol_mod_tag}",
+                policy_suffix=f"_{pol_mod_tag}"
             )
+            _create_action_placeholders_helper(
+                env_wrapper,
+                relevant_agent_ids,
+                policy_suffix=f"_{pol_mod_tag}",
+            )
+            _create_reward_placeholders_helper(
+                env_wrapper,
+                relevant_agent_ids,
+                policy_suffix=f"_{pol_mod_tag}",
+            )
+            if action_sampler:
+                _prepare_action_sampler_helper(
+                    env_wrapper,
+                    action_sampler,
+                    relevant_agent_ids,
+                    policy_suffix=f"_{pol_mod_tag}",
+                )
             _log_obs_action_spaces(pol_mod_tag, relevant_agent_ids[0], env_wrapper)
     else:
-        # When there's only a single policy, this scenario will be used!
-        # It can also be used only when there are multiple policies, yet
-        # all the agents have the same obs/action space!
+        # When there's only a single policy, or there are multiple policies, yet
+        # all the agents have the same obs/action space,
+        # this scenario will be used
         relevant_agent_ids = list(range(env_wrapper.n_agents))
         if len(relevant_agent_ids) > 1:
             _validate_obs_action_spaces(relevant_agent_ids, env_wrapper)
-        _create_and_push_data_placeholders_helper(
+        _create_observation_placeholders_helper(
             env_wrapper,
-            policy_tag_to_agent_id_map,
+            relevant_agent_ids,
             obs_dim_corresponding_to_num_agents,
-            training_batch_size_per_env,
-            push_data_batch_placeholders,
         )
+        _create_action_placeholders_helper(
+            env_wrapper,
+            relevant_agent_ids,
+        )
+        _create_reward_placeholders_helper(
+            env_wrapper,
+            relevant_agent_ids,
+        )
+        if action_sampler:
+            _prepare_action_sampler_helper(
+                env_wrapper,
+                action_sampler,
+                relevant_agent_ids,
+            )
         for pol_mod_tag in policy_tag_to_agent_id_map:
             agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
             _log_obs_action_spaces(pol_mod_tag, agent_ids[0], env_wrapper)
+
+    if push_data_batch_placeholders:
+        for pol_mod_tag in policy_tag_to_agent_id_map:
+            relevant_agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
+            _create_observation_batches_helper(
+                env_wrapper,
+                relevant_agent_ids,
+                training_batch_size_per_env,
+                batch_suffix=f"_{pol_mod_tag}",
+            )
+            _create_action_batches_helper(
+                env_wrapper,
+                relevant_agent_ids,
+                training_batch_size_per_env,
+                batch_suffix=f"_{pol_mod_tag}",
+            )
+            _create_reward_batches_helper(
+                env_wrapper,
+                relevant_agent_ids,
+                training_batch_size_per_env,
+                batch_suffix=f"_{pol_mod_tag}",
+            )
+        _create_done_batches_helper(
+            env_wrapper,
+            training_batch_size_per_env,
+        )
 
 
 def _validate_policy_tag_to_agent_id_map(env_wrapper, policy_tag_to_agent_id_map):
@@ -200,17 +259,14 @@ def _log_obs_action_spaces(pol_mod_tag, agent_id, env_wrapper):
     logging.info("-" * 40)
 
 
-def _create_and_push_data_placeholders_helper(
+def _create_observation_placeholders_helper(
     env_wrapper,
-    policy_tag_to_agent_id_map,
+    agent_ids,
     obs_dim_corresponding_to_num_agents,
-    training_batch_size_per_env,
-    push_data_batch_placeholders,
-    suffix="",
+    policy_suffix="",
 ):
     """
-    Helper function to create and push obs, actions rewards
-    and done flags placeholders
+    Helper function to create obs placeholders
     """
     # Use the DataFeed class to add the observations, actions
     # and rewards placeholder arrays.
@@ -221,15 +277,7 @@ def _create_and_push_data_placeholders_helper(
     obs = [env_wrapper.obs_at_reset() for _ in range(num_envs)]
     assert len(obs) == num_envs
     first_env_id = 0
-
-    # Push observations to the device
-    if suffix == "":
-        agent_ids = sorted(list(obs[0].keys()))
-        first_agent_id = agent_ids[0]
-    else:
-        pol_tag = suffix.split("_")[1]
-        agent_ids = policy_tag_to_agent_id_map[pol_tag]
-        first_agent_id = agent_ids[0]
+    first_agent_id = agent_ids[0]
 
     if isinstance(obs[first_env_id][first_agent_id], (list, np.ndarray)):
         agent_obs_for_all_envs = [
@@ -239,74 +287,145 @@ def _create_and_push_data_placeholders_helper(
         stacked_obs = np.stack(agent_obs_for_all_envs, axis=0)
 
         tensor_feed.add_data(
-            name=f"{_OBSERVATIONS}" + suffix,
+            name=f"{_OBSERVATIONS}" + policy_suffix,
             data=stacked_obs,
             save_copy_and_apply_at_reset=True,
         )
     elif isinstance(obs[first_env_id][first_agent_id], dict):
-        for key in obs[first_env_id][first_agent_id]:
+        for obs_key in obs[first_env_id][first_agent_id]:
             agent_obs_for_all_envs = [
                 get_obs(
-                    obs[env_id], agent_ids, obs_dim_corresponding_to_num_agents, key=key
+                    obs[env_id], agent_ids, obs_dim_corresponding_to_num_agents, obs_key=obs_key
                 )
                 for env_id in range(num_envs)
             ]
             stacked_obs = np.stack(agent_obs_for_all_envs, axis=0)
 
             tensor_feed.add_data(
-                name=f"{_OBSERVATIONS}" + suffix + f"_{key}",
+                name=f"{_OBSERVATIONS}" + policy_suffix + f"_{obs_key}",
                 data=stacked_obs,
                 save_copy_and_apply_at_reset=True,
             )
     else:
         raise NotImplementedError("Only array or dict type observations are supported!")
 
-    # Push sampled actions to the device
-    action_space = env_wrapper.env.action_space[first_agent_id]
-    if isinstance(action_space, MultiDiscrete):
-        action_dim = action_space.nvec
-    elif isinstance(action_space, Discrete):
-        action_dim = [action_space.n]
-    else:
-        raise NotImplementedError(
-            "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"
-        )
+    env_wrapper.cuda_data_manager.push_data_to_device(
+        tensor_feed, torch_accessible=True
+    )
 
-    num_action_types = len(action_dim)
+
+def _create_observation_batches_helper(
+    env_wrapper,
+    agent_ids,
+    training_batch_size_per_env,
+    batch_suffix="",
+    ):
+
+    tensor_feed = DataFeed()
+
+    num_envs = env_wrapper.n_envs
     num_agents = len(agent_ids)
+    first_agent_id = agent_ids[0]
+
+    name = f"{_PROCESSED_OBSERVATIONS}_batch" + batch_suffix
+    if not env_wrapper.cuda_data_manager.is_data_on_device_via_torch(name):
+        observation_space = env_wrapper.env.observation_space[first_agent_id]
+        processed_obs_size = get_flattened_obs_size(observation_space)
+        processed_obs_batch = np.zeros(
+            (training_batch_size_per_env,)
+            + (
+                num_envs,
+                num_agents,
+            )
+            + (processed_obs_size,)
+            )
+        tensor_feed.add_data(name=name, data=processed_obs_batch)
+
+    env_wrapper.cuda_data_manager.push_data_to_device(
+        tensor_feed, torch_accessible=True
+    )
+
+
+def _create_action_placeholders_helper(
+    env_wrapper,
+    agent_ids,
+    policy_suffix="",
+    ):
+
+    tensor_feed = DataFeed()
+
+    num_envs = env_wrapper.n_envs
+    num_agents = len(agent_ids)
+    first_agent_id = agent_ids[0]
+    action_space = env_wrapper.env.action_space[first_agent_id]
 
     sampled_actions_placeholder = np.zeros(
         (num_envs, num_agents),
         dtype=np.int32,
     )
+
     if isinstance(action_space, Discrete):
-        assert num_action_types == 1
-        tensor_feed.add_data(name=_ACTIONS + suffix, data=sampled_actions_placeholder)
+        tensor_feed.add_data(
+            name=_ACTIONS + policy_suffix,
+            data=np.zeros(
+                sampled_actions_placeholder.shape + (1,),
+                dtype=np.int32,
+            ),
+        )
+
     elif isinstance(action_space, MultiDiscrete):
+        action_dim = action_space.nvec
+        num_action_types = len(action_dim)
         # Add separate placeholders for a MultiDiscrete action space.
         # This is required since our sampler will be invoked for each
         # action dimension separately.
         assert num_action_types > 1
-        for action_idx in range(num_action_types):
+        for action_type_id in range(num_action_types):
             tensor_feed.add_data(
-                name=f"{_ACTIONS}_{action_idx}" + suffix,
+                name=f"{_ACTIONS}_{action_type_id}" + policy_suffix,
                 data=sampled_actions_placeholder,
             )
         tensor_feed.add_data(
-            name=_ACTIONS + suffix,
+            name=_ACTIONS + policy_suffix,
             data=np.zeros(
                 sampled_actions_placeholder.shape + (num_action_types,),
                 dtype=np.int32,
             ),
         )
+
     else:
         raise NotImplementedError(
-            "Action spaces can be of type 'Discrete' or 'MultiDiscrete'"
+            "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"
         )
 
-    if push_data_batch_placeholders:
+    env_wrapper.cuda_data_manager.push_data_to_device(
+        tensor_feed, torch_accessible=True
+    )
+
+
+def _create_action_batches_helper(
+    env_wrapper,
+    agent_ids,
+    training_batch_size_per_env,
+    batch_suffix="",
+    ):
+
+    tensor_feed = DataFeed()
+
+    num_envs = env_wrapper.n_envs
+    num_agents = len(agent_ids)
+    first_agent_id = agent_ids[0]
+    action_space = env_wrapper.env.action_space[first_agent_id]
+    if isinstance(action_space, MultiDiscrete):
+        action_dim = action_space.nvec
+        num_action_types = len(action_dim)
+    else:
+        num_action_types = 1
+
+    name = f"{_ACTIONS}_batch" + batch_suffix
+    if not env_wrapper.cuda_data_manager.is_data_on_device(name):
         tensor_feed.add_data(
-            name=f"{_ACTIONS}_batch" + suffix,
+            name=name,
             data=np.zeros(
                 (training_batch_size_per_env,)
                 + (
@@ -315,43 +434,123 @@ def _create_and_push_data_placeholders_helper(
                 )
                 + (num_action_types,),
                 dtype=np.int32,
-            ),
-        )
-
-    # Push rewards to the device
-    rewards_placeholder = np.zeros((num_envs, num_agents), dtype=np.float32)
-    tensor_feed.add_data(name=_REWARDS + suffix, data=rewards_placeholder)
-    if push_data_batch_placeholders:
-        tensor_feed.add_data(
-            name=f"{_REWARDS}_batch" + suffix,
-            data=np.zeros((training_batch_size_per_env,) + rewards_placeholder.shape),
-        )
-
-    if push_data_batch_placeholders:
-        # Push done flags placeholders for the roll-out batch to the device
-        # (if not already pushed)
-        name = f"{_DONE_FLAGS}_batch"
-        if not env_wrapper.cuda_data_manager.is_data_on_device(name):
-            done_flags_placeholder = (
-                env_wrapper.cuda_data_manager.pull_data_from_device("_done_")
-            )
-            tensor_feed.add_data(
-                name=name,
-                data=np.zeros(
-                    (training_batch_size_per_env,) + done_flags_placeholder.shape,
-                    dtype=np.int32,
                 ),
-            )
+        )
 
-    # Push all the placeholders to the device (GPU)
     env_wrapper.cuda_data_manager.push_data_to_device(
         tensor_feed, torch_accessible=True
     )
 
 
-def get_obs(obs, agent_ids, obs_dim_corresponding_to_num_agents="first", key=None):
-    if key is not None:
-        agent_obs = np.array([obs[agent_id][key] for agent_id in agent_ids])
+def _prepare_action_sampler_helper(
+    env_wrapper,
+    action_sampler,
+    agent_ids,
+    policy_suffix="",
+    ):
+
+    first_agent_id = agent_ids[0]
+    action_space = env_wrapper.env.action_space[first_agent_id]
+
+    if isinstance(action_space, Discrete):
+        action_dim = action_space.n
+        action_sampler.register_actions(
+            env_wrapper.cuda_data_manager,
+            action_name=_ACTIONS + policy_suffix,
+            num_actions=action_dim,
+        )
+    elif isinstance(action_space, MultiDiscrete):
+        action_dim = action_space.nvec
+        assert len(action_dim) > 1
+        for action_type_id, action_type_dim in enumerate(action_dim):
+            action_sampler.register_actions(
+                env_wrapper.cuda_data_manager,
+                action_name=f"{_ACTIONS}_{action_type_id}" + policy_suffix,
+                num_actions=action_type_dim,
+            )
+    else:
+        raise NotImplementedError(
+            "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"
+        )
+
+
+def _create_reward_placeholders_helper(
+    env_wrapper,
+    agent_ids,
+    policy_suffix="",
+    ):
+
+    tensor_feed = DataFeed()
+    num_envs = env_wrapper.n_envs
+    num_agents = len(agent_ids)
+
+    # Push rewards to the device
+    rewards_placeholder = np.zeros((num_envs, num_agents), dtype=np.float32)
+    tensor_feed.add_data(name=_REWARDS + policy_suffix, data=rewards_placeholder)
+
+    env_wrapper.cuda_data_manager.push_data_to_device(
+        tensor_feed, torch_accessible=True
+    )
+
+
+def _create_reward_batches_helper(
+    env_wrapper,
+    agent_ids,
+    training_batch_size_per_env,
+    batch_suffix="",
+    ):
+
+    tensor_feed = DataFeed()
+
+    num_envs = env_wrapper.n_envs
+    num_agents = len(agent_ids)
+
+    name = f"{_REWARDS}_batch" + batch_suffix
+    if not env_wrapper.cuda_data_manager.is_data_on_device(name):
+        tensor_feed.add_data(
+            name=name,
+            data=np.zeros(
+                (training_batch_size_per_env,)
+                + (
+                    num_envs,
+                    num_agents,
+                ),
+                dtype=np.float32,
+                ),
+        )
+
+    env_wrapper.cuda_data_manager.push_data_to_device(
+        tensor_feed, torch_accessible=True
+    )
+
+
+def _create_done_batches_helper(
+    env_wrapper,
+    training_batch_size_per_env,
+    ):
+
+    tensor_feed = DataFeed()
+    name = f"{_DONE_FLAGS}_batch"
+    if not env_wrapper.cuda_data_manager.is_data_on_device(name):
+        done_flags_placeholder_shape = (
+            env_wrapper.cuda_data_manager.get_shape("_done_")
+        )
+        tensor_feed.add_data(
+            name=name,
+            data=np.zeros(
+                (training_batch_size_per_env,) + done_flags_placeholder_shape,
+                dtype=np.int32,
+            ),
+        )
+
+    env_wrapper.cuda_data_manager.push_data_to_device(
+        tensor_feed, torch_accessible=True
+    )
+
+
+def get_obs(obs, agent_ids, obs_dim_corresponding_to_num_agents="first", obs_key=None):
+    if obs_key is not None:
+        agent_obs = np.array([obs[agent_id][obs_key] for agent_id in agent_ids])
     else:
         agent_obs = np.array([obs[agent_id] for agent_id in agent_ids])
 
@@ -359,3 +558,22 @@ def get_obs(obs, agent_ids, obs_dim_corresponding_to_num_agents="first", key=Non
         return np.swapaxes(agent_obs, 0, -1)
 
     return agent_obs
+
+
+def get_flattened_obs_size(observation_space):
+    """
+    Get the total size of the observations after flattening.
+    This shall be the default flattening strategy for processed observations
+    """
+    if isinstance(observation_space, Box):
+        obs_size = np.prod(observation_space.shape)
+    elif isinstance(observation_space, Dict):
+        obs_size = 0
+        for obs_key in observation_space:
+            if obs_key == _ACTION_MASK:
+                pass
+            else:
+                obs_size += np.prod(observation_space[obs_key].shape)
+    else:
+        raise NotImplementedError("Observation space must be of Box or Dict type")
+    return int(obs_size)

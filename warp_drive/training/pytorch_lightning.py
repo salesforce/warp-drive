@@ -255,7 +255,7 @@ class WarpDriveModule(LightningModule):
             policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
             create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
             obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
-            training_batch_size_per_env=self.training_batch_size_per_env,
+            push_data_batch_placeholders=False, # we use lightning to batch
         )
         # Seeding
         seed = self.config["trainer"].get("seed", np.int32(time.time()))
@@ -439,34 +439,11 @@ class WarpDriveModule(LightningModule):
                 self._sample_actions_helper(
                     probabilities[policy], policy_suffix=policy_suffix
                 )
-                # Push the actions to the batch
-                actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    _ACTIONS + policy_suffix
-                )
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=f"{_ACTIONS}_batch" + policy_suffix
-                )[batch_index] = actions
         else:
             assert len(probabilities) == 1
             policy = list(probabilities.keys())[0]
             # sample a single or a combined policy
             self._sample_actions_helper(probabilities[policy])
-            actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                _ACTIONS
-            )
-            # Push the actions to the batch, if action sampler has no policy tag
-            # (1) there is only one policy, then action -> action_batch_policy
-            # (2) there are multiple policies, then action[policy_tag_to_agent_id[policy]] -> action_batch_policy
-            for policy in self.policies:
-                if len(self.policies) > 1:
-                    agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=f"{_ACTIONS}_batch_{policy}"
-                    )[batch_index] = actions[:, agent_ids_for_policy]
-                else:
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=f"{_ACTIONS}_batch_{policy}"
-                    )[batch_index] = actions
 
     def _sample_actions_helper(self, probabilities, policy_suffix=""):
         # Sample actions with policy_suffix tag
@@ -501,9 +478,6 @@ class WarpDriveModule(LightningModule):
         done_flags = (
             self.cuda_envs.cuda_data_manager.data_on_device_via_torch("_done_") > 0
         )
-        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-            name=f"{_DONE_FLAGS}_batch"
-        )[batch_index] = done_flags
 
         done_env_ids = done_flags.nonzero()
 
@@ -513,10 +487,6 @@ class WarpDriveModule(LightningModule):
                 rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     f"{_REWARDS}_{policy}"
                 )
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=f"{_REWARDS}_batch_{policy}"
-                )[batch_index] = rewards
-
                 # Update the episodic rewards
                 self._update_episodic_rewards(rewards, done_env_ids, policy)
 
@@ -524,17 +494,6 @@ class WarpDriveModule(LightningModule):
             rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                 _REWARDS
             )
-            for policy in self.policies:
-                if len(self.policies) > 1:
-                    agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=f"{_REWARDS}_batch_{policy}"
-                    )[batch_index] = rewards[:, agent_ids_for_policy]
-                else:
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=f"{_REWARDS}_batch_{policy}"
-                    )[batch_index] = rewards
-
             # Update the episodic rewards
             # (sum of individual step rewards over an episode)
             for policy in self.policies:
@@ -543,7 +502,7 @@ class WarpDriveModule(LightningModule):
                     done_env_ids,
                     policy,
                 )
-        return rewards, done_flags
+        return done_flags
 
     def _update_episodic_rewards(self, rewards, done_env_ids, policy):
         self.reward_running_sum[policy] += rewards
@@ -718,7 +677,7 @@ class WarpDriveModule(LightningModule):
         # Sample actions using the computed probabilities
         # and push to the batch of actions
         start_event.record()
-        self._sample_actions(probabilities)
+        self._sample_actions(probabilities, batch_index=batch_index)
         end_event.record()
         torch.cuda.synchronize()
 
@@ -727,7 +686,7 @@ class WarpDriveModule(LightningModule):
         self.cuda_envs.step_all_envs()
 
         # Bookkeeping rewards and done flags
-        done_flags = self._bookkeep_rewards_and_done_flags()
+        done_flags = self._bookkeep_rewards_and_done_flags(batch_index=batch_index)
 
         # Reset all the environments that are in done state.
         if done_flags.any():
@@ -769,7 +728,7 @@ class WarpDriveModule(LightningModule):
         for policy in self.policies_to_train:
             if self.create_separate_placeholders_for_each_policy:
                 actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    f"{_ACTIONS}{policy}"
+                    f"{_ACTIONS}_{policy}"
                 )
                 rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     f"{_REWARDS}_{policy}"
@@ -793,6 +752,7 @@ class WarpDriveModule(LightningModule):
                 processed_obs[batch_index],
             )
         return training_batch
+
 
     # APIs to integrate with Pytorch Lightning
     # ----------------------------------------
@@ -998,14 +958,14 @@ class PerfStatsCallback(Callback):
         print("\n")
 
     # Pytorch Lightning hooks
-    def on_batch_start(self, trainer=None, pl_module=None):
+    def on_train_batch_start(self, trainer=None, pl_module=None):
         assert trainer is not None
         assert pl_module is not None
         self.iters += 1
         self.steps = self.iters * self.batch_size
         self.start_event_batch.record()
 
-    def on_batch_end(self, trainer=None, pl_module=None):
+    def on_train_batch_end(self, trainer=None, pl_module=None):
         assert trainer is not None
         assert pl_module is not None
         self.end_event_batch.record()

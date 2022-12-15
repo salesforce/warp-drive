@@ -144,15 +144,20 @@ def create_and_push_data_placeholders(
             agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
             _log_obs_action_spaces(pol_mod_tag, agent_ids[0], env_wrapper)
 
+    # The processed obs batch is always needed
+    for pol_mod_tag in policy_tag_to_agent_id_map:
+        relevant_agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
+        _create_processed_observation_batches_helper(
+            env_wrapper,
+            relevant_agent_ids,
+            training_batch_size_per_env,
+            batch_suffix=f"_{pol_mod_tag}",
+        )
+
+    # Actions, rewards and done batches are optional depending on the batching logic
     if push_data_batch_placeholders:
         for pol_mod_tag in policy_tag_to_agent_id_map:
             relevant_agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
-            _create_observation_batches_helper(
-                env_wrapper,
-                relevant_agent_ids,
-                training_batch_size_per_env,
-                batch_suffix=f"_{pol_mod_tag}",
-            )
             _create_action_batches_helper(
                 env_wrapper,
                 relevant_agent_ids,
@@ -314,7 +319,7 @@ def _create_observation_placeholders_helper(
     )
 
 
-def _create_observation_batches_helper(
+def _create_processed_observation_batches_helper(
     env_wrapper,
     agent_ids,
     training_batch_size_per_env,

@@ -33,7 +33,7 @@ def create_and_push_data_placeholders(
     policy_tag_to_agent_id_map=None,
     create_separate_placeholders_for_each_policy=False,
     obs_dim_corresponding_to_num_agents="first",
-    training_batch_size_per_env=1,
+    training_batch_size_per_env=None,
     push_data_batch_placeholders=True,
 ):
     """

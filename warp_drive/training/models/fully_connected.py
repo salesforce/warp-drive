@@ -195,7 +195,7 @@ class FullyConnected(nn.Module):
         Returns action probabilities and value functions.
         """
         if obs is None:
-            assert batch_index < self.batch_size
+            assert batch_index < self.batch_size, f"batch_index: {batch_index}, self.batch_size: {self.batch_size}"
             # Read in observation from the placeholders and flatten them
             # before passing through the fully connected layers.
             # This is particularly relevant if the observations space is a Dict.

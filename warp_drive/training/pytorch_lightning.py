@@ -255,6 +255,7 @@ class WarpDriveModule(LightningModule):
             policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
             create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
             obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
+            training_batch_size_per_env=self.training_batch_size_per_env,
             push_data_batch_placeholders=False, # we use lightning to batch
         )
         # Seeding
@@ -474,14 +475,14 @@ class WarpDriveModule(LightningModule):
         Also, update the episodic reward
         """
         assert isinstance(batch_index, int)
-        # Push done flags to done_flags_batch
+
         done_flags = (
             self.cuda_envs.cuda_data_manager.data_on_device_via_torch("_done_") > 0
         )
 
         done_env_ids = done_flags.nonzero()
 
-        # Push rewards to rewards_batch and update the episodic rewards
+        # update the episodic rewards
         if self.create_separate_placeholders_for_each_policy:
             for policy in self.policies:
                 rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
@@ -958,14 +959,14 @@ class PerfStatsCallback(Callback):
         print("\n")
 
     # Pytorch Lightning hooks
-    def on_train_batch_start(self, trainer=None, pl_module=None):
+    def on_batch_start(self, trainer=None, pl_module=None):
         assert trainer is not None
         assert pl_module is not None
         self.iters += 1
         self.steps = self.iters * self.batch_size
         self.start_event_batch.record()
 
-    def on_train_batch_end(self, trainer=None, pl_module=None):
+    def on_batch_end(self, trainer=None, pl_module=None):
         assert trainer is not None
         assert pl_module is not None
         self.end_event_batch.record()

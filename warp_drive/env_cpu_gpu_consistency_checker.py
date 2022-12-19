@@ -375,10 +375,8 @@ class EnvironmentCPUvsGPU:
                 [action_dict[agent_id] for agent_id in agent_ids], axis=0
             )
             actions_list += [combined_actions]
-        actions = np.stack(actions_list, axis=0)
+        actions = np.atleast_3d(np.stack(actions_list, axis=0))
         name = _ACTIONS + suffix
-        actions_data = DataFeed()
-        actions_data.add_data(name=name, data=actions)
         assert env_gpu.cuda_data_manager.is_data_on_device_via_torch(name)
         env_gpu.cuda_data_manager.data_on_device_via_torch(name)[:] = torch.from_numpy(
             actions

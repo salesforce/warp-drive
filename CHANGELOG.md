@@ -1,4 +1,7 @@
 # Changelog
+# Release 2.2 (2022-12-20)
+- Factorize the data loading for placeholders and batches (obs, actions and rewards) for the trainer.
+
 # Release 2.1 (2022-10-26)
 - v2 trainer integration with Pytorch Lightning
 

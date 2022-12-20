@@ -958,15 +958,15 @@ class PerfStatsCallback(Callback):
             print(f"{k:40}: {v:10.2f}")
         print("\n")
 
-    # Pytorch Lightning hooks
-    def on_batch_start(self, trainer=None, pl_module=None):
+    # Pytorch Lightning hooks (>= v1.8)
+    def on_train_batch_start(self, trainer=None, pl_module=None, batch=None, batch_idx=None):
         assert trainer is not None
         assert pl_module is not None
         self.iters += 1
         self.steps = self.iters * self.batch_size
         self.start_event_batch.record()
 
-    def on_batch_end(self, trainer=None, pl_module=None):
+    def on_train_batch_end(self, trainer=None, pl_module=None, outputs=None, batch=None, batch_idx=None):
         assert trainer is not None
         assert pl_module is not None
         self.end_event_batch.record()

@@ -247,6 +247,8 @@ class EnvironmentCPUvsGPU:
                 policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
                 create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
                 obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
+                training_batch_size_per_env=None,
+                push_data_batch_placeholders=False,
             )
 
             # if the environment has explicit definition about

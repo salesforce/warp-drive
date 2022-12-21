@@ -467,7 +467,7 @@ class WarpDriveModule(LightningModule):
                 )
                 self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     name=_ACTIONS + policy_suffix
-                )[:, :, action_type_id] = actions
+                )[:, :, action_type_id] = actions[:, :, 0]
 
     def _bookkeep_rewards_and_done_flags(self, batch_index):
         """

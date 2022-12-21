@@ -41,7 +41,7 @@ class TestActionSampler(unittest.TestCase):
     def test_agent_action_distribution(self):
 
         tensor = DataFeed()
-        tensor.add_data(name=f"{_ACTIONS}_a", data=[[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
+        tensor.add_data(name=f"{_ACTIONS}_a", data=[[[0], [0], [0], [0], [0]], [[0], [0], [0], [0], [0]]])
         self.dm.push_data_to_device(tensor, torch_accessible=True)
         self.assertTrue(self.dm.is_data_on_device_via_torch(f"{_ACTIONS}_a"))
 
@@ -77,7 +77,7 @@ class TestActionSampler(unittest.TestCase):
             self.sampler.sample(
                 self.dm, agent_distribution, action_name=f"{_ACTIONS}_a"
             )
-            actions_a_cuda[i] = self.dm.data_on_device_via_torch(f"{_ACTIONS}_a")
+            actions_a_cuda[i] = self.dm.data_on_device_via_torch(f"{_ACTIONS}_a")[:, :, 0]
         actions_a = actions_a_cuda.cpu().numpy()
 
         actions_a_env_0 = actions_a[:, 0]
@@ -157,7 +157,7 @@ class TestActionSampler(unittest.TestCase):
     def test_planner_action_distribution(self):
 
         tensor = DataFeed()
-        tensor.add_data(name=f"{_ACTIONS}_p", data=[[0], [0]])
+        tensor.add_data(name=f"{_ACTIONS}_p", data=[[[0]], [[0]]])
         self.dm.push_data_to_device(tensor, torch_accessible=True)
         self.assertTrue(self.dm.is_data_on_device_via_torch(f"{_ACTIONS}_p"))
 
@@ -177,7 +177,7 @@ class TestActionSampler(unittest.TestCase):
             self.sampler.sample(
                 self.dm, planner_distribution, action_name=f"{_ACTIONS}_p"
             )
-            actions_p_cuda[i] = self.dm.data_on_device_via_torch(f"{_ACTIONS}_p")
+            actions_p_cuda[i] = self.dm.data_on_device_via_torch(f"{_ACTIONS}_p")[:, :, 0]
         actions_p = actions_p_cuda.cpu().numpy()
         actions_p_env_0 = actions_p[:, 0]
         actions_p_env_1 = actions_p[:, 1]
@@ -210,7 +210,7 @@ class TestActionSampler(unittest.TestCase):
     def test_seed_randomness_across_threads(self):
 
         tensor = DataFeed()
-        tensor.add_data(name=f"{_ACTIONS}_s", data=[[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]])
+        tensor.add_data(name=f"{_ACTIONS}_s", data=[[[0], [0], [0], [0], [0]], [[0], [0], [0], [0], [0]]])
         self.dm.push_data_to_device(tensor, torch_accessible=True)
         self.assertTrue(self.dm.is_data_on_device_via_torch(f"{_ACTIONS}_s"))
 
@@ -246,7 +246,7 @@ class TestActionSampler(unittest.TestCase):
             self.sampler.sample(
                 self.dm, agent_distribution, action_name=f"{_ACTIONS}_s"
             )
-            actions_s_cuda[i] = self.dm.data_on_device_via_torch(f"{_ACTIONS}_s")
+            actions_s_cuda[i] = self.dm.data_on_device_via_torch(f"{_ACTIONS}_s")[:, :, 0]
         actions_s = actions_s_cuda.cpu().numpy()
         # randomness across agents in each env
         self.assertTrue(actions_s.std(axis=-1).reshape(-1).mean() > 0.9)

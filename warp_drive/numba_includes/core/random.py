@@ -30,7 +30,7 @@ def init_random(rng_states, seed):
     init_xoroshiro128p_states(states=rng_states, seed=seed)
 
 
-@numba_driver.jit((xoroshiro128p_type[::1], float32[:, :, ::1], int32[:, ::1], float32[:, :, ::1], int32))
+@numba_driver.jit((xoroshiro128p_type[::1], float32[:, :, ::1], int32[:, :, ::1], float32[:, :, ::1], int32))
 def sample_actions(rng_states, distr, action_indices, cum_distr, num_actions):
     env_id = numba_driver.blockIdx.x
     # Block id in a 1D grid
@@ -48,4 +48,5 @@ def sample_actions(rng_states, distr, action_indices, cum_distr, num_actions):
         )
 
     ind = search_index(cum_distr, p, env_id, agent_id, num_actions - 1)
-    action_indices[env_id, agent_id] = ind
+    # action_indices in the shape of [n_env, n_agent, 1]
+    action_indices[env_id, agent_id, 0] = ind

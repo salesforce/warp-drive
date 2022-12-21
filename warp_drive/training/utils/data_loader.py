@@ -40,11 +40,11 @@ def create_and_push_data_placeholders(
     Create observations, sampled_actions, rewards and done flags placeholders
     and push to the device; this is required for generating environment
     roll-outs as well as training.
-    env_wrapper: the wrapped environment object.
-    action_sampler: the sample controller to register and sample actions
-    policy_tag_to_agent_id_map:
+    :param env_wrapper: the wrapped environment object.
+    :param action_sampler: the sample controller to register and sample actions
+    :param policy_tag_to_agent_id_map:
         a dictionary mapping policy tag to agent ids.
-    create_separate_placeholders_for_each_policy:
+    :param create_separate_placeholders_for_each_policy:
         flag indicating whether there exist separate observations,
         actions and rewards placeholders, for each policy,
         as designed in the step function. The placeholders will be
@@ -56,7 +56,7 @@ def create_and_push_data_placeholders(
         Note: starting from version 2.2, and this flag is not for batch data anymore.
         Training batches are always separated by policies because the training
         is always separated by policies.
-    obs_dim_corresponding_to_num_agents:
+    :param obs_dim_corresponding_to_num_agents:
         indicative of which dimension in the observation corresponds
         to the number of agents, as designed in the step function.
         It may be "first" or "last". In other words,
@@ -65,17 +65,81 @@ def create_and_push_data_placeholders(
         WarpDrive to process the observations correctly. This is only
         relevant when a single obs key corresponds to multiple agents.
         Defaults to "first".
-    training_batch_size_per_env: the training batch size for each env.
-    push_data_batch_placeholders: an optional flag to push placeholders
+    :param training_batch_size_per_env: the training batch size for each env.
+        training_batch_size_per_env = training_batch_size // num_envs
+    :param push_data_batch_placeholders: an optional flag to push placeholders
         for the batches of actions, rewards and the done flags.
         Defaults to True.
+    :return:
+    1. create step-wise observation, action, reward placeholders
+
+        observation placeholder:
+            if create_separate_placeholders_for_each_policy:
+                name: f"{_OBSERVATIONS}" + f"_{policy_name}" + f"_{obs_key}"
+                shape: [num_envs, policy_tag_to_agent_id_map[policy_name], observation_size]
+            else:
+                name: f"{_OBSERVATIONS}" + f"_{obs_key}"
+                shape: [num_envs, num_agents, observation_size]
+
+        action placeholder:
+            if create_separate_placeholders_for_each_policy:
+                if MultiDiscrete:
+                    - The following is used for sampler to sample each individual actions
+                    name: f"{_ACTIONS}_{action_type_id}" + f"_{policy_name}"
+                    shape: [num_envs, policy_tag_to_agent_id_map[policy_name], 1]
+                    - The followings is used for action placeholders
+                    name: f"{_ACTIONS}" + f"_{policy_name}"
+                    shape: [num_envs, policy_tag_to_agent_id_map[policy_name], num_action_types]
+                elif Discrete:
+                    name: f"{_ACTIONS}" + f"_{policy_name}"
+                    shape: [num_envs, policy_tag_to_agent_id_map[policy_name], 1]
+            else:
+                if MultiDiscrete:
+                    - The following is used for sampler to sample each individual actions
+                    name: f"{_ACTIONS}_{action_type_id}"
+                    shape: [num_envs, num_agents, 1]
+                    - The followings is used for action placeholders
+                    name: f"{_ACTIONS}"
+                    shape: [num_envs, num_agents, num_action_types]
+
+                elif Discrete:
+                    name: f"{_ACTIONS}"
+                    shape: [num_envs, num_agents, 1]
+
+        reward placeholder:
+        if create_separate_placeholders_for_each_policy:
+            name: f"{_REWARDS}" + f"_{policy_name}"
+            shape: [num_envs, policy_tag_to_agent_id_map[policy_name]]
+        else:
+            name: f"{_REWARDS}"
+            shape: [num_envs, num_agents]
+
+    2. create batch action, reward and done for EACH policy
+       Note: They will be created if push_data_batch_placeholders is True.
+             Starting from version 2.2, training batches are always separated by policies because the training
+             is always separated by policies.
+        if push_data_batch_placeholders:
+            name: f"{_ACTIONS/_REWARDS/_DONES}_batch" + f"_{policy_name}"
+            shape: [training_batch_size_per_env, num_envs, policy_tag_to_agent_id_map[policy_name], ...]
+
+    3. create batch processed observation for EACH policy
+       Note: They will always be created as long as training_batch_size_per_env is defined
+             This is the default way of the flattened observation batch to feed into model.forward()
+        if training_batch_size_per_env is not None:
+            name: f"{_PROCESSED_OBSERVATIONS}_batch" + f"_{policy_name}"
+            shape: (training_batch_size_per_env, ) +
+                   (num_envs, policy_tag_to_agent_id_map[policy_name], ) +
+                   (processed_obs_size = get_flattened_obs_size(observation_space),)
+
     """
     assert env_wrapper is not None
     assert not env_wrapper.env_backend == "cpu"
     policy_tag_to_agent_id_map = _validate_policy_tag_to_agent_id_map(
         env_wrapper, policy_tag_to_agent_id_map
     )
-    assert training_batch_size_per_env > 0
+    if push_data_batch_placeholders:
+        assert training_batch_size_per_env > 0, \
+            "push_data_batch_placeholders is True, but training_batch_size_per_env is not defined"
 
     # Assert all the relevant agents' obs and action spaces are identical
     if create_separate_placeholders_for_each_policy:
@@ -144,15 +208,15 @@ def create_and_push_data_placeholders(
             agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
             _log_obs_action_spaces(pol_mod_tag, agent_ids[0], env_wrapper)
 
-    # The processed obs batch is always needed
-    for pol_mod_tag in policy_tag_to_agent_id_map:
-        relevant_agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
-        _create_processed_observation_batches_helper(
-            env_wrapper,
-            relevant_agent_ids,
-            training_batch_size_per_env,
-            batch_suffix=f"_{pol_mod_tag}",
-        )
+    if training_batch_size_per_env is not None and training_batch_size_per_env > 1:
+        for pol_mod_tag in policy_tag_to_agent_id_map:
+            relevant_agent_ids = policy_tag_to_agent_id_map[pol_mod_tag]
+            _create_processed_observation_batches_helper(
+                env_wrapper,
+                relevant_agent_ids,
+                training_batch_size_per_env,
+                batch_suffix=f"_{pol_mod_tag}",
+            )
 
     # Actions, rewards and done batches are optional depending on the batching logic
     if push_data_batch_placeholders:
@@ -364,16 +428,11 @@ def _create_action_placeholders_helper(
     first_agent_id = agent_ids[0]
     action_space = env_wrapper.env.action_space[first_agent_id]
 
-    sampled_actions_placeholder = np.zeros(
-        (num_envs, num_agents),
-        dtype=np.int32,
-    )
-
     if isinstance(action_space, Discrete):
         tensor_feed.add_data(
             name=_ACTIONS + policy_suffix,
             data=np.zeros(
-                sampled_actions_placeholder.shape + (1,),
+                (num_envs,  num_agents, 1),
                 dtype=np.int32,
             ),
         )
@@ -388,12 +447,19 @@ def _create_action_placeholders_helper(
         for action_type_id in range(num_action_types):
             tensor_feed.add_data(
                 name=f"{_ACTIONS}_{action_type_id}" + policy_suffix,
-                data=sampled_actions_placeholder,
+                data=np.zeros(
+                    (num_envs, num_agents, 1),
+                    dtype=np.int32,
+                ),
             )
         tensor_feed.add_data(
             name=_ACTIONS + policy_suffix,
             data=np.zeros(
-                sampled_actions_placeholder.shape + (num_action_types,),
+                (
+                    num_envs,
+                    num_agents,
+                )
+                + (num_action_types,),
                 dtype=np.int32,
             ),
         )

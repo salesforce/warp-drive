@@ -2,7 +2,7 @@ import time
 
 import pycuda.driver as pycuda_driver
 
-from warp_drive.training.utils.child_process_base import event_messenger
+from warp_drive.training.utils.device_child_process.child_process_base import event_messenger
 from warp_drive.training.utils.device_child_process.child_process_numba import (
     NumbaDeviceContextProcessWrapper,
 )

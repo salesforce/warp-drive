@@ -3,7 +3,7 @@ import multiprocessing as mp
 
 import torch
 
-from warp_drive.training.utils import process_group_torch
+from warp_drive.training.utils.device_child_process import process_group_torch
 
 mp.set_start_method("spawn", force=True)
 

@@ -1,6 +1,6 @@
 import logging
 
-from warp_drive.training.utils.child_process_base import DeviceContextProcessWrapper
+from warp_drive.training.utils.device_child_process.child_process_base import DeviceContextProcessWrapper
 from warp_drive.training.utils.single_device_context import device_context_pycuda
 
 

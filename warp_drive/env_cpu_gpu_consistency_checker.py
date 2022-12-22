@@ -239,12 +239,16 @@ class EnvironmentCPUvsGPU:
             env_gpu.reset_all_envs()
 
             # Push obs, sampled actions, rewards and done flags placeholders
-            # to the device
+            # to the device, we do not start the real production action_sampler
+            # for the test, but assign random actions for testing purpose
             create_and_push_data_placeholders(
-                env_gpu,
-                self.policy_tag_to_agent_id_map,
-                self.create_separate_placeholders_for_each_policy,
-                self.obs_dim_corresponding_to_num_agents,
+                env_wrapper=env_gpu,
+                action_sampler=None,
+                policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
+                create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
+                obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
+                training_batch_size_per_env=None,
+                push_data_batch_placeholders=False,
             )
 
             # if the environment has explicit definition about
@@ -373,10 +377,8 @@ class EnvironmentCPUvsGPU:
                 [action_dict[agent_id] for agent_id in agent_ids], axis=0
             )
             actions_list += [combined_actions]
-        actions = np.stack(actions_list, axis=0)
+        actions = np.atleast_3d(np.stack(actions_list, axis=0))
         name = _ACTIONS + suffix
-        actions_data = DataFeed()
-        actions_data.add_data(name=name, data=actions)
         assert env_gpu.cuda_data_manager.is_data_on_device_via_torch(name)
         env_gpu.cuda_data_manager.data_on_device_via_torch(name)[:] = torch.from_numpy(
             actions

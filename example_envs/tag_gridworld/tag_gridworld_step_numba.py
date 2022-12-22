@@ -83,7 +83,7 @@ def NumbaTagGridWorldGenerateObservation(
 
 @numba_driver.jit((int32[:, ::1],
                    int32[:, ::1],
-                   int32[:, ::1],
+                   int32[:, :, ::1],
                    int32[::1],
                    float32[:, ::1],
                    float32[:, :, ::1],
@@ -141,7 +141,7 @@ def NumbaTagGridWorldStep(
     # -----------------------------------
     # Take action and check boundary cost.
     # Map action index to the real action space.
-    ac_index = actions_arr[kEnvId, kThisAgentId]
+    ac_index = actions_arr[kEnvId, kThisAgentId, 0]
 
     states_x_arr[kEnvId, kThisAgentId] = states_x_arr[kEnvId, kThisAgentId] + kAction[ac_index, 0]
     states_y_arr[kEnvId, kThisAgentId] = states_y_arr[kEnvId, kThisAgentId] + kAction[ac_index, 1]

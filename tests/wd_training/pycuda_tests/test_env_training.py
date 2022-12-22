@@ -12,7 +12,7 @@ import torch
 import yaml
 
 from warp_drive.training.example_training_script_pycuda import setup_trainer_and_train
-from warp_drive.training.utils.child_process_base import ProcessWrapper
+from warp_drive.training.utils.device_child_process.child_process_base import ProcessWrapper
 from warp_drive.training.utils.distributed_train.distributed_trainer_pycuda import (
     perform_distributed_training,
 )

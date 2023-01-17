@@ -424,7 +424,7 @@ class EnvironmentCPUvsGPU:
                         obs[env_id],
                         agent_ids,
                         obs_dim_corresponding_to_num_agents,
-                        key=key,
+                        obs_key=key,
                     )
                     for env_id in range(num_envs)
                 ]

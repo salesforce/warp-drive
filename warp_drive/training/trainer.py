@@ -29,6 +29,9 @@ from warp_drive.training.utils.param_scheduler import ParamScheduler
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.constants import Constants
 
+import importlib
+
+
 _ROOT_DIR = get_project_root()
 
 _ACTIONS = Constants.ACTIONS
@@ -362,8 +365,15 @@ class Trainer:
 
     def _initialize_policy_model(self, policy):
         policy_model_config = self._get_config(["policy", policy, "model"])
-        if policy_model_config["type"] == "fully_connected":
-            model = FullyConnected(
+        
+        module_name = "warp_drive.training.models." + policy_model_config["type"] 
+        class_name = ''.join(word.title() for word in policy_model_config["type"].split('_'))
+        
+        module = importlib.import_module(module_name)
+        class_ = getattr(module, class_name)
+        
+        try:
+            model = class_(
                 self.cuda_envs,
                 policy_model_config["fc_dims"],
                 policy,
@@ -371,8 +381,9 @@ class Trainer:
                 self.create_separate_placeholders_for_each_policy,
                 self.obs_dim_corresponding_to_num_agents,
             )
-        else:
-            raise NotImplementedError
+        except NotImplementedError:
+            logging.error("Module '{module_name}' was not found or didn't had class '{class_name}'")
+
         self.models[policy] = model
 
     def _get_config(self, args):

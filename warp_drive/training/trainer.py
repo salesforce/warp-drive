@@ -366,13 +366,23 @@ class Trainer:
     def _initialize_policy_model(self, policy):
         policy_model_config = self._get_config(["policy", policy, "model"])
         
-        module_name = "warp_drive.training.models." + policy_model_config["type"] 
-        class_name = ''.join(word.title() for word in policy_model_config["type"].split('_'))
-        
-        module = importlib.import_module(module_name)
-        class_ = getattr(module, class_name)
+        # Look for the model in warp_drive.training.models
+        try :
+            module_name = "warp_drive.training.models." + policy_model_config["type"] 
+            module = importlib.import_module(module_name)
+        except ModuleNotFoundError:
+            logging.error(f"Module '{module_name}' was not found in warp_drive.training.models")
+            # Look for the model in local directory      
+            try:
+                module_name = policy_model_config["type"] 
+                module = importlib.import_module(module_name)
+            except ModuleNotFoundError:
+                logging.error(f"Module '{module_name}' was not found locally")
         
         try:
+            # If module is named custom_module, class must be CustomModule
+            class_name = ''.join(word.title() for word in policy_model_config["type"].split('_'))        
+            class_ = getattr(module, class_name)
             model = class_(
                 self.cuda_envs,
                 policy_model_config["fc_dims"],
@@ -383,6 +393,8 @@ class Trainer:
             )
         except NotImplementedError:
             logging.error("Module '{module_name}' was not found or didn't had class '{class_name}'")
+
+        print(f"Policy module {class_name} loaded from {module_name}")
 
         self.models[policy] = model
 

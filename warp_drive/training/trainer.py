@@ -21,8 +21,8 @@ from gym.spaces import Discrete, MultiDiscrete
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from warp_drive.training.algorithms.a2c import A2C
-from warp_drive.training.algorithms.ppo import PPO
+from warp_drive.training.algorithms.policygradient.a2c import A2C
+from warp_drive.training.algorithms.policygradient.ppo import PPO
 from warp_drive.training.models.fully_connected import FullyConnected
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
 from warp_drive.training.utils.param_scheduler import ParamScheduler
@@ -255,6 +255,8 @@ class Trainer:
         self.num_completed_episodes = {}
         self.episodic_reward_sum = {}
         self.reward_running_sum = {}
+        self.episodic_step_sum = {}
+        self.step_running_sum = {}
 
         # Indicates the current timestep of the policy model
         self.current_timestep = {}
@@ -304,6 +306,10 @@ class Trainer:
             self.reward_running_sum[policy] = torch.zeros(
                 (self.num_envs, num_agents_for_policy)
             ).cuda()
+            self.episodic_step_sum[policy] = (
+                torch.tensor(0).type(torch.int32).cuda()
+            )
+            self.step_running_sum[policy] = torch.zeros(self.num_envs, dtype=torch.int32).cuda()
 
         # Initialize the trainers
         self.trainers = {}
@@ -371,6 +377,13 @@ class Trainer:
                 self.create_separate_placeholders_for_each_policy,
                 self.obs_dim_corresponding_to_num_agents,
             )
+            if "init_method" in policy_model_config and \
+                    policy_model_config["init_method"] == "xavier":
+                def init_weights_by_xavier_uniform(m):
+                    if isinstance(m, nn.Linear):
+                        torch.nn.init.xavier_uniform(m.weight)
+
+                model.apply(init_weights_by_xavier_uniform)
         else:
             raise NotImplementedError
         self.models[policy] = model
@@ -508,7 +521,7 @@ class Trainer:
 
         return probabilities
 
-    def _sample_actions(self, probabilities, batch_index=0):
+    def _sample_actions(self, probabilities, batch_index=0, use_argmax=False):
         """
         Sample action probabilities (and push the sampled actions to the device).
         """
@@ -518,7 +531,7 @@ class Trainer:
                 # Sample each individual policy
                 policy_suffix = f"_{policy}"
                 self._sample_actions_helper(
-                    probabilities[policy], policy_suffix=policy_suffix
+                    probabilities[policy], policy_suffix=policy_suffix, use_argmax=use_argmax
                 )
                 # Push the actions to the batch
                 actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
@@ -531,7 +544,7 @@ class Trainer:
             assert len(probabilities) == 1
             policy = list(probabilities.keys())[0]
             # sample a single or a combined policy
-            self._sample_actions_helper(probabilities[policy])
+            self._sample_actions_helper(probabilities[policy], use_argmax=use_argmax)
             actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                 _ACTIONS
             )
@@ -549,20 +562,20 @@ class Trainer:
                         name=f"{_ACTIONS}_batch_{policy}"
                     )[batch_index] = actions
 
-    def _sample_actions_helper(self, probabilities, policy_suffix=""):
+    def _sample_actions_helper(self, probabilities, policy_suffix="", use_argmax=False):
         # Sample actions with policy_suffix tag
         num_action_types = len(probabilities)
 
         if num_action_types == 1:
             action_name = _ACTIONS + policy_suffix
             self.cuda_sample_controller.sample(
-                self.cuda_envs.cuda_data_manager, probabilities[0], action_name
+                self.cuda_envs.cuda_data_manager, probabilities[0], action_name, use_argmax
             )
         else:
             for action_type_id, probs in enumerate(probabilities):
                 action_name = f"{_ACTIONS}_{action_type_id}" + policy_suffix
                 self.cuda_sample_controller.sample(
-                    self.cuda_envs.cuda_data_manager, probs, action_name
+                    self.cuda_envs.cuda_data_manager, probs, action_name, use_argmax
                 )
                 # Push (indexed) actions to 'actions'
                 actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
@@ -628,6 +641,7 @@ class Trainer:
 
     def _update_episodic_rewards(self, rewards, done_env_ids, policy):
         self.reward_running_sum[policy] += rewards
+        self.step_running_sum[policy] += 1
 
         num_completed_episodes = len(done_env_ids)
         if num_completed_episodes > 0:
@@ -635,9 +649,13 @@ class Trainer:
             self.episodic_reward_sum[policy] += torch.sum(
                 self.reward_running_sum[policy][done_env_ids]
             )
+            self.episodic_step_sum[policy] += torch.sum(
+                self.step_running_sum[policy][done_env_ids]
+            )
             self.num_completed_episodes[policy] += num_completed_episodes
             # Reset the reward running sum
             self.reward_running_sum[policy][done_env_ids] = 0
+            self.step_running_sum[policy][done_env_ids] = 0
 
     def _update_model_params(self, iteration):
         start_event = torch.cuda.Event(enable_timing=True)
@@ -726,6 +744,8 @@ class Trainer:
                         "Learning rate": lr,
                         "Mean episodic reward": self.episodic_reward_sum[policy].item()
                         / (self.num_completed_episodes[policy] + _EPSILON),
+                        "Mean episodic steps": self.episodic_step_sum[policy].item()
+                        / (self.num_completed_episodes[policy] + _EPSILON),
                     }
                 )
 
@@ -733,7 +753,11 @@ class Trainer:
                 self.episodic_reward_sum[policy] = (
                     torch.tensor(0).type(torch.float32).cuda()
                 )
+                self.episodic_step_sum[policy] = (
+                    torch.tensor(0).type(torch.int32).cuda()
+                )
                 self.num_completed_episodes[policy] = 0
+
 
         end_event.record()
         torch.cuda.synchronize()
@@ -874,6 +898,9 @@ class Trainer:
         self,
         list_of_states=None,  # list of states (data array names) to fetch
         env_id=0,  # environment id to fetch the states from
+        include_rewards_actions=False,  # flag to output reward and action
+        policy="",  # if include_rewards_actions=True, the corresponding policy tag if any
+        use_argmax=False,
     ):
         """
         Step through env and fetch the desired states (data arrays on the GPU)
@@ -890,7 +917,6 @@ class Trainer:
         env = self.cuda_envs.env
 
         episode_states = {}
-
         for state in list_of_states:
             assert self.cuda_envs.cuda_data_manager.is_data_on_device(
                 state
@@ -903,22 +929,47 @@ class Trainer:
                 [np.ones(array_shape) for _ in range(env.episode_length + 1)]
             )
 
+        if include_rewards_actions:
+            policy_suffix = f"_{policy}" if len(policy) > 0 else ""
+            action_name = _ACTIONS + policy_suffix
+            reward_name = _REWARDS + policy_suffix
+            # Note the size is 1 step smaller than states because we do not have r_0 and a_T
+            episode_actions = np.zeros(
+                (
+                    env.episode_length, *self.cuda_envs.cuda_data_manager.get_shape(action_name)[1:]
+                ),
+                dtype=np.int32
+            )
+            episode_rewards= np.zeros(
+                (
+                    env.episode_length, *self.cuda_envs.cuda_data_manager.get_shape(reward_name)[1:]
+                ),
+                dtype=np.float32)
+
         for timestep in range(env.episode_length):
-            # Update the episode states
+            # Update the episode states s_t
             for state in list_of_states:
                 episode_states[state][
                     timestep
                 ] = self.cuda_envs.cuda_data_manager.pull_data_from_device(state)[
                     env_id
                 ]
-            # Evaluate policies to compute action probabilities
-            probabilities = self._evaluate_policies()
+            # Evaluate policies to compute action probabilities, we set batch_index=-1 to avoid batch writing
+            probabilities = self._evaluate_policies(batch_index=-1)
 
             # Sample actions
-            self._sample_actions(probabilities)
+            self._sample_actions(probabilities, use_argmax=use_argmax)
 
             # Step through all the environments
             self.cuda_envs.step_all_envs()
+
+            if include_rewards_actions:
+                # Update the episode action a_t
+                episode_actions[timestep] = \
+                    self.cuda_envs.cuda_data_manager.pull_data_from_device(action_name)[env_id]
+                # Update the episode reward r_(t+1)
+                episode_rewards[timestep] = \
+                    self.cuda_envs.cuda_data_manager.pull_data_from_device(reward_name)[env_id]
 
             # Fetch the states when episode is complete
             if env.cuda_data_manager.pull_data_from_device("_done_")[env_id]:
@@ -929,8 +980,10 @@ class Trainer:
                         env_id
                     ]
                 break
-
-        return episode_states
+        if include_rewards_actions:
+            return episode_states, episode_actions, episode_rewards
+        else:
+            return episode_states
 
 
 class PerfStats:

@@ -28,8 +28,8 @@ from pytorch_lightning.callbacks import Callback
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 
-from warp_drive.training.algorithms.a2c import A2C
-from warp_drive.training.algorithms.ppo import PPO
+from warp_drive.training.algorithms.policygradient.a2c import A2C
+from warp_drive.training.algorithms.policygradient.ppo import PPO
 from warp_drive.training.models.fully_connected import FullyConnected
 from warp_drive.training.trainer import Metrics
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders

@@ -210,7 +210,8 @@ class FullyConnected(nn.Module):
             # Push the processed (in this case, flattened) obs to the GPU (device).
             # The writing happens to a specific batch index in the processed obs batch.
             # The processed obs batch is required for training.
-            self.push_processed_obs_to_batch(batch_index, ip)
+            if batch_index >= 0:
+                self.push_processed_obs_to_batch(batch_index, ip)
 
         else:
             ip = obs

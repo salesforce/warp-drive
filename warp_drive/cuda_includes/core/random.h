@@ -18,6 +18,6 @@ extern "C" __global__ void free_random();
 // binary search to get the action index
 __device__ int search_index(float* distr, float p, int l, int r);
 
-extern "C" __global__ void sample_actions(float*, int*, float*, int, int);
+extern "C" __global__ void sample_actions(float*, int*, float*, int, int, int);
 
 #endif  // CUDA_INCLUDES_RANDOM_STATES_H_

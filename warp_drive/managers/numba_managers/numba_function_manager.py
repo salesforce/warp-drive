@@ -291,6 +291,7 @@ class NumbaSampler(CUDASampler):
         data_manager: NumbaDataManager,
         distribution: torch.Tensor,
         action_name: str,
+        use_argmax: bool = False,
     ):
         """
         Sample based on the distribution
@@ -300,6 +301,7 @@ class NumbaSampler(CUDASampler):
         (num_env, num_agents, num_actions)
         :param action_name: the name of action array that will
         record the sampled actions
+        :param use_argmax: if True, sample based on the argmax(distribution)
         """
         assert self._random_initialized, (
             "sample() requires the random seed initialized first, "
@@ -323,6 +325,7 @@ class NumbaSampler(CUDASampler):
             data_manager.device_data(action_name),
             data_manager.device_data(f"{action_name}_cum_distr"),
             np.int32(n_actions),
+            np.int32(use_argmax),
         )
 
 

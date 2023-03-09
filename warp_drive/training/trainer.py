@@ -366,22 +366,34 @@ class Trainer:
     def _initialize_policy_model(self, policy):
         policy_model_config = self._get_config(["policy", policy, "model"])
         
+        # Parameters checks
+        # note that here we check for "module_name" before "type" 
+        # that is because "type" is always present in default config and equal to "fully_connected"
+        if "module_name" in policy_model_config or "class_name" in policy_model_config:
+            file_name = policy_model_config["module_name"]
+            class_name = policy_model_config["class_name"]
+        elif "type" in policy_model_config :
+            file_name = policy_model_config["type"]
+            class_name = ''.join(word.title() for word in policy_model_config["type"].split('_'))
+        else : 
+            logging.error(f"Policy model can not be found whithout parameter (type) or (module_name, class_name)")
+    
         # Look for the model in warp_drive.training.models
         try :
-            module_name = "warp_drive.training.models." + policy_model_config["type"] 
+            module_name = "warp_drive.training.models." + file_name
             module = importlib.import_module(module_name)
         except ModuleNotFoundError:
-            logging.error(f"Module '{module_name}' was not found in warp_drive.training.models")
+            logging.info(f"Module '{file_name}' was not found in warp_drive.training.models")
+            logging.info(f"Trying to find '{file_name}' in local repository")
             # Look for the model in local directory      
             try:
-                module_name = policy_model_config["type"] 
+                module_name = file_name
                 module = importlib.import_module(module_name)
             except ModuleNotFoundError:
-                logging.error(f"Module '{module_name}' was not found locally")
+                logging.error(f"Module '{file_name}' was not found locally")
         
         try:
             # If module is named custom_module, class must be CustomModule
-            class_name = ''.join(word.title() for word in policy_model_config["type"].split('_'))        
             class_ = getattr(module, class_name)
             model = class_(
                 self.cuda_envs,

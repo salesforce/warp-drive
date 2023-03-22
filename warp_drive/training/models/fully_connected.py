@@ -50,7 +50,7 @@ class FullyConnected(nn.Module):
     def __init__(
         self,
         env,
-        fc_dims,
+        model_config,
         policy,
         policy_tag_to_agent_id_map,
         create_separate_placeholders_for_each_policy=False,
@@ -59,6 +59,7 @@ class FullyConnected(nn.Module):
         super().__init__()
 
         self.env = env
+        fc_dims = model_config["fc_dims"]
         assert isinstance(fc_dims, list)
         num_fc_layers = len(fc_dims)
         self.policy = policy

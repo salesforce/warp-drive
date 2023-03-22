@@ -14,9 +14,9 @@ with open("requirements.txt") as f:
 
 setup(
     name="rl-warp-drive",
-    version="2.2.2",
+    version="2.3",
     author="Tian Lan, Sunil Srinivasa, Brenton Chu, Stephan Zheng",
-    author_email="stephan.zheng@salesforce.com",
+    author_email="tian.lan@salesforce.com",
     description="Framework for fast end-to-end "
     "multi-agent reinforcement learning on GPUs.",
     long_description=open("README.md", "r", encoding="utf-8").read(),

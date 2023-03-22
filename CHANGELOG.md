@@ -1,4 +1,9 @@
 # Changelog
+# Release 2.3 (2022-03-22)
+- Add ModelFactory class to manage custom models
+- Add Xavier initialization for the model
+- Improve trainer.fetch_episode_states() so it can fetch (s, a, r) and can replay with argmax.
+
 # Release 2.2 (2022-12-20)
 - Factorize the data loading for placeholders and batches (obs, actions and rewards) for the trainer.
 

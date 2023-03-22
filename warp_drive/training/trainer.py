@@ -23,7 +23,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from warp_drive.training.algorithms.policygradient.a2c import A2C
 from warp_drive.training.algorithms.policygradient.ppo import PPO
-from warp_drive.training.models.fully_connected import FullyConnected
+from warp_drive.training.models.factory import ModelFactory
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
 from warp_drive.training.utils.param_scheduler import ParamScheduler
 from warp_drive.utils.common import get_project_root
@@ -368,24 +368,24 @@ class Trainer:
 
     def _initialize_policy_model(self, policy):
         policy_model_config = self._get_config(["policy", policy, "model"])
-        if policy_model_config["type"] == "fully_connected":
-            model = FullyConnected(
-                self.cuda_envs,
-                policy_model_config["fc_dims"],
-                policy,
-                self.policy_tag_to_agent_id_map,
-                self.create_separate_placeholders_for_each_policy,
-                self.obs_dim_corresponding_to_num_agents,
-            )
-            if "init_method" in policy_model_config and \
-                    policy_model_config["init_method"] == "xavier":
-                def init_weights_by_xavier_uniform(m):
-                    if isinstance(m, nn.Linear):
-                        torch.nn.init.xavier_uniform(m.weight)
+        model_obj = ModelFactory.create(policy_model_config["type"])
+        model = model_obj(
+            env=self.cuda_envs,
+            model_config=policy_model_config,
+            policy=policy,
+            policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
+            create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
+            obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
+        )
 
-                model.apply(init_weights_by_xavier_uniform)
-        else:
-            raise NotImplementedError
+        if "init_method" in policy_model_config and \
+                policy_model_config["init_method"] == "xavier":
+            def init_weights_by_xavier_uniform(m):
+                if isinstance(m, nn.Linear):
+                    torch.nn.init.xavier_uniform(m.weight)
+
+            model.apply(init_weights_by_xavier_uniform)
+
         self.models[policy] = model
 
     def _get_config(self, args):

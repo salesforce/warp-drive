@@ -190,7 +190,7 @@ pip install rl_warp_drive
 1. Clone this repository to your machine:
 
     ```
-    git clone www.github.com/salesforce/warp-drive
+    git clone https://www.github.com/salesforce/warp-drive
     ```
 
 2. *Optional, but recommended for first tries:* Create a new conda environment (named "warp_drive" below) and activate it:

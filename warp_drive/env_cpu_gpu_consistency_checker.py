@@ -22,8 +22,9 @@ from warp_drive.training.utils.data_loader import (
 )
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
+from warp_drive.utils import autoinit_pycuda
 
-pytorch_cuda_init_success = torch.cuda.FloatTensor(8)
+# pytorch_cuda_init_success = torch.cuda.FloatTensor(8)
 _OBSERVATIONS = Constants.OBSERVATIONS
 _ACTIONS = Constants.ACTIONS
 _REWARDS = Constants.REWARDS

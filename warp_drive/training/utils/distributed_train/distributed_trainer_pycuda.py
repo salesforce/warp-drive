@@ -1,6 +1,6 @@
 import time
 
-import pycuda.autoinit
+from warp_drive.utils import autoinit_pycuda
 import pycuda.driver as pycuda_driver
 
 from warp_drive.training.utils.device_child_process.child_process_base import event_messenger

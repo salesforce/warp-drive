@@ -6,7 +6,7 @@
 
 import logging
 
-import pycuda.autoinit
+from warp_drive.utils import autoinit_pycuda
 from pycuda.driver import Context
 
 

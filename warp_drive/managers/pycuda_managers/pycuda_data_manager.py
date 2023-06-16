@@ -9,7 +9,7 @@
 from typing import Optional
 
 import numpy as np
-import pycuda.autoinit
+from warp_drive.utils import autoinit_pycuda
 import pycuda.driver as pycuda_driver
 import torch
 

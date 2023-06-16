@@ -1,4 +1,8 @@
 # Changelog
+# Release 2.4 (2022-06-16)
+- Introduce new device context management and autoinit_pycuda 
+- Therefore, Torch (any version) will not conflict with PyCUDA in the GPU context 
+
 # Release 2.3 (2022-03-22)
 - Add ModelFactory class to manage custom models
 - Add Xavier initialization for the model

@@ -17,7 +17,6 @@ from warp_drive.managers.pycuda_managers.pycuda_function_manager import (
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.data_feed import DataFeed
 
-pytorch_cuda_init_success = torch.cuda.FloatTensor(8)
 
 _CUBIN_FILEPATH = f"{get_project_root()}/warp_drive/cuda_bin"
 

@@ -2,7 +2,8 @@ import os
 
 import pycuda.driver as cuda_driver
 import torch.distributed as dist
-from pycuda.tools import clear_context_caches, make_default_context
+from pycuda.tools import clear_context_caches
+from warp_drive.utils.device_context import make_current_context
 
 
 class PyCUDASingleDeviceContext:
@@ -13,12 +14,8 @@ class PyCUDASingleDeviceContext:
     _context = None
 
     def init_context(self, device_id=None):
-        if device_id is None:
-            context = make_default_context()
-            self._context = context
-        else:
-            context = cuda_driver.Device(device_id).make_context()
-            self._context = context
+        context = make_current_context(device_id)
+        self._context = context
 
     @property
     def context(self):

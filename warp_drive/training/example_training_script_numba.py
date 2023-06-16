@@ -50,7 +50,6 @@ def setup_trainer_and_train(
     and create the trainer object. Also, perform training.
     """
     logging.getLogger().setLevel(logging.ERROR)
-    torch.cuda.FloatTensor(8)  # add this line for successful cuda_init
 
     num_envs = run_configuration["trainer"]["num_envs"]
 

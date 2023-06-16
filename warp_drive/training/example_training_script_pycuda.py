@@ -26,7 +26,7 @@ from warp_drive.training.utils.distributed_train.distributed_trainer_pycuda impo
 )
 from warp_drive.training.utils.vertical_scaler import perform_auto_vertical_scaling
 from warp_drive.utils.common import get_project_root
-from warp_drive.utils import autoinit_pycuda
+
 
 _ROOT_DIR = get_project_root()
 
@@ -51,7 +51,6 @@ def setup_trainer_and_train(
     and create the trainer object. Also, perform training.
     """
     logging.getLogger().setLevel(logging.ERROR)
-    # torch.cuda.FloatTensor(8)  # add this line for successful cuda_init
 
     num_envs = run_configuration["trainer"]["num_envs"]
 

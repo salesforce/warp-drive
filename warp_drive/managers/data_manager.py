@@ -48,6 +48,7 @@ class CUDADataManager:
         self._device_data_pointer = {}
         self._scalar_data_list = []
         self._reset_data_list = []
+        self._reset_pool_target = {}
         self._log_data_list = []
         self._device_data_via_torch = {}
         self._shared_constants = {}
@@ -212,16 +213,32 @@ class CUDADataManager:
                 key not in self._host_data
             ), f"the data with name: {key} has already been registered at the host"
             value = content["data"]
+            is_reset_pool = False if "is_reset_pool" not in content["attributes"].keys() else \
+                content["attributes"]["is_reset_pool"]
             save_copy_and_apply_at_reset = content["attributes"][
                 "save_copy_and_apply_at_reset"
-            ]
-            log_data_across_episode = content["attributes"]["log_data_across_episode"]
+            ] if not is_reset_pool else False
+            log_data_across_episode = content["attributes"][
+                "log_data_across_episode"
+            ] if not is_reset_pool else False
 
             if isinstance(value, (np.ndarray, list)):
 
                 assert key not in self._device_data_pointer, (
                     f"the data with name: {key} has " f"already been pushed to device"
                 )
+
+                if is_reset_pool:
+                    assert key not in self._reset_pool_data_list, (
+                        f"the data with name: {key} has "
+                        f"already been registered at the reset_pool_data_list"
+                    )
+                    reset_target_key = content["attributes"]["reset_target"]
+                    assert reset_target_key not in self._reset_data_list, (
+                        f"the data with name: {reset_target_key} has "
+                        f"already been registered at the reset_data_list"
+                    )
+                    self._reset_pool_target[key] = reset_target_key
 
                 if isinstance(value, np.ndarray):
                     if not value.flags.c_contiguous:
@@ -267,6 +284,11 @@ class CUDADataManager:
                         f"the data with name: {key} has "
                         f"already been registered at the reset_data_list"
                     )
+                    assert key not in self._reset_pool_target.values(), (
+                        f"the data with name: {key} has "
+                        f"already been registered at the reset_pool_target"
+                    )
+
                     key_at_reset = f"{key}_at_reset"
                     self._shape[key_at_reset] = self._host_data[key].shape
                     self._dtype[key_at_reset] = self._host_data[key].dtype.name

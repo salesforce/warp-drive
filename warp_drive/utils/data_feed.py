@@ -85,3 +85,21 @@ class DataFeed(dict):
                 raise Exception(
                     "Unknown type of data configure, only support tuple and dictionary"
                 )
+
+    def add_pool_for_reset(self, name, data, reset_target):
+        """
+        a special data that serves for the reset function to pick up values at random
+        :param name: name of the data
+        :param data: data in the form of list, array or scalar
+        :param reset_target: specify the name of the data for the reset pool to apply for
+
+        for example, the following will add a reset pool called 'position_reset_pool' to reset 'position'
+        add_pool_for_reset("position_reset_pool", [1,2,3], "position")
+        """
+        self.add_data(name,
+                      data,
+                      save_copy_and_apply_at_reset = False,
+                      log_data_across_episode = False,
+                      is_reset_pool=True,
+                      reset_target=reset_target)
+

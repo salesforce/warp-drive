@@ -223,6 +223,7 @@ class CUDAEnvironmentReset:
         self._blocks_per_env = function_manager.blocks_per_env
         self._cuda_custom_reset = None
         self._cuda_reset_feed = None
+        self._random_initialized = False
 
     def register_custom_reset_function(
         self, data_manager: CUDADataManager, reset_function_name=None
@@ -232,27 +233,39 @@ class CUDAEnvironmentReset:
     def custom_reset(self, args: Optional[list] = None, block=None, grid=None):
         raise NotImplementedError
 
+    def init_random(self, seed: Optional[int] = None):
+        raise NotImplementedError
+
     def reset_when_done(
         self,
         data_manager: CUDADataManager,
         mode: str = "if_done",
         undo_done_after_reset: bool = True,
-        use_random_reset: bool = False,
     ):
-        if not use_random_reset:
-            self.reset_when_done_deterministic(
-                data_manager, mode, undo_done_after_reset
-            )
+        if mode == "if_done":
+            force_reset = np.int32(0)
+        elif mode == "force_reset":
+            force_reset = np.int32(1)
         else:
-            # TODO: To be implemented
-            # self.reset_when_done_random(data_manager, mode, undo_done_after_reset)
-            raise NotImplementedError
+            raise Exception(
+                f"unknown reset mode: {mode}, only accept 'if_done' and 'force_reset' "
+            )
+        self.reset_when_done_deterministic(data_manager, force_reset)
+        self.reset_when_done_from_pool(data_manager, force_reset)
+        if undo_done_after_reset:
+            self._undo_done_flag_and_reset_timestep(data_manager, force_reset)
 
     def reset_when_done_deterministic(
         self,
         data_manager: CUDADataManager,
-        mode: str = "if_done",
-        undo_done_after_reset: bool = True,
+        force_reset: int,
+    ):
+        raise NotImplementedError
+
+    def reset_when_done_from_pool(
+        self,
+        data_manager: NumbaDataManager,
+        force_reset: int,
     ):
         raise NotImplementedError
 

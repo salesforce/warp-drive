@@ -196,6 +196,9 @@ class NumbaFunctionManager(CUDAFunctionManager):
             "reset_when_done_1d",
             "reset_when_done_2d",
             "reset_when_done_3d",
+            "reset_when_done_1d_from_pool",
+            "reset_when_done_2d_from_pool",
+            "reset_when_done_3d_from_pool",
             "undo_done_flag_and_reset_timestep",
         ]
         self.initialize_functions(default_func_names)
@@ -351,9 +354,15 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         self.reset_func_1d = self._function_manager.get_function("reset_when_done_1d")
         self.reset_func_2d = self._function_manager.get_function("reset_when_done_2d")
         self.reset_func_3d = self._function_manager.get_function("reset_when_done_3d")
+
+        self.reset_func_1d_from_pool = self._function_manager.get_function("reset_when_done_1d_from_pool")
+        self.reset_func_2d_from_pool = self._function_manager.get_function("reset_when_done_2d_from_pool")
+        self.reset_func_3d_from_pool = self._function_manager.get_function("reset_when_done_3d_from_pool")
+
         self.undo = self._function_manager.get_function(
             "undo_done_flag_and_reset_timestep"
         )
+        self.rng_states_dict = {}
 
     def register_custom_reset_function(
         self, data_manager: NumbaDataManager, reset_function_name=None
@@ -403,16 +412,15 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         )
         sz = self._function_manager._num_envs
         rng_states = numba_driver.device_array(sz, dtype=xoroshiro128p_dtype)
-        init_random_reset = self._function_manager.get_function("init_random_reset")
-        init_random_reset(rng_states, seed)
+        init_random_for_reset = self._function_manager.get_function("init_random_for_reset")
+        init_random_for_reset(rng_states, seed)
         self.rng_states_dict["rng_states"] = rng_states
         self._random_initialized = True
 
     def reset_when_done_deterministic(
         self,
         data_manager: NumbaDataManager,
-        mode: str = "if_done",
-        undo_done_after_reset: bool = True,
+        force_reset: int,
     ):
         """
         Monitor the done flag for each env. If any env is done, it will reset this
@@ -421,20 +429,11 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         and turn off the done flag. Therefore, this env can safely get restarted.
 
         :param data_manager: NumbaDataManager object
-        :param mode: "if_done": reset an env if done flag is observed for that env,
-                     "force_reset": reset all env in a hard way
-        :param undo_done_after_reset: If True, turn off the done flag
-        and reset timestep after all data have been reset
-        (the flag should be True for most cases)
+        :param force_reset: 0: reset an env if done flag is observed for that env,
+                            1: reset all env in a hard way
         """
-        if mode == "if_done":
-            force_reset = np.int32(0)
-        elif mode == "force_reset":
-            force_reset = np.int32(1)
-        else:
-            raise Exception(
-                f"unknown reset mode: {mode}, only accept 'if_done' and 'force_reset' "
-            )
+        if len(data_manager.reset_data_list) == 0:
+            return
 
         for name in data_manager.reset_data_list:
             f_shape = data_manager.get_shape(name)
@@ -465,7 +464,6 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
                 reset_func[
                     self._grid, (int((agent_dim - 1) // self._blocks_per_env + 1), 1, 1)
                 ](
-                    self.rng_states_dict["rng_states"],
                     data_manager.device_data(name),
                     data_manager.device_data(f"{name}_at_reset"),
                     data_manager.device_data("_done_"),
@@ -479,7 +477,6 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
                     self._grid,
                     (int((feature_dim - 1) // self._blocks_per_env + 1), 1, 1),
                 ](
-                    self.rng_states_dict["rng_states"],
                     data_manager.device_data(name),
                     data_manager.device_data(f"{name}_at_reset"),
                     data_manager.device_data("_done_"),
@@ -489,21 +486,16 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
             elif data_shape == "is_1d":
                 reset_func = self.reset_func_1d
                 reset_func[self._grid, (1, 1, 1)](
-                    self.rng_states_dict["rng_states"],
                     data_manager.device_data(name),
                     data_manager.device_data(f"{name}_at_reset"),
                     data_manager.device_data("_done_"),
                     force_reset,
                 )
 
-        if undo_done_after_reset:
-            self._undo_done_flag_and_reset_timestep(data_manager, force_reset)
-
-    def reset_when_done_random(
+    def reset_when_done_from_pool(
             self,
             data_manager: NumbaDataManager,
-            mode: str = "if_done",
-            undo_done_after_reset: bool = True,
+            force_reset: int,
     ):
         """
         Monitor the done flag for each env. If any env is done, it will reset this
@@ -513,27 +505,20 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         and turn off the done flag. Therefore, this env can safely get restarted.
 
         :param data_manager: NumbaDataManager object
-        :param mode: "if_done": reset an env if done flag is observed for that env,
-                     "force_reset": reset all env in a hard way
-        :param undo_done_after_reset: If True, turn off the done flag
-        and reset timestep after all data have been reset
-        (the flag should be True for most cases)
+        :param force_reset: 0: reset an env if done flag is observed for that env,
+                            1: reset all env in a hard way
         """
+        if len(data_manager.reset_pool_data_list) == 0:
+            return
 
-        if mode == "if_done":
-            force_reset = np.int32(0)
-        elif mode == "force_reset":
-            force_reset = np.int32(1)
-        else:
-            raise Exception(
-                f"unknown reset mode: {mode}, only accept 'if_done' and 'force_reset' "
-            )
+        assert self._random_initialized(
+            "reset_when_done_from_pool() requires the random seed initialized first, "
+            "please call init_random_for_reset()"
+        )
 
-        for name in data_manager.random_reset_data_list:
+        for name, pool_name in data_manager.reset_target_to_pool.items():
             f_shape = data_manager.get_shape(name)
-            assert f_shape[0] == data_manager.meta_info(
-                "n_envs"
-            ), "reset function assumes the 0th dimension is n_envs"
+            assert f_shape[0] > 1, "reset function assumes the 0th dimension is n_pool"
             if len(f_shape) >= 3:
                 if len(f_shape) > 3:
                     raise Exception(
@@ -554,40 +539,40 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
             if "float" not in dtype and "int" not in dtype:
                 raise Exception(f"unknown dtype: {dtype}")
             if data_shape == "is_3d":
-                reset_func = self.reset_func_3d
+                reset_func = self.reset_func_3d_from_pool
                 reset_func[
                     self._grid, (int((agent_dim - 1) // self._blocks_per_env + 1), 1, 1)
                 ](
+                    self.rng_states_dict["rng_states"],
                     data_manager.device_data(name),
-                    data_manager.device_data(f"{name}_at_reset"),
+                    data_manager.device_data(pool_name),
                     data_manager.device_data("_done_"),
                     agent_dim,
                     feature_dim,
                     force_reset,
                 )
             elif data_shape == "is_2d":
-                reset_func = self.reset_func_2d
+                reset_func = self.reset_func_2d_from_pool
                 reset_func[
                     self._grid,
                     (int((feature_dim - 1) // self._blocks_per_env + 1), 1, 1),
                 ](
+                    self.rng_states_dict["rng_states"],
                     data_manager.device_data(name),
-                    data_manager.device_data(f"{name}_at_reset"),
+                    data_manager.device_data(pool_name),
                     data_manager.device_data("_done_"),
                     feature_dim,
                     force_reset,
                 )
             elif data_shape == "is_1d":
-                reset_func = self.reset_func_1d
+                reset_func = self.reset_func_1d_from_pool
                 reset_func[self._grid, (1, 1, 1)](
+                    self.rng_states_dict["rng_states"],
                     data_manager.device_data(name),
-                    data_manager.device_data(f"{name}_at_reset"),
+                    data_manager.device_data(pool_name),
                     data_manager.device_data("_done_"),
                     force_reset,
                 )
-
-        if undo_done_after_reset:
-            self._undo_done_flag_and_reset_timestep(data_manager, force_reset)
 
     def _undo_done_flag_and_reset_timestep(
         self, data_manager: NumbaDataManager, force_reset

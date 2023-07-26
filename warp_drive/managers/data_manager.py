@@ -48,7 +48,7 @@ class CUDADataManager:
         self._device_data_pointer = {}
         self._scalar_data_list = []
         self._reset_data_list = []
-        self._reset_pool_target = {}
+        self._reset_target_to_pool = {}
         self._log_data_list = []
         self._device_data_via_torch = {}
         self._shared_constants = {}
@@ -229,16 +229,16 @@ class CUDADataManager:
                 )
 
                 if is_reset_pool:
-                    assert key not in self._reset_pool_data_list, (
-                        f"the data with name: {key} has "
-                        f"already been registered at the reset_pool_data_list"
-                    )
                     reset_target_key = content["attributes"]["reset_target"]
+                    assert reset_target_key not in self._reset_target_to_pool, (
+                        f"the data with name: {key} has "
+                        f"already been registered at the reset_target_to_pool"
+                    )
                     assert reset_target_key not in self._reset_data_list, (
                         f"the data with name: {reset_target_key} has "
                         f"already been registered at the reset_data_list"
                     )
-                    self._reset_pool_target[key] = reset_target_key
+                    self._reset_target_to_pool[reset_target_key] = key
 
                 if isinstance(value, np.ndarray):
                     if not value.flags.c_contiguous:
@@ -284,9 +284,9 @@ class CUDADataManager:
                         f"the data with name: {key} has "
                         f"already been registered at the reset_data_list"
                     )
-                    assert key not in self._reset_pool_target.values(), (
+                    assert key not in self._reset_target_to_pool, (
                         f"the data with name: {key} has "
-                        f"already been registered at the reset_pool_target"
+                        f"already been registered at the reset_target_to_pool"
                     )
 
                     key_at_reset = f"{key}_at_reset"
@@ -444,6 +444,10 @@ class CUDADataManager:
         assert name in self._dtype
         return self._dtype[name]
 
+    def get_reset_pool(self, name: str):
+        assert name in self._reset_target_to_pool
+        return self._reset_target_to_pool[name]
+
     def _type_warning_helper(self, key: str, old: str, new: str, comment=None):
         logging.warning(
             f"{self.__class__.__name__} casts the data '{key}' "
@@ -467,6 +471,10 @@ class CUDADataManager:
     @property
     def reset_data_list(self):
         return self._reset_data_list
+
+    @property
+    def reset_target_to_pool(self):
+        return self._reset_target_to_pool
 
     @property
     def log_data_list(self):

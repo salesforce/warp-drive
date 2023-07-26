@@ -728,7 +728,7 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
 
     def reset_when_done_from_pool(
             self,
-            data_manager: NumbaDataManager,
+            data_manager: PyCUDADataManager,
             force_reset: int,
     ):
         # TO DO

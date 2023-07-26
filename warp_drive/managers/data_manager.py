@@ -279,6 +279,8 @@ class CUDADataManager:
                     key, dtype=array.dtype.name, shape=self._host_data[key].shape
                 )
 
+
+
                 if save_copy_and_apply_at_reset:
                     assert key not in self._reset_data_list, (
                         f"the data with name: {key} has "
@@ -300,7 +302,7 @@ class CUDADataManager:
                     self._to_device(
                         key,
                         name_on_device=key_at_reset,
-                        torch_accessible=torch_accessible,
+                        torch_accessible=False,
                     )
                     self._reset_data_list.append(key)
 

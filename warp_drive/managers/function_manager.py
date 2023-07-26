@@ -233,7 +233,11 @@ class CUDAEnvironmentReset:
     def custom_reset(self, args: Optional[list] = None, block=None, grid=None):
         raise NotImplementedError
 
-    def init_random(self, seed: Optional[int] = None):
+    def init_reset_pool(
+        self,
+        data_manager: CUDADataManager,
+        seed: Optional[int] = None,
+    ):
         raise NotImplementedError
 
     def reset_when_done(
@@ -264,7 +268,7 @@ class CUDAEnvironmentReset:
 
     def reset_when_done_from_pool(
         self,
-        data_manager: NumbaDataManager,
+        data_manager: CUDADataManager,
         force_reset: int,
     ):
         raise NotImplementedError

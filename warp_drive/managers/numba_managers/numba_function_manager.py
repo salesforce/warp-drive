@@ -196,6 +196,7 @@ class NumbaFunctionManager(CUDAFunctionManager):
             "reset_when_done_1d",
             "reset_when_done_2d",
             "reset_when_done_3d",
+            "init_random_for_reset",
             "reset_when_done_1d_from_pool",
             "reset_when_done_2d_from_pool",
             "reset_when_done_3d_from_pool",
@@ -395,11 +396,21 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         else:
             self._cuda_custom_reset[grid, block](*self._cuda_reset_feed(args))
 
-    def init_random(self, seed: Optional[int] = None):
+    def init_reset_pool(
+        self,
+        data_manager: NumbaDataManager,
+        seed: Optional[int] = None,
+    ):
         """
-        Init random function for all the threads
+        Init random function for the reset pool
+        :param data_manager: NumbaDataManager object
         :param seed: random seed selected for the initialization
         """
+        if len(data_manager.reset_target_to_pool) == 0:
+            return
+
+        self._security_check_reset_pool(data_manager)
+
         if seed is None:
             seed = time.time()
             logging.info(
@@ -416,6 +427,20 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         init_random_for_reset(rng_states, seed)
         self.rng_states_dict["rng_states"] = rng_states
         self._random_initialized = True
+
+    def _security_check_reset_pool(self, data_manager):
+        for name, pool_name in data_manager.reset_target_to_pool.items():
+            data_shape = data_manager.get_shape(name)
+            data_type = data_manager.get_dtype(name)
+            pool_shape = data_manager.get_shape(pool_name)
+            pool_type = data_manager.get_dtype(pool_name)
+            assert data_type == pool_type, \
+                f"Inconsistency of dtype is found for data: {name} and its reset pool: {pool_name}"
+            assert data_shape[0] == self._function_manager._num_envs
+            assert pool_shape[0] > 1
+            for i in range(1, len(data_shape)):
+                assert data_shape[i] == pool_shape[i], \
+                    f"Inconsistency of shape is found for data: {name} and its reset pool: {pool_name}"
 
     def reset_when_done_deterministic(
         self,
@@ -508,10 +533,10 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         :param force_reset: 0: reset an env if done flag is observed for that env,
                             1: reset all env in a hard way
         """
-        if len(data_manager.reset_pool_data_list) == 0:
+        if len(data_manager.reset_target_to_pool) == 0:
             return
 
-        assert self._random_initialized(
+        assert self._random_initialized, (
             "reset_when_done_from_pool() requires the random seed initialized first, "
             "please call init_random_for_reset()"
         )

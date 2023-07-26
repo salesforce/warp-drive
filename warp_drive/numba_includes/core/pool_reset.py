@@ -1,6 +1,7 @@
 from numba import cuda as numba_driver
-from numba import float32, int32
+from numba import float32, int32, from_dtype
 from numba.cuda.random import init_xoroshiro128p_states, xoroshiro128p_uniform_float32
+import numpy as np
 
 xoroshiro128p_type = from_dtype(np.dtype([("s0", np.uint64), ("s1", np.uint64)], align=True))
 

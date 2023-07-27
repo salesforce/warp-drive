@@ -279,8 +279,6 @@ class CUDADataManager:
                     key, dtype=array.dtype.name, shape=self._host_data[key].shape
                 )
 
-
-
                 if save_copy_and_apply_at_reset:
                     assert key not in self._reset_data_list, (
                         f"the data with name: {key} has "

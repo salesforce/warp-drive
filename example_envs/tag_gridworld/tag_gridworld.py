@@ -349,9 +349,100 @@ class CUDATagGridWorld(TagGridWorld, CUDAEnvironmentContext):
         )
         return data_dict
 
-    def get_tensor_dictionary(self):
-        tensor_dict = DataFeed()
-        return tensor_dict
+    def step(self, actions=None):
+        self.timestep += 1
+        args = [
+            _LOC_X,
+            _LOC_Y,
+            _ACTIONS,
+            "_done_",
+            _REWARDS,
+            _OBSERVATIONS,
+            "wall_hit_penalty",
+            "tag_reward_for_tagger",
+            "tag_penalty_for_runner",
+            "step_cost_for_tagger",
+            "use_full_observation",
+            "world_boundary",
+            "_timestep_",
+            ("episode_length", "meta"),
+        ]
+        if self.env_backend == "pycuda":
+            self.cuda_step(
+                *self.cuda_step_function_feed(args),
+                block=self.cuda_function_manager.block,
+                grid=self.cuda_function_manager.grid,
+            )
+        elif self.env_backend == "numba":
+            self.cuda_step[
+                self.cuda_function_manager.grid, self.cuda_function_manager.block
+            ](*self.cuda_step_function_feed(args))
+        else:
+            raise Exception("CUDATagGridWorld expects env_backend = 'pycuda' or 'numba' ")
+
+
+class CUDATagGridWorldWithResetPool(TagGridWorld, CUDAEnvironmentContext):
+    """
+    CUDA version of the TagGridWorld environment and with reset pool for the starting point.
+    Note: this class subclasses the Python environment class TagGridWorld,
+    and also the  CUDAEnvironmentContext
+    """
+
+    def get_data_dictionary(self):
+        data_dict = DataFeed()
+        for feature in [
+            _LOC_X,
+            _LOC_Y,
+        ]:
+            data_dict.add_data(
+                name=feature,
+                data=self.global_state[feature][0],
+                save_copy_and_apply_at_reset=False,
+                log_data_across_episode=False,
+            )
+        data_dict.add_data_list(
+            [
+                ("wall_hit_penalty", self.wall_hit_penalty),
+                ("tag_reward_for_tagger", self.tag_reward_for_tagger),
+                ("tag_penalty_for_runner", self.tag_penalty_for_runner),
+                ("step_cost_for_tagger", self.step_cost_for_tagger),
+                ("use_full_observation", self.use_full_observation),
+                ("world_boundary", self.grid_length),
+            ]
+        )
+        return data_dict
+
+    def get_reset_pool_dictionary(self):
+
+        def _random_location_generator():
+            starting_location_x = self.np_random.choice(
+                np.linspace(1, int(self.grid_length) - 1, int(self.grid_length) - 1),
+                self.num_agents
+            ).astype(np.int32)
+            starting_location_x[-1] = 0
+            starting_location_y = self.np_random.choice(
+                np.linspace(1, int(self.grid_length) - 1, int(self.grid_length) - 1),
+                self.num_agents
+            ).astype(np.int32)
+            starting_location_y[-1] = 0
+            return starting_location_x, starting_location_y
+
+        N = 5  # we hard code the number of env pool for this demo purpose
+        x_pool = []
+        y_pool = []
+        for _ in range(N):
+            x, y = _random_location_generator()
+            x_pool.append(x)
+            y_pool.append(y)
+
+        x_pool = np.stack(x_pool, axis=0)
+        y_pool = np.stack(y_pool, axis=0)
+
+        reset_pool_dict = DataFeed()
+        reset_pool_dict.add_pool_for_reset(name=f"{_LOC_X}_reset_pool", data=x_pool, reset_target=_LOC_X)
+        reset_pool_dict.add_pool_for_reset(name=f"{_LOC_Y}_reset_pool", data=y_pool, reset_target=_LOC_Y)
+
+        return reset_pool_dict
 
     def step(self, actions=None):
         self.timestep += 1

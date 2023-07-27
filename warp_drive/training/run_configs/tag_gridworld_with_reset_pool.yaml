@@ -1,0 +1,49 @@
+# Copyright (c) 2021, salesforce.com, inc.
+# All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+# For full license text, see the LICENSE file in the repo root
+# or https://opensource.org/licenses/BSD-3-Clause
+
+# YAML configuration for the tag gridworld environment
+name: "tag_gridworld_with_reset_pool"
+# Environment settings
+env:
+    num_taggers: 4
+    grid_length: 100
+    episode_length: 100
+    seed: 20
+    wall_hit_penalty: 0.1
+    tag_reward_for_tagger: 10.0
+    tag_penalty_for_runner: 5.0
+    step_cost_for_tagger: 0.01
+# Trainer settings
+trainer:
+    num_envs: 2000 # number of environment replicas
+    num_episodes: 20000 # number of episodes to run the training for. Can be arbitrarily high!
+    train_batch_size: 200000 # total batch size used for training per iteration (across all the environments)
+    env_backend: "pycuda" # environment backend, pycuda or numba
+# Policy network settings
+policy: # list all the policies below
+    shared:
+        to_train: True # flag indicating whether the model needs to be trained
+        algorithm: "A2C" # algorithm used to train the policy
+        vf_loss_coeff: 1 # loss coefficient schedule for the value function loss
+        entropy_coeff: 0.05 # loss coefficient schedule for the entropy loss
+        clip_grad_norm: True # flag indicating whether to clip the gradient norm or not
+        max_grad_norm: 3 # when clip_grad_norm is True, the clip level
+        normalize_advantage: False # flag indicating whether to normalize advantage or not
+        normalize_return: False # flag indicating whether to normalize return or not
+        gamma: 0.98 # discount factor
+        lr: 0.001 # learning rate
+        model: # policy model settings
+            type: "fully_connected" # model type
+            fc_dims: [32, 32] # dimension(s) of the fully connected layers as a list
+            model_ckpt_filepath: "" # filepath (used to restore a previously saved model)
+# Checkpoint saving setting
+saving:
+    metrics_log_freq: 100 # how often (in iterations) to log (and print) the metrics
+    model_params_save_freq: 5000 # how often (in iterations) to save the model parameters
+    basedir: "/tmp" # base folder used for saving
+    name: "tag_gridworld" # base folder used for saving
+    tag: "experiments" # experiment name
+

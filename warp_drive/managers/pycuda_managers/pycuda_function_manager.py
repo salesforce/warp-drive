@@ -658,6 +658,13 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
                 *self._cuda_reset_feed(args), block=block, grid=grid
             )
 
+    def init_reset_pool(
+        self,
+        data_manager: PyCUDADataManager,
+        seed: Optional[int] = None,
+    ):
+        return
+
     def reset_when_done_deterministic(
         self,
         data_manager: PyCUDADataManager,

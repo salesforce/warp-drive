@@ -756,10 +756,6 @@ class TagContinuous(CUDAEnvironmentContext):
         )
         return data_dict
 
-    def get_tensor_dictionary(self):
-        tensor_dict = DataFeed()
-        return tensor_dict
-
     def reset(self):
         """
         Env reset().

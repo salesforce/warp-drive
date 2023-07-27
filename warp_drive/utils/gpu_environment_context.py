@@ -1,4 +1,5 @@
 import logging
+from warp_drive.utils.data_feed import DataFeed
 
 
 class CUDAEnvironmentContext:
@@ -30,3 +31,15 @@ class CUDAEnvironmentContext:
         except Exception as err:
             logging.error(err)
             return False
+
+    def get_data_dictionary(self):
+        data_dict = DataFeed()
+        return data_dict
+
+    def get_tensor_dictionary(self):
+        tensor_dict = DataFeed()
+        return tensor_dict
+
+    def get_reset_pool_dictionary(self):
+        reset_pool_dict = DataFeed()
+        return reset_pool_dict

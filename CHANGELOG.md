@@ -1,4 +1,7 @@
 # Changelog
+# Release 2.5 (2022-07-27)
+- Introduce environment reset pool, so concurrent enviornment replicas can randomly reset themselves from the pool.
+
 # Release 2.4 (2022-06-16)
 - Introduce new device context management and autoinit_pycuda 
 - Therefore, Torch (any version) will not conflict with PyCUDA in the GPU context 

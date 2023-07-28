@@ -13,7 +13,6 @@ import logging
 import numpy as np
 import torch
 from gym.spaces import Discrete, MultiDiscrete
-from gym.utils import seeding
 
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.utils.data_loader import (
@@ -38,10 +37,9 @@ def generate_random_actions(env, num_envs, seed=None):
     Generate random actions for each agent and each env.
     """
     agent_ids = list(env.action_space.keys())
+    np_random = np.random
     if seed is not None:
-        np_random = seeding.np_random(seed)[0]
-    else:
-        np_random = np.random
+        np_random.seed(seed)
 
     return [
         {

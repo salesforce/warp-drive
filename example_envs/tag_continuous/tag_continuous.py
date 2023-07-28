@@ -9,7 +9,6 @@ import heapq
 
 import numpy as np
 from gym import spaces
-from gym.utils import seeding
 
 from warp_drive.utils.constants import Constants
 from warp_drive.utils.data_feed import DataFeed
@@ -313,7 +312,7 @@ class TagContinuous(CUDAEnvironmentContext):
         Note: this uses the code in
         https://github.com/openai/gym/blob/master/gym/utils/seeding.py
         """
-        self.np_random, seed = seeding.np_random(seed)
+        self.np_random.seed(seed)
         return [seed]
 
     def set_global_state(self, key=None, value=None, t=None, dtype=None):
@@ -755,10 +754,6 @@ class TagContinuous(CUDAEnvironmentContext):
             save_copy_and_apply_at_reset=True,
         )
         return data_dict
-
-    def get_tensor_dictionary(self):
-        tensor_dict = DataFeed()
-        return tensor_dict
 
     def reset(self):
         """

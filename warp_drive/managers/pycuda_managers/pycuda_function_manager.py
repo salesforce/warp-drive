@@ -658,11 +658,17 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
                 *self._cuda_reset_feed(args), block=block, grid=grid
             )
 
+    def init_reset_pool(
+        self,
+        data_manager: PyCUDADataManager,
+        seed: Optional[int] = None,
+    ):
+        return
+
     def reset_when_done_deterministic(
         self,
         data_manager: PyCUDADataManager,
-        mode: str = "if_done",
-        undo_done_after_reset: bool = True,
+        force_reset: int,
     ):
         """
         Monitor the done flag for each env. If any env is done, it will reset this
@@ -671,20 +677,11 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
         and turn off the done flag. Therefore, this env can safely get restarted.
 
         :param data_manager: PyCUDADataManager object
-        :param mode: "if_done": reset an env if done flag is observed for that env,
-                     "force_reset": reset all env in a hard way
-        :param undo_done_after_reset: If True, turn off the done flag
-        and reset timestep after all data have been reset
-        (the flag should be True for most cases)
+        :param force_reset: 0: reset an env if done flag is observed for that env,
+                            1: reset all env in a hard way
         """
-        if mode == "if_done":
-            force_reset = np.int32(0)
-        elif mode == "force_reset":
-            force_reset = np.int32(1)
-        else:
-            raise Exception(
-                f"unknown reset mode: {mode}, only accept 'if_done' and 'force_reset' "
-            )
+        if len(data_manager.reset_data_list) == 0:
+            return
 
         for name in data_manager.reset_data_list:
             f_shape = data_manager.get_shape(name)
@@ -736,8 +733,13 @@ class PyCUDAEnvironmentReset(CUDAEnvironmentReset):
                     grid=self._grid,
                 )
 
-        if undo_done_after_reset:
-            self._undo_done_flag_and_reset_timestep(data_manager, force_reset)
+    def reset_when_done_from_pool(
+            self,
+            data_manager: PyCUDADataManager,
+            force_reset: int,
+    ):
+        # TO DO
+        return
 
     def _undo_done_flag_and_reset_timestep(
         self, data_manager: PyCUDADataManager, force_reset

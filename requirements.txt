@@ -1,4 +1,4 @@
-gym>=0.18, <0.26
+gym>=0.26
 matplotlib>=3.2.1
 numpy>=1.18.1
 pycuda>=2022.1

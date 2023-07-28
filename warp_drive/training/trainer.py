@@ -245,6 +245,7 @@ class Trainer:
         torch.manual_seed(seed)
         random.seed(seed)
         np.random.seed(seed)
+        self.cuda_envs.init_reset_pool(seed + random.randint(1, 10000))
 
         # Define models, optimizers, and learning rate schedules
         self.models = {}

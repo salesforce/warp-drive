@@ -291,9 +291,10 @@ class EnvWrapper:
                 # Copy host data and tensors to device
                 # Note: this happens only once after the first reset on the host
 
-                # Add env dimension to data if "save_copy_and_apply_at_reset" is True
                 data_dictionary = self.env.get_data_dictionary()
                 tensor_dictionary = self.env.get_tensor_dictionary()
+                reset_pool_dictionary = self.env.get_reset_pool_dictionary()
+                # Add env dimension to data if "save_copy_and_apply_at_reset" is True
                 for key in data_dictionary:
                     if data_dictionary[key]["attributes"][
                         "save_copy_and_apply_at_reset"
@@ -309,12 +310,34 @@ class EnvWrapper:
                         tensor_dictionary[key]["data"] = repeat_across_env_dimension(
                             tensor_dictionary[key]["data"], self.n_envs
                         )
+                # Add env dimension to data if "is_reset_pool" exists for this data
+                # if so, also check this data has "save_copy_and_apply_at_reset" = False
+                for key in reset_pool_dictionary:
+                    if "is_reset_pool" in reset_pool_dictionary[key]["attributes"] and \
+                            reset_pool_dictionary[key]["attributes"]["is_reset_pool"]:
+                        # find the corresponding target data
+                        reset_target = reset_pool_dictionary[key]["attributes"]["reset_target"]
+                        if reset_target in data_dictionary:
+                            assert not data_dictionary[reset_target]["attributes"]["save_copy_and_apply_at_reset"]
+                            data_dictionary[reset_target]["data"] = repeat_across_env_dimension(
+                                data_dictionary[reset_target]["data"], self.n_envs
+                            )
+                        elif reset_target in tensor_dictionary:
+                            assert not tensor_dictionary[reset_target]["attributes"]["save_copy_and_apply_at_reset"]
+                            tensor_dictionary[reset_target]["data"] = repeat_across_env_dimension(
+                                tensor_dictionary[reset_target]["data"], self.n_envs
+                            )
+                        else:
+                            raise Exception(f"Fail to locate the target data {reset_target} for the reset pool "
+                                            f"in neither data_dictionary nor tensor_dictionary")
 
                 self.cuda_data_manager.push_data_to_device(data_dictionary)
 
                 self.cuda_data_manager.push_data_to_device(
                     tensor_dictionary, torch_accessible=True
                 )
+
+                self.cuda_data_manager.push_data_to_device(reset_pool_dictionary)
 
                 # All subsequent resets happen on the GPU
                 self.reset_on_host = False
@@ -328,6 +351,9 @@ class EnvWrapper:
             )
             return {}
         return obs  # CPU version
+
+    def init_reset_pool(self, seed=None):
+        self.env_resetter.init_reset_pool(self.cuda_data_manager, seed)
 
     def reset_only_done_envs(self):
         """

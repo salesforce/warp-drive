@@ -6,7 +6,6 @@
 
 import numpy as np
 from gym import spaces
-from gym.utils import seeding
 
 # seeding code from https://github.com/openai/gym/blob/master/gym/utils/seeding.py
 from warp_drive.utils.constants import Constants
@@ -130,7 +129,7 @@ class TagGridWorld:
     name = "TagGridWorld"
 
     def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
+        self.np_random.seed(seed)
         return [seed]
 
     def set_global_state(self, key=None, value=None, t=None, dtype=None):

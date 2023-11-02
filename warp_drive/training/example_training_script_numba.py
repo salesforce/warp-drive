@@ -19,6 +19,7 @@ import yaml
 
 from example_envs.tag_continuous.tag_continuous import TagContinuous
 from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld, CUDATagGridWorldWithResetPool
+from example_envs.single_agent.classic_control.cartpole.cartpole import CUDAClassicControlCartPoleEnv
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.trainer import Trainer
 from warp_drive.training.utils.distributed_train.distributed_trainer_numba import (
@@ -33,7 +34,7 @@ _TAG_CONTINUOUS = "tag_continuous"
 _TAG_GRIDWORLD = "tag_gridworld"
 _TAG_GRIDWORLD_WITH_RESET_POOL = "tag_gridworld_with_reset_pool"
 
-_CLASSIC_CONTROL_CARTPOLE = "cartpole"
+_CLASSIC_CONTROL_CARTPOLE = "single_cartpole"
 
 # Example usages (from the root folder):
 # >> python warp_drive/training/example_training_script.py -e tag_gridworld
@@ -83,6 +84,14 @@ def setup_trainer_and_train(
             event_messenger=event_messenger,
             process_id=device_id,
         )
+    elif run_configuration["name"] == _CLASSIC_CONTROL_CARTPOLE:
+        env_wrapper = EnvWrapper(
+            CUDAClassicControlCartPoleEnv(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
     else:
         raise NotImplementedError(
             f"Currently, the environments supported are ["
@@ -98,15 +107,23 @@ def setup_trainer_and_train(
     if len(run_configuration["policy"].keys()) == 1:
         # Using a single (or shared policy) across all agents
         policy_name = list(run_configuration["policy"])[0]
-        policy_tag_to_agent_id_map = {
-            policy_name: list(env_wrapper.env.taggers) + list(env_wrapper.env.runners)
-        }
+        if "tag_" in run_configuration["name"]:
+            policy_tag_to_agent_id_map = {
+                policy_name: list(env_wrapper.env.taggers) + list(env_wrapper.env.runners)
+            }
+        elif "single_" in run_configuration["name"]:
+            policy_tag_to_agent_id_map = {
+                policy_name: list(env_wrapper.env.agents)
+            }
     else:
         # Using different policies for different (sets of) agents
-        policy_tag_to_agent_id_map = {
-            "tagger": list(env_wrapper.env.taggers),
-            "runner": list(env_wrapper.env.runners),
-        }
+        if "tag_" in run_configuration["name"]:
+            policy_tag_to_agent_id_map = {
+                "tagger": list(env_wrapper.env.taggers),
+                "runner": list(env_wrapper.env.runners),
+            }
+        else:
+            raise NotImplementedError
     # Assert that all the valid policies are mapped to at least one agent
     assert set(run_configuration["policy"].keys()) == set(
         policy_tag_to_agent_id_map.keys()

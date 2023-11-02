@@ -11,6 +11,11 @@ class SingleAgentEnv:
         :param reset_pool_size: if reset_pool_size < 2, we assume the reset is using a default fixed one for all envs
         """
         self.num_agents = 1
+
+        self.agents = {}
+        for agent_id in range(self.num_agents):
+            self.agents[agent_id] = True
+
         assert episode_length > 0
         self.episode_length = episode_length
 

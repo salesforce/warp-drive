@@ -33,6 +33,8 @@ _TAG_CONTINUOUS = "tag_continuous"
 _TAG_GRIDWORLD = "tag_gridworld"
 _TAG_GRIDWORLD_WITH_RESET_POOL = "tag_gridworld_with_reset_pool"
 
+_CLASSIC_CONTROL_CARTPOLE = "cartpole"
+
 # Example usages (from the root folder):
 # >> python warp_drive/training/example_training_script.py -e tag_gridworld
 # >> python warp_drive/training/example_training_script.py --env tag_continuous

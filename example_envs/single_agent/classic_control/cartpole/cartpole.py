@@ -66,17 +66,6 @@ class CUDAClassicControlCartPoleEnv(ClassicControlCartPoleEnv, CUDAEnvironmentCo
                 save_copy_and_apply_at_reset=False,
             )
 
-            state_reset_pool = []
-            for _ in range(self.reset_pool_size):
-                initial_state, _ = self.gym_env.reset(seed=None)
-                state_reset_pool.append(np.atleast_2d(initial_state))
-            state_reset_pool = np.stack(state_reset_pool, axis=0)
-            assert len(state_reset_pool.shape) == 3 and state_reset_pool.shape[2] == 4
-
-            data_dict.add_pool_for_reset(name="state_reset_pool",
-                                         data=state_reset_pool,
-                                         reset_target="state")
-
         data_dict.add_data_list(
             [
                 ("gravity", self.gym_env.gravity),
@@ -95,6 +84,21 @@ class CUDAClassicControlCartPoleEnv(ClassicControlCartPoleEnv, CUDAEnvironmentCo
     def get_tensor_dictionary(self):
         tensor_dict = DataFeed()
         return tensor_dict
+
+    def get_reset_pool_dictionary(self):
+        reset_pool_dict = DataFeed()
+        if self.reset_pool_size >= 2:
+            state_reset_pool = []
+            for _ in range(self.reset_pool_size):
+                initial_state, _ = self.gym_env.reset(seed=None)
+                state_reset_pool.append(np.atleast_2d(initial_state))
+            state_reset_pool = np.stack(state_reset_pool, axis=0)
+            assert len(state_reset_pool.shape) == 3 and state_reset_pool.shape[2] == 4
+
+            reset_pool_dict.add_pool_for_reset(name="state_reset_pool",
+                                               data=state_reset_pool,
+                                               reset_target="state")
+        return reset_pool_dict
 
     def step(self, actions=None):
         self.timestep += 1

@@ -98,6 +98,7 @@ def setup_trainer_and_train(
             f"{_TAG_GRIDWORLD}, "
             f"{_TAG_CONTINUOUS}"
             f"{_TAG_GRIDWORLD_WITH_RESET_POOL}"
+            f"{_CLASSIC_CONTROL_CARTPOLE}"
             f"]",
         )
     # Policy mapping to agent ids: agents can share models

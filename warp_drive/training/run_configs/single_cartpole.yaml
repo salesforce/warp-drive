@@ -9,7 +9,7 @@ name: "single_cartpole"
 # Environment settings
 env:
     episode_length: 500
-    reset_pool_size:
+    reset_pool_size: 1000
 # Trainer settings
 trainer:
     num_envs: 100 # number of environment replicas

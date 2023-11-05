@@ -1,12 +1,16 @@
 # Changelog
-# Release 2.5 (2022-07-27)
+# Release 2.6.1 (2023-11-05)
+- Support single agent framework and start to add gym.classic_control
+- Add Cartpole environment that can run up to 100K concurrent replicates.
+
+# Release 2.5 (2023-07-27)
 - Introduce environment reset pool, so concurrent enviornment replicas can randomly reset themselves from the pool.
 
-# Release 2.4 (2022-06-16)
+# Release 2.4 (2023-06-16)
 - Introduce new device context management and autoinit_pycuda 
 - Therefore, Torch (any version) will not conflict with PyCUDA in the GPU context 
 
-# Release 2.3 (2022-03-22)
+# Release 2.3 (2023-03-22)
 - Add ModelFactory class to manage custom models
 - Add Xavier initialization for the model
 - Improve trainer.fetch_episode_states() so it can fetch (s, a, r) and can replay with argmax.

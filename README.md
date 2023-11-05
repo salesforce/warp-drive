@@ -12,13 +12,14 @@ We have some main updates since its initial open source,
 - version 1.4: supports the distributed asynchronous training among multiple GPU devices.
 - version 1.6: supports the aggregation of multiple GPU blocks for one environment replica. 
 - version 2.0: supports the dual backends of both CUDA C and JIT compiled Numba. [(Our Blog article)](https://blog.salesforceairesearch.com/warpdrive-v2-numba-nvidia-gpu-simulations/)
+- version 2.6: supports single agent environments, including Cartpole, MountainCar, Acrobot
 
 Together, these allow the user to run thousands of concurrent multi-agent simulations and train 
 on extremely large batches of experience, achieving over 100x throughput over CPU-based counterparts. 
 
 We include several default multi-agent environments
 based on the game of "Tag" for benchmarking and testing. In the "Tag" games, taggers are trying to run after
-and tag the runners. They are fairly complicated games where thread synchronization, shared memory, high-dimensional indexing for thousands of interacting agents are involved. Several much more complex environments such as Covid-19 environment and climate change environment have been developed based on WarpDrive, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
+and tag the runners. They are fairly complicated games where thread synchronization, shared memory, high-dimensional indexing for thousands of interacting agents are involved. Several much more complex environments such as Covid-19 environment and climate change environment have been developed based on WarpDrive, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations). More recently, we extend our efforts to scale up some single agent environments including [gym.classic_control]( https://github.com/openai/gym/tree/master/gym/envs/classic_control).
 
 Below, we show multi-agent RL policies 
 trained for different tagger:runner speed ratios using WarpDrive. 
@@ -56,11 +57,18 @@ trainer = Trainer(
 # Perform training!
 trainer.train()
 ```
-
+## Throughput, Scalability and Convergence
+#### Multi Agent 
 Below, we compare the training speed on an N1 16-CPU
 node versus a single A100 GPU (using WarpDrive), for the Tag environment with 100 runners and 5 taggers. With the same environment configuration and training parameters, WarpDrive on a GPU is about 10× faster. Both scenarios are with 60 environment replicas running in parallel. Using more environments on the CPU node is infeasible as data copying gets too expensive. With WarpDrive, it is possible to scale up the number of environment replicas at least 10-fold, for even faster training.
 
 <img src="https://user-images.githubusercontent.com/7627238/144560725-83167c73-274e-4c5a-a6cf-4e06355895f0.png" width="400" height="400"/>
+
+#### Single Agent
+Below, we compare the training speed on a single A100 GPU (using WarpDrive), for the Cartpole-v1 with 10, 100, 1K, and 10K environment replicas running in parallel for 3000 epochs. You may not see such an amazing convergency as a function of number of environments scaled to this magnitude elsewhere. 
+
+<img width="400" alt="Screenshot 2023-11-05 at 12 46 28 PM" src="https://github.com/salesforce/warp-drive/assets/31748898/44f40cb9-1183-4894-a58e-391da843a8c0">
+
 
 
 ## Code Structure

@@ -308,9 +308,9 @@ class Trainer:
                 (self.num_envs, num_agents_for_policy)
             ).cuda()
             self.episodic_step_sum[policy] = (
-                torch.tensor(0).type(torch.int32).cuda()
+                torch.tensor(0).type(torch.int64).cuda()
             )
-            self.step_running_sum[policy] = torch.zeros(self.num_envs, dtype=torch.int32).cuda()
+            self.step_running_sum[policy] = torch.zeros(self.num_envs, dtype=torch.int64).cuda()
 
         # Initialize the trainers
         self.trainers = {}
@@ -755,7 +755,7 @@ class Trainer:
                     torch.tensor(0).type(torch.float32).cuda()
                 )
                 self.episodic_step_sum[policy] = (
-                    torch.tensor(0).type(torch.int32).cuda()
+                    torch.tensor(0).type(torch.int64).cuda()
                 )
                 self.num_completed_episodes[policy] = 0
 

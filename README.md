@@ -65,7 +65,7 @@ node versus a single A100 GPU (using WarpDrive), for the Tag environment with 10
 <img src="https://user-images.githubusercontent.com/7627238/144560725-83167c73-274e-4c5a-a6cf-4e06355895f0.png" width="400" height="400"/>
 
 #### Single Agent
-Below, we compare the training speed on a single A100 GPU (using WarpDrive), for the Cartpole-v1 with 10, 100, 1K, and 10K environment replicas running in parallel for 3000 epochs. You may not see such an amazing convergency as a function of number of environments scaled to this magnitude elsewhere. 
+Below, we compare the training speed on a single A100 GPU (using WarpDrive), for the Cartpole-v1 with 10, 100, 1K, and 10K environment replicas running in parallel for 3000 epochs. You may not see elsewhere such an amazing convergence with the number of environments scaled to this large magnitude. 
 
 <img width="400" alt="Screenshot 2023-11-05 at 12 46 28 PM" src="https://github.com/salesforce/warp-drive/assets/31748898/44f40cb9-1183-4894-a58e-391da843a8c0">
 

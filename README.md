@@ -14,12 +14,17 @@ We have some main updates since its initial open source,
 - version 2.0: supports the dual backends of both CUDA C and JIT compiled Numba. [(Our Blog article)](https://blog.salesforceairesearch.com/warpdrive-v2-numba-nvidia-gpu-simulations/)
 - version 2.6: supports single agent environments, including Cartpole, MountainCar, Acrobot
 
-Together, these allow the user to run thousands of concurrent multi-agent simulations and train 
-on extremely large batches of experience, achieving over 100x throughput over CPU-based counterparts. 
+Together, these allow the user to run thousands or even millions of concurrent simulations and train 
+on extremely large batches of experience, achieving at least 100x throughput over CPU-based counterparts. 
 
-We include several default multi-agent environments
+## Environments
+1. We include several default multi-agent environments
 based on the game of "Tag" for benchmarking and testing. In the "Tag" games, taggers are trying to run after
-and tag the runners. They are fairly complicated games where thread synchronization, shared memory, high-dimensional indexing for thousands of interacting agents are involved. Several much more complex environments such as Covid-19 environment and climate change environment have been developed based on WarpDrive, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations). More recently, we extend our efforts to scale up some single agent environments including [gym.classic_control]( https://github.com/openai/gym/tree/master/gym/envs/classic_control).
+and tag the runners. They are fairly complicated games where thread synchronization, shared memory, high-dimensional indexing for thousands of interacting agents are involved.
+
+2. Several more complex environments such as Covid-19 environment and climate change environment have been developed based on WarpDrive, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
+
+3. We extend our efforts to some single agent environments including [gym.classic_control]( https://github.com/openai/gym/tree/master/gym/envs/classic_control). Single-agent is a special case of multi-agent environment in WarpDrive. Since each environment only has one agent, the scalability is even higher.
 
 Below, we show multi-agent RL policies 
 trained for different tagger:runner speed ratios using WarpDrive. 

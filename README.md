@@ -33,7 +33,25 @@ and **train** in just a few **hours**, all on a single GPU!
 
 <img src="https://blog.einstein.ai/content/images/2021/08/tagger2x-1.gif" width="250" height="250"/> <img src="https://blog.einstein.ai/content/images/2021/08/same_speed_50fps-1.gif" width="250" height="250"/> <img src="https://blog.einstein.ai/content/images/2021/08/runner2x-2.gif" width="250" height="250"/>
 
-WarpDrive also provides tools to build and train 
+## Throughput, Scalability and Convergence
+#### Multi Agent 
+Below, we compare the training speed on an N1 16-CPU
+node versus a single A100 GPU (using WarpDrive), for the Tag environment with 100 runners and 5 taggers. With the same environment configuration and training parameters, WarpDrive on a GPU is about 10× faster. Both scenarios are with 60 environment replicas running in parallel. Using more environments on the CPU node is infeasible as data copying gets too expensive. With WarpDrive, it is possible to scale up the number of environment replicas at least 10-fold, for even faster training.
+
+<img src="https://user-images.githubusercontent.com/7627238/144560725-83167c73-274e-4c5a-a6cf-4e06355895f0.png" width="400" height="400"/>
+
+#### Single Agent
+Below, we compare the training speed on a single A100 GPU (using WarpDrive), for the Cartpole-v1 with 10, 100, 1K, and 10K environment replicas running in parallel for 3000 epochs (hyperperams are the same). You may not see elsewhere such an amazing convergence with the number of environments scaled to this large magnitude. 
+
+<img width="400" alt="Screenshot 2023-11-05 at 12 46 28 PM" src="https://github.com/salesforce/warp-drive/assets/31748898/44f40cb9-1183-4894-a58e-391da843a8c0">
+
+## Code Structure
+WarpDrive provides a CUDA (or Numba) + Python framework and quality-of-life tools, so you can quickly build fast, flexible and massively distributed multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA or Numba step function at the CUDA environment layer, while the rest is a pure Python interface. We have step-by-step tutorials for you to master the workflow.
+
+<img src="https://user-images.githubusercontent.com/31748898/151683116-299943b9-4e70-4a7b-8feb-16a3a351ca91.png" width="780" height="580"/>
+
+## Python Interface
+WarpDrive provides tools to build and train 
 multi-agent RL systems quickly with just a few lines of code.
 Here is a short example to train tagger and runner agents:
 
@@ -62,24 +80,6 @@ trainer = Trainer(
 # Perform training!
 trainer.train()
 ```
-## Throughput, Scalability and Convergence
-#### Multi Agent 
-Below, we compare the training speed on an N1 16-CPU
-node versus a single A100 GPU (using WarpDrive), for the Tag environment with 100 runners and 5 taggers. With the same environment configuration and training parameters, WarpDrive on a GPU is about 10× faster. Both scenarios are with 60 environment replicas running in parallel. Using more environments on the CPU node is infeasible as data copying gets too expensive. With WarpDrive, it is possible to scale up the number of environment replicas at least 10-fold, for even faster training.
-
-<img src="https://user-images.githubusercontent.com/7627238/144560725-83167c73-274e-4c5a-a6cf-4e06355895f0.png" width="400" height="400"/>
-
-#### Single Agent
-Below, we compare the training speed on a single A100 GPU (using WarpDrive), for the Cartpole-v1 with 10, 100, 1K, and 10K environment replicas running in parallel for 3000 epochs (hyperperams are the same). You may not see elsewhere such an amazing convergence with the number of environments scaled to this large magnitude. 
-
-<img width="400" alt="Screenshot 2023-11-05 at 12 46 28 PM" src="https://github.com/salesforce/warp-drive/assets/31748898/44f40cb9-1183-4894-a58e-391da843a8c0">
-
-
-
-## Code Structure
-WarpDrive provides a CUDA (or Numba) + Python framework and quality-of-life tools, so you can quickly build fast, flexible and massively distributed multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA or Numba step function at the CUDA environment layer, while the rest is a pure Python interface. We have step-by-step tutorials for you to master the workflow.
-
-<img src="https://user-images.githubusercontent.com/31748898/151683116-299943b9-4e70-4a7b-8feb-16a3a351ca91.png" width="780" height="580"/>
 
 ## Papers and Citing WarpDrive
 

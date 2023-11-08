@@ -61,6 +61,9 @@ class MyTestCase(unittest.TestCase):
             env_wrapper.cuda_data_manager.get_reset_pool("state"))
         reset_pool_mean = reset_pool.mean(axis=0).squeeze()
 
+        # we only need to check the 0th element of state because state[1] = 0 for reset always
+        self.assertTrue(reset_pool.std(axis=0).squeeze()[0] > 1e-4)
+
         env_wrapper.cuda_data_manager.data_on_device_via_torch("_done_")[:] = torch.from_numpy(
             np.array([1, 1, 0])
         ).cuda()
@@ -77,13 +80,12 @@ class MyTestCase(unittest.TestCase):
         state_values_env1_mean = np.stack(state_values[1]).mean(axis=0).squeeze()
         state_values_env2_mean = np.stack(state_values[2]).mean(axis=0).squeeze()
 
-        for i in range(len(reset_pool_mean)):
-            self.assertTrue(np.absolute(state_values_env0_mean[i] - reset_pool_mean[i]) < 0.1 * abs(reset_pool_mean[i]))
-            self.assertTrue(np.absolute(state_values_env1_mean[i] - reset_pool_mean[i]) < 0.1 * abs(reset_pool_mean[i]))
-            self.assertTrue(
-                np.absolute(
-                    state_values_env2_mean[i] - state_after_initial_reset[0][i]
-                            ) < 0.001 * abs(state_after_initial_reset[0][i])
+        self.assertTrue(np.absolute(state_values_env0_mean[0] - reset_pool_mean[0]) < 0.1 * abs(reset_pool_mean[0]))
+        self.assertTrue(np.absolute(state_values_env1_mean[0] - reset_pool_mean[0]) < 0.1 * abs(reset_pool_mean[0]))
+        self.assertTrue(
+            np.absolute(
+                state_values_env2_mean[0] - state_after_initial_reset[0][0]
+                        ) < 0.001 * abs(state_after_initial_reset[0][0])
             )
 
 

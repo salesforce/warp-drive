@@ -61,6 +61,8 @@ class MyTestCase(unittest.TestCase):
             env_wrapper.cuda_data_manager.get_reset_pool("state"))
         reset_pool_mean = reset_pool.mean(axis=0).squeeze()
 
+        self.assertTrue(reset_pool.std(axis=0).mean() > 1e-4)
+
         env_wrapper.cuda_data_manager.data_on_device_via_torch("_done_")[:] = torch.from_numpy(
             np.array([1, 1, 0])
         ).cuda()

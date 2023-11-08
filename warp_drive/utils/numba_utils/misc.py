@@ -18,6 +18,7 @@ def get_default_env_directory(env_name):
         "TagGridWorld": "example_envs.tag_gridworld.tag_gridworld_step_numba",
         "TagContinuous": "example_envs.tag_continuous.tag_continuous_step_numba",
         "ClassicControlCartPoleEnv": "example_envs.single_agent.classic_control.cartpole.cartpole_step_numba",
+        "ClassicControlMountainCarEnv": "example_envs.single_agent.classic_control.mountain_car.mountain_car_step_numba",
         "YOUR_ENVIRONMENT": "PYTHON_PATH_TO_YOUR_ENV_SRC",
     }
     return envs.get(env_name, None)

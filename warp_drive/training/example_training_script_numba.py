@@ -20,6 +20,7 @@ import yaml
 from example_envs.tag_continuous.tag_continuous import TagContinuous
 from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld, CUDATagGridWorldWithResetPool
 from example_envs.single_agent.classic_control.cartpole.cartpole import CUDAClassicControlCartPoleEnv
+from example_envs.single_agent.classic_control.mountain_car.mountain_car import CUDAClassicControlMountainCarEnv
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.trainer import Trainer
 from warp_drive.training.utils.distributed_train.distributed_trainer_numba import (
@@ -35,6 +36,7 @@ _TAG_GRIDWORLD = "tag_gridworld"
 _TAG_GRIDWORLD_WITH_RESET_POOL = "tag_gridworld_with_reset_pool"
 
 _CLASSIC_CONTROL_CARTPOLE = "single_cartpole"
+__CLASSIC_CONTROL_MOUNTAIN_CAR = "single_mountain_car"
 
 # Example usages (from the root folder):
 # >> python warp_drive/training/example_training_script.py -e tag_gridworld
@@ -87,6 +89,14 @@ def setup_trainer_and_train(
     elif run_configuration["name"] == _CLASSIC_CONTROL_CARTPOLE:
         env_wrapper = EnvWrapper(
             CUDAClassicControlCartPoleEnv(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
+    elif run_configuration["name"] == __CLASSIC_CONTROL_MOUNTAIN_CAR:
+        env_wrapper = EnvWrapper(
+            CUDAClassicControlMountainCarEnv(**run_configuration["env"]),
             num_envs=num_envs,
             env_backend="numba",
             event_messenger=event_messenger,

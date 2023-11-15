@@ -3,8 +3,8 @@ import numpy as np
 import torch
 
 from warp_drive.env_cpu_gpu_consistency_checker import EnvironmentCPUvsGPU
-from example_envs.single_agent.classic_control.cartpole.cartpole import \
-    ClassicControlCartPoleEnv, CUDAClassicControlCartPoleEnv
+from example_envs.single_agent.classic_control.mountain_car.mountain_car import \
+    ClassicControlMountainCarEnv, CUDAClassicControlMountainCarEnv
 from warp_drive.env_wrapper import EnvWrapper
 
 
@@ -30,8 +30,8 @@ class MyTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.testing_class = EnvironmentCPUvsGPU(
-            cpu_env_class=ClassicControlCartPoleEnv,
-            cuda_env_class=CUDAClassicControlCartPoleEnv,
+            cpu_env_class=ClassicControlMountainCarEnv,
+            cuda_env_class=CUDAClassicControlMountainCarEnv,
             env_configs=env_configs,
             gpu_env_backend="numba",
             num_envs=5,
@@ -42,11 +42,11 @@ class MyTestCase(unittest.TestCase):
         try:
             self.testing_class.test_env_reset_and_step()
         except AssertionError:
-            self.fail("ClassicControlCartPoleEnv environment consistency tests failed")
+            self.fail("ClassicControlMountainCarEnv environment consistency tests failed")
 
     def test_reset_pool(self):
         env_wrapper = EnvWrapper(
-            env_obj=CUDAClassicControlCartPoleEnv(episode_length=100, reset_pool_size=3),
+            env_obj=CUDAClassicControlMountainCarEnv(episode_length=100, reset_pool_size=3),
             num_envs=3,
             env_backend="numba",
         )
@@ -61,7 +61,8 @@ class MyTestCase(unittest.TestCase):
             env_wrapper.cuda_data_manager.get_reset_pool("state"))
         reset_pool_mean = reset_pool.mean(axis=0).squeeze()
 
-        self.assertTrue(reset_pool.std(axis=0).mean() > 1e-4)
+        # we only need to check the 0th element of state because state[1] = 0 for reset always
+        self.assertTrue(reset_pool.std(axis=0).squeeze()[0] > 1e-4)
 
         env_wrapper.cuda_data_manager.data_on_device_via_torch("_done_")[:] = torch.from_numpy(
             np.array([1, 1, 0])
@@ -79,13 +80,12 @@ class MyTestCase(unittest.TestCase):
         state_values_env1_mean = np.stack(state_values[1]).mean(axis=0).squeeze()
         state_values_env2_mean = np.stack(state_values[2]).mean(axis=0).squeeze()
 
-        for i in range(len(reset_pool_mean)):
-            self.assertTrue(np.absolute(state_values_env0_mean[i] - reset_pool_mean[i]) < 0.1 * abs(reset_pool_mean[i]))
-            self.assertTrue(np.absolute(state_values_env1_mean[i] - reset_pool_mean[i]) < 0.1 * abs(reset_pool_mean[i]))
-            self.assertTrue(
-                np.absolute(
-                    state_values_env2_mean[i] - state_after_initial_reset[0][i]
-                            ) < 0.001 * abs(state_after_initial_reset[0][i])
+        self.assertTrue(np.absolute(state_values_env0_mean[0] - reset_pool_mean[0]) < 0.1 * abs(reset_pool_mean[0]))
+        self.assertTrue(np.absolute(state_values_env1_mean[0] - reset_pool_mean[0]) < 0.1 * abs(reset_pool_mean[0]))
+        self.assertTrue(
+            np.absolute(
+                state_values_env2_mean[0] - state_after_initial_reset[0][0]
+                        ) < 0.001 * abs(state_after_initial_reset[0][0])
             )
 
 

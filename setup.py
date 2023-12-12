@@ -14,7 +14,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="rl-warp-drive",
-    version="2.6.1",
+    version="2.6.2",
     author="Tian Lan, Sunil Srinivasa, Brenton Chu, Stephan Zheng",
     author_email="tian.lan@salesforce.com",
     description="Framework for fast end-to-end "

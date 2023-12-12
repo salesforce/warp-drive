@@ -13,7 +13,7 @@ _REWARDS = Constants.REWARDS
 
 class ClassicControlAcrobotEnv(SingleAgentEnv):
 
-    name = "ClassicControlAcrobotEnvEnv"
+    name = "ClassicControlAcrobotEnv"
 
     def __init__(self, episode_length, env_backend="cpu", reset_pool_size=0, seed=None):
         super().__init__(episode_length, env_backend, reset_pool_size, seed=seed)
@@ -83,7 +83,7 @@ class CUDAClassicControlAcrobotEnv(ClassicControlAcrobotEnv, CUDAEnvironmentCont
                 initial_state = self.gym_env.state
                 state_reset_pool.append(np.atleast_2d(initial_state))
             state_reset_pool = np.stack(state_reset_pool, axis=0)
-            assert len(state_reset_pool.shape) == 3 and state_reset_pool.shape[2] == 2
+            assert len(state_reset_pool.shape) == 3 and state_reset_pool.shape[2] == 4
 
             reset_pool_dict.add_pool_for_reset(name="state_reset_pool",
                                                data=state_reset_pool,

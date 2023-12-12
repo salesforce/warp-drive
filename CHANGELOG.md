@@ -1,4 +1,8 @@
 # Changelog
+# Release 2.6.2 (2023-12-12)
+- Add Acrobot environment that can run up to 100K concurrent replicates.
+- Add Mountain Car environment that can run up to 100K concurrent replicates.
+
 # Release 2.6.1 (2023-11-05)
 - Support single agent framework and start to add gym.classic_control
 - Add Cartpole environment that can run up to 100K concurrent replicates.

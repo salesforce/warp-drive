@@ -41,9 +41,9 @@ node versus a single A100 GPU (using WarpDrive), for the Tag environment with 10
 <img src="https://user-images.githubusercontent.com/7627238/144560725-83167c73-274e-4c5a-a6cf-4e06355895f0.png" width="400" height="400"/>
 
 #### Single Agent
-Below, we compare the training speed on a single A100 GPU (using WarpDrive), for the Cartpole-v1 with 10, 100, 1K, and 10K environment replicas running in parallel for 3000 epochs (hyperperams are the same). You may not see elsewhere such an amazing convergence with the number of environments scaled to this large magnitude. 
+Below, we compare the training speed on a single A100 GPU (using WarpDrive), for the (top) Cartpole-v1 and (bottom) Acrobot-v1 with 10, 100, 1K, and 10K environment replicas running in parallel for 3000 epochs (hyperperams are the same). You can see an amazing convergence and speed with the huge number of environments scaled by WarpDrive. 
 
-<img width="400" alt="Screenshot 2023-11-05 at 12 46 28 PM" src="https://github.com/salesforce/warp-drive/assets/31748898/44f40cb9-1183-4894-a58e-391da843a8c0">
+<img width="450" src="https://github.com/salesforce/warp-drive/assets/31748898/a63c0e00-0c35-49c5-a7ae-802d1c879607">
 
 ## Code Structure
 WarpDrive provides a CUDA (or Numba) + Python framework and quality-of-life tools, so you can quickly build fast, flexible and massively distributed multi-agent RL systems. The following figure illustrates a bottoms-up overview of the design and components of WarpDrive. The user only needs to write a CUDA or Numba step function at the CUDA environment layer, while the rest is a pure Python interface. We have step-by-step tutorials for you to master the workflow.

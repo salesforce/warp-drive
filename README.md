@@ -1,4 +1,4 @@
-# WarpDrive: Extremely Fast End-to-End Deep Single or Multi-Agent Reinforcement Learning on a GPU
+# WarpDrive: Extremely Fast End-to-End Single or Multi-Agent Deep Reinforcement Learning on a GPU
 
 WarpDrive is a flexible, lightweight, and easy-to-use open-source reinforcement learning (RL) 
 framework that implements end-to-end multi-agent RL on a single or multiple GPUs (Graphics Processing Unit). 

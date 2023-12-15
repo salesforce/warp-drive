@@ -12,7 +12,7 @@ import logging
 
 import numpy as np
 import torch
-from gym.spaces import Discrete, MultiDiscrete
+from gym.spaces import Discrete, MultiDiscrete, Box
 
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.utils.data_loader import (
@@ -61,8 +61,11 @@ def _generate_random_actions_helper(action_space, np_random):
             high=action_space.nvec,
             dtype=np.int32,
         )
+    if isinstance(action_space, Box):
+        return np_random.uniform(low=action_space.low, high=action_space.high)
+
     raise NotImplementedError(
-        "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported"
+        "Only 'Discrete', 'MultiDiscrete' or 'Box' type action spaces are supported"
     )
 
 

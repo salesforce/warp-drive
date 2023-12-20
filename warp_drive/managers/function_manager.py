@@ -168,7 +168,11 @@ class CUDASampler:
         raise NotImplementedError
 
     def register_actions(
-        self, data_manager: CUDADataManager, action_name: str, num_actions: int
+        self,
+        data_manager: CUDADataManager,
+        action_name: str,
+        num_actions: int,
+        is_continuous=False,
     ):
         """
         Register an action
@@ -177,13 +181,21 @@ class CUDASampler:
         record the sampled actions
         :param num_actions: the number of actions for this action_name
         (the last dimension of the action distribution)
+        :param is_continuous: discrete or continuous action
         """
         n_agents = data_manager.get_shape(action_name)[1]
+        if is_continuous:
+            num_actions = 1
         host_array = np.zeros(
             shape=(self._grid[0], n_agents, num_actions), dtype=np.float32
         )
         data_feed = DataFeed()
-        data_feed.add_data(name=f"{action_name}_cum_distr", data=host_array)
+        if is_continuous:
+            # add ou noise data array
+            data_feed.add_data(name=f"{action_name}_ou_state", data=host_array)
+        else:
+            # add cumulative distribution data array
+            data_feed.add_data(name=f"{action_name}_cum_distr", data=host_array)
         data_manager.push_data_to_device(data_feed)
 
     def sample(
@@ -191,6 +203,7 @@ class CUDASampler:
         data_manager: CUDADataManager,
         distribution: torch.Tensor,
         action_name: str,
+        **kwargs,
     ):
         raise NotImplementedError
 

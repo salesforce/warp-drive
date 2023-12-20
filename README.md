@@ -18,20 +18,27 @@ Together, these allow the user to run thousands or even millions of concurrent s
 on extremely large batches of experience, achieving at least 100x throughput over CPU-based counterparts. 
 
 ## Environments
-1. We include several default multi-agent environments
-based on the game of "Tag" for benchmarking and testing. In the "Tag" games, taggers are trying to run after
-and tag the runners. They are fairly complicated games where thread synchronization, shared memory, high-dimensional indexing for thousands of interacting agents are involved.
-
-2. Several more complex environments such as Covid-19 environment and climate change environment have been developed based on WarpDrive, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
-
-3. We extend our efforts to some single agent environments including [gym.classic_control]( https://github.com/openai/gym/tree/master/gym/envs/classic_control). Single-agent is a special case of multi-agent environment in WarpDrive. Since each environment only has one agent, the scalability is even higher.
-
-Below, we show multi-agent RL policies 
+1. **Game of "Tag"**: In the "Tag" games, taggers are trying to run after
+and tag the runners. They are fairly complicated games for benchmarking and testing, where thread synchronization, shared memory, high-dimensional indexing for thousands of interacting agents are involved. Below, we show multi-agent RL policies 
 trained for different tagger:runner speed ratios using WarpDrive. 
 These environments can **run** at **millions of steps per second**, 
 and **train** in just a few **hours**, all on a single GPU!
 
 <img src="https://blog.einstein.ai/content/images/2021/08/tagger2x-1.gif" width="250" height="250"/> <img src="https://blog.einstein.ai/content/images/2021/08/same_speed_50fps-1.gif" width="250" height="250"/> <img src="https://blog.einstein.ai/content/images/2021/08/runner2x-2.gif" width="250" height="250"/>
+
+#  
+
+2. Several more complex environments such as **Covid-19 environment and climate change environment** have been developed based on WarpDrive, you may see examples in [Real-World Problems and Collaborations](#real-world-problems-and-collaborations).
+
+<img width="800" src="https://github.com/salesforce/warp-drive/assets/31748898/7544ea10-3243-4415-8d50-b4827e4519d2">
+
+#  
+
+3. **Classic control**: We include environments at [gym.classic_control]( https://github.com/openai/gym/tree/master/gym/envs/classic_control). Single-agent is a special case of multi-agent environment in WarpDrive. Since each environment only has one agent, the scalability is even higher.
+
+<img width="600" alt="Screenshot 2023-12-19 at 10 02 51 PM" src="https://github.com/salesforce/warp-drive/assets/31748898/19b5c3b0-fa02-4555-8d95-e34187ea5df9">
+
+#  
 
 ## Throughput, Scalability and Convergence
 #### Multi Agent 

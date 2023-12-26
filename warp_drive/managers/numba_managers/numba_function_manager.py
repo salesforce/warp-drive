@@ -193,6 +193,7 @@ class NumbaFunctionManager(CUDAFunctionManager):
             "log_one_step_3d",
             "init_random",
             "sample_actions",
+            "sample_ou_process",
             "reset_when_done_1d",
             "reset_when_done_2d",
             "reset_when_done_3d",
@@ -731,12 +732,22 @@ class NumbaOUProcess(CUDASampler):
         self.rng_states_dict["rng_states"] = rng_states
         self._random_initialized = True
 
+    def reset_state(self, data_manager: NumbaDataManager, action_name: str,):
+        host_array = np.zeros(
+            shape=data_manager.get_shape(f"{action_name}_ou_state"), dtype=np.float32
+        )
+        data_feed = DataFeed()
+        data_feed.add_data(name=f"{action_name}_ou_state", data=host_array)
+        data_manager.push_data_to_device(data_feed)
+
     def sample(
         self,
         data_manager: NumbaDataManager,
         distribution: torch.Tensor,
         action_name: str,
-        **kwargs,
+        damping=0.15,
+        stddev=0.2,
+        scale=1.0
     ):
         """
         Sample continuous actions based on the Ornstein–Uhlenbeck process
@@ -746,6 +757,9 @@ class NumbaOUProcess(CUDASampler):
         (num_env, num_agents, 1)
         :param action_name: the name of action array that will
         record the sampled actions
+        :param damping: damping factor for OU process
+        :param stddev: standard dev for normal process
+        :param scale: scale of ou process
         """
         assert self._random_initialized, (
             "sample() requires the random seed initialized first, "
@@ -767,5 +781,8 @@ class NumbaOUProcess(CUDASampler):
             numba_driver.as_cuda_array(distribution.detach()),
             data_manager.device_data(action_name),
             data_manager.device_data(f"{action_name}_ou_state"),
+            np.float32(damping),
+            np.float32(stddev),
+            np.float32(scale),
         )
 

@@ -1,6 +1,6 @@
 from numba import cuda as numba_driver
 from numba import float32, int32, boolean, from_dtype
-from numba.cuda.random import init_xoroshiro128p_states, xoroshiro128p_uniform_float32
+from numba.cuda.random import init_xoroshiro128p_states, xoroshiro128p_uniform_float32, xoroshiro128p_normal_float32
 import numpy as np
 
 kEps = 1.0e-8
@@ -61,3 +61,45 @@ def sample_actions(rng_states, distr, action_indices, cum_distr, num_actions, us
     ind = search_index(cum_distr, p, env_id, agent_id, num_actions - 1)
     # action_indices in the shape of [n_env, n_agent, 1]
     action_indices[env_id, agent_id, 0] = ind
+
+
+@numba_driver.jit((xoroshiro128p_type[::1],
+                   float32[:, :, ::1],
+                   float32[:, :, ::1],
+                   float32[:, :, ::1],
+                   float32,
+                   float32,
+                   float32)
+                  )
+def sample_ou_process(
+        rng_states,
+        distr,
+        actions,
+        ou_states,
+        damping=0.15,
+        stddev=0.2,
+        scale=1.0):
+
+    # The temporal noise update equation is:
+    #    ou_next = (1 - damping) * ou + N(0, std_dev)`
+    #    ou = ou_next
+    #    action = distr + scale * ou
+
+    env_id = numba_driver.blockIdx.x
+    agent_id = numba_driver.threadIdx.x
+
+    if scale < kEps:
+        # there is no random noise, assign the model deterministic distribution to action directly
+        actions[env_id, agent_id, 0] = distr[env_id, agent_id, 0]
+        return
+
+    posidx = numba_driver.grid(1)
+    if posidx >= rng_states.shape[0]:
+        return
+
+    normal_var = xoroshiro128p_normal_float32(rng_states, posidx)
+    normal_var = stddev * normal_var  # an normal noise with std = stddev and mean 0
+
+    ou_states[env_id, agent_id, 0] = (1.0 - damping) * ou_states[env_id, agent_id, 0] + normal_var
+
+    actions[env_id, agent_id, 0] = distr[env_id, agent_id, 0] + scale * ou_states[env_id, agent_id, 0]

@@ -12,7 +12,7 @@ import torch
 from warp_drive.managers.numba_managers.numba_data_manager import NumbaDataManager
 from warp_drive.managers.numba_managers.numba_function_manager import (
     NumbaFunctionManager,
-    NumbaOUProcess,
+    NumbaSampler,
 )
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.constants import Constants
@@ -35,14 +35,14 @@ class TestOUProcessSampler(unittest.TestCase):
             num_envs=int(self.dm.meta_info("n_envs")),
         )
         self.fm.import_numba_from_source_code(f"{_NUMBA_FILEPATH}.test_build")
-        self.sampler = NumbaOUProcess(function_manager=self.fm)
+        self.sampler = NumbaSampler(function_manager=self.fm)
         self.sampler.init_random(seed=None)
 
     def test_variation(self):
         tensor = DataFeed()
         tensor.add_data(name=f"{_ACTIONS}_a", data=np.zeros((1000, 5, 1), dtype=np.float32))
         self.dm.push_data_to_device(tensor, torch_accessible=True)
-        self.sampler.register_actions(self.dm, f"{_ACTIONS}_a", 1, is_continuous=True)
+        self.sampler.register_actions(self.dm, f"{_ACTIONS}_a", 1, is_deterministic=True)
 
         # deterministic agent actions
         agent_distribution = np.zeros((1000, 5, 1), dtype=np.float32)

@@ -172,7 +172,7 @@ class CUDASampler:
         data_manager: CUDADataManager,
         action_name: str,
         num_actions: int,
-        is_continuous=False,
+        is_deterministic=False,
     ):
         """
         Register an action
@@ -181,16 +181,16 @@ class CUDASampler:
         record the sampled actions
         :param num_actions: the number of actions for this action_name
         (the last dimension of the action distribution)
-        :param is_continuous: discrete or continuous action
+        :param is_deterministic: if True: deterministic action, usually it means continuous action like for DDPG
         """
         n_agents = data_manager.get_shape(action_name)[1]
-        if is_continuous:
+        if is_deterministic:
             num_actions = 1
         host_array = np.zeros(
             shape=(self._grid[0], n_agents, num_actions), dtype=np.float32
         )
         data_feed = DataFeed()
-        if is_continuous:
+        if is_deterministic:
             # add ou noise data array
             data_feed.add_data(name=f"{action_name}_ou_state", data=host_array)
         else:

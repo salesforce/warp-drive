@@ -73,12 +73,16 @@ class FullyConnected(nn.Module):
         sample_agent_id = self.policy_tag_to_agent_id_map[self.policy][0]
         # Flatten obs space
         self.observation_space = self.env.env.observation_space[sample_agent_id]
-        self.flattened_obs_size = self.get_flattened_obs_size(self.observation_space)
-
+        self.flattened_obs_size = get_flattened_obs_size(self.observation_space)
+        self.is_deterministic = False
         if isinstance(self.env.env.action_space[sample_agent_id], Discrete):
             action_space = [self.env.env.action_space[sample_agent_id].n]
         elif isinstance(self.env.env.action_space[sample_agent_id], MultiDiscrete):
             action_space = self.env.env.action_space[sample_agent_id].nvec
+        elif isinstance(self.env.env.action_space[sample_agent_id], Box):
+            # deterministic action space
+            action_space = [1] * self.env.env.action_space[sample_agent_id].shape[0]
+            self.is_deterministic = True
         else:
             raise NotImplementedError
 
@@ -93,12 +97,16 @@ class FullyConnected(nn.Module):
             )
 
         # policy network (list of heads)
-        policy_heads = [None for _ in range(len(action_space))]
-        self.output_dims = []  # Network output dimension(s)
-        for idx, act_space in enumerate(action_space):
-            self.output_dims += [act_space]
-            policy_heads[idx] = nn.Linear(fc_dims[-1], act_space)
-        self.policy_head = nn.ModuleList(policy_heads)
+        if self.is_deterministic:
+            self.output_dims = [len(action_space)]
+            self.policy_head = nn.Linear(fc_dims, len(action_space))
+        else:
+            policy_heads = [None for _ in range(len(action_space))]
+            self.output_dims = []  # Network output dimension(s)
+            for idx, act_space in enumerate(action_space):
+                self.output_dims += [act_space]
+                policy_heads[idx] = nn.Linear(fc_dims[-1], act_space)
+            self.policy_head = nn.ModuleList(policy_heads)
 
         # value-function network head
         self.vf_head = nn.Linear(fc_dims[-1], 1)
@@ -109,10 +117,6 @@ class FullyConnected(nn.Module):
         # max batch size allowed
         name = f"{_PROCESSED_OBSERVATIONS}_batch_{self.policy}"
         self.batch_size = self.env.cuda_data_manager.get_shape(name=name)[0]
-
-    def get_flattened_obs_size(self, observation_space):
-        """Get the total size of the observations after flattening"""
-        return get_flattened_obs_size(observation_space)
 
     def reshape_and_flatten_obs(self, obs):
         """
@@ -225,16 +229,19 @@ class FullyConnected(nn.Module):
 
         # Compute the action probabilities and the value function estimate
         # Apply action mask to the logits as well.
-        action_masks = [None for _ in range(len(self.output_dims))]
-        if self.action_mask is not None:
-            start = 0
-            for idx, dim in enumerate(self.output_dims):
-                action_masks[idx] = self.action_mask[..., start : start + dim]
-                start = start + dim
-        action_probs = [
-            func.softmax(apply_logit_mask(ph(logits), action_masks[idx]), dim=-1)
-            for idx, ph in enumerate(self.policy_head)
-        ]
+        if self.is_deterministic:
+            action_probs = func.tanh(apply_logit_mask(self.policy_head(logits), self.action_mask))
+        else:
+            action_masks = [None for _ in range(len(self.output_dims))]
+            if self.action_mask is not None:
+                start = 0
+                for idx, dim in enumerate(self.output_dims):
+                    action_masks[idx] = self.action_mask[..., start : start + dim]
+                    start = start + dim
+            action_probs = [
+                func.softmax(apply_logit_mask(ph(logits), action_masks[idx]), dim=-1)
+                for idx, ph in enumerate(self.policy_head)
+            ]
         vals = self.vf_head(logits)[..., 0]
 
         return action_probs, vals

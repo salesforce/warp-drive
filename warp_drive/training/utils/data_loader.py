@@ -569,6 +569,7 @@ def _prepare_action_sampler_helper(
             env_wrapper.cuda_data_manager,
             action_name=_ACTIONS + policy_suffix,
             num_actions=action_dim,
+            is_deterministic=False,
         )
     elif isinstance(action_space, MultiDiscrete):
         action_dim = action_space.nvec
@@ -578,7 +579,25 @@ def _prepare_action_sampler_helper(
                 env_wrapper.cuda_data_manager,
                 action_name=f"{_ACTIONS}_{action_type_id}" + policy_suffix,
                 num_actions=action_type_dim,
+                is_deterministic=False,
             )
+    elif isinstance(action_space, Box):
+        num_action_types = action_space.shape[0]
+        if num_action_types == 1:
+            action_sampler.register_actions(
+                env_wrapper.cuda_data_manager,
+                action_name=_ACTIONS + policy_suffix,
+                num_actions=1,
+                is_deterministic=True,
+            )
+        else:
+            for action_type_id in range(num_action_types):
+                action_sampler.register_actions(
+                    env_wrapper.cuda_data_manager,
+                    action_name=f"{_ACTIONS}_{action_type_id}" + policy_suffix,
+                    num_actions=1,
+                    is_deterministic=True,
+                )
     else:
         raise NotImplementedError(
             "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"

@@ -320,6 +320,7 @@ class NumbaSampler(CUDASampler):
             "please call init_random()"
         )
         assert torch.is_tensor(distribution)
+        assert distribution.is_contiguous(), "distribution is required to be C contiguous"
         assert distribution.shape[0] == self._num_envs
         n_agents = int(distribution.shape[1])
         assert data_manager.get_shape(action_name)[1] == n_agents

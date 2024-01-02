@@ -230,7 +230,15 @@ class FullyConnected(nn.Module):
         # Compute the action probabilities and the value function estimate
         # Apply action mask to the logits as well.
         if self.is_deterministic:
-            action_probs = func.tanh(apply_logit_mask(self.policy_head(logits), self.action_mask))
+            combined_action_probs = func.tanh(apply_logit_mask(self.policy_head(logits), self.action_mask))
+            if self.output_dims[0] > 1:
+                # we split the actions to their corresponding heads
+                # we make sure after the split, we rearrange the memory so each chunk is still C-continguous
+                # otherwise the sampler may have index issue
+                action_probs = list(torch.split(combined_action_probs, 1, dim=-1))
+                action_probs = [ap.contiguous() for ap in action_probs]
+            else:
+                action_probs = [combined_action_probs]
         else:
             action_masks = [None for _ in range(len(self.output_dims))]
             if self.action_mask is not None:

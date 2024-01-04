@@ -298,7 +298,7 @@ class NumbaSampler(CUDASampler):
         data_manager: NumbaDataManager,
         distribution: torch.Tensor,
         action_name: str,
-        **kwargs,
+        **sample_params,
     ):
         """
         Sample based on the distribution
@@ -308,11 +308,11 @@ class NumbaSampler(CUDASampler):
         (num_env, num_agents, num_actions)
         :param action_name: the name of action array that will
         record the sampled actions
-        :param kwargs:
-            kwargs["use_argmax"] = True, sample based on the argmax(distribution)
-            kwargs["damping"]
-            kwargs["stddev"]
-            kwargs["scale"]
+        :param sample_params:
+            sample_params["use_argmax"] = True, sample based on the argmax(distribution)
+            sample_params["damping"]
+            sample_params["stddev"]
+            sample_params["scale"]
 
         """
         assert self._random_initialized, (
@@ -333,7 +333,7 @@ class NumbaSampler(CUDASampler):
             # has a probability distribution over multiple discrete actions
             assert data_manager.get_shape(f"{action_name}_cum_distr")[2] == n_actions
 
-            use_argmax = kwargs.get("use_argmax", False)
+            use_argmax = sample_params.get("use_argmax", False)
 
             self.sample_actions[
                 self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)
@@ -347,9 +347,9 @@ class NumbaSampler(CUDASampler):
             )
         else:
             # deterministic action
-            damping = kwargs.get("damping", 0.15)
-            stddev = kwargs.get("stddev", 0.2)
-            scale = kwargs.get("scale", 1.0)
+            damping = sample_params.get("damping", 0.15)
+            stddev = sample_params.get("stddev", 0.2)
+            scale = sample_params.get("scale", 1.0)
 
             self.sample_ou_process[
                 self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)

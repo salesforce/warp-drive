@@ -203,7 +203,7 @@ class CUDASampler:
         data_manager: CUDADataManager,
         distribution: torch.Tensor,
         action_name: str,
-        **kwargs,
+        **sample_params,
     ):
         raise NotImplementedError
 

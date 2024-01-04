@@ -147,6 +147,9 @@ class Trainer:
             self.config["policy"][key] = recursive_merge_config_dicts(
                 self.config["policy"][key], default_config["policy"]
             )
+        # Sampler-related configurations (usually Optional)
+        self.sample_params = self._get_config(["sampler", "params"]) if "sampler" in self.config else {}
+
         # Saving-related configurations
         self.config["saving"] = recursive_merge_config_dicts(
             self.config["saving"], default_config["saving"]
@@ -448,7 +451,7 @@ class Trainer:
             # Sample actions using the computed probabilities
             # and push to the batch of actions
             start_event.record()
-            self._sample_actions(probabilities, batch_index=batch_index)
+            self._sample_actions(probabilities, batch_index=batch_index, **self.sample_params)
             end_event.record()
             torch.cuda.synchronize()
             self.perf_stats.action_sample_time += (
@@ -522,7 +525,7 @@ class Trainer:
 
         return probabilities
 
-    def _sample_actions(self, probabilities, batch_index=0, use_argmax=False):
+    def _sample_actions(self, probabilities, batch_index=0, **sample_params):
         """
         Sample action probabilities (and push the sampled actions to the device).
         """
@@ -532,7 +535,7 @@ class Trainer:
                 # Sample each individual policy
                 policy_suffix = f"_{policy}"
                 self._sample_actions_helper(
-                    probabilities[policy], policy_suffix=policy_suffix, use_argmax=use_argmax
+                    probabilities[policy], policy_suffix=policy_suffix, **sample_params
                 )
                 # Push the actions to the batch
                 actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
@@ -545,7 +548,7 @@ class Trainer:
             assert len(probabilities) == 1
             policy = list(probabilities.keys())[0]
             # sample a single or a combined policy
-            self._sample_actions_helper(probabilities[policy], use_argmax=use_argmax)
+            self._sample_actions_helper(probabilities[policy], **sample_params)
             actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                 _ACTIONS
             )
@@ -563,20 +566,20 @@ class Trainer:
                         name=f"{_ACTIONS}_batch_{policy}"
                     )[batch_index] = actions
 
-    def _sample_actions_helper(self, probabilities, policy_suffix="", use_argmax=False):
+    def _sample_actions_helper(self, probabilities, policy_suffix="", **sample_params):
         # Sample actions with policy_suffix tag
         num_action_types = len(probabilities)
 
         if num_action_types == 1:
             action_name = _ACTIONS + policy_suffix
             self.cuda_sample_controller.sample(
-                self.cuda_envs.cuda_data_manager, probabilities[0], action_name, use_argmax
+                self.cuda_envs.cuda_data_manager, probabilities[0], action_name, **sample_params
             )
         else:
             for action_type_id, probs in enumerate(probabilities):
                 action_name = f"{_ACTIONS}_{action_type_id}" + policy_suffix
                 self.cuda_sample_controller.sample(
-                    self.cuda_envs.cuda_data_manager, probs, action_name, use_argmax
+                    self.cuda_envs.cuda_data_manager, probs, action_name, **sample_params
                 )
                 # Push (indexed) actions to 'actions'
                 actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
@@ -759,7 +762,6 @@ class Trainer:
                 )
                 self.num_completed_episodes[policy] = 0
 
-
         end_event.record()
         torch.cuda.synchronize()
 
@@ -901,7 +903,7 @@ class Trainer:
         env_id=0,  # environment id to fetch the states from
         include_rewards_actions=False,  # flag to output reward and action
         policy="",  # if include_rewards_actions=True, the corresponding policy tag if any
-        use_argmax=False,
+        **sample_params
     ):
         """
         Step through env and fetch the desired states (data arrays on the GPU)
@@ -959,7 +961,7 @@ class Trainer:
             probabilities = self._evaluate_policies(batch_index=-1)
 
             # Sample actions
-            self._sample_actions(probabilities, use_argmax=use_argmax)
+            self._sample_actions(probabilities, **sample_params)
 
             # Step through all the environments
             self.cuda_envs.step_all_envs()

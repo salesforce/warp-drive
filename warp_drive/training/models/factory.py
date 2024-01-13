@@ -3,6 +3,10 @@ import importlib
 # warpdrive reserved models
 default_models = {
     "fully_connected": "warp_drive.training.models.fully_connected:FullyConnected",
+    "fully_connected_actor":
+        "warp_drive.training.models.fully_connected_actor_critic:FullyConnectedActor",
+    "fully_connected_action_value_critic":
+        "warp_drive.training.models.fully_connected_actor_critic:FullyConnectedActionValueCritic",
 }
 
 

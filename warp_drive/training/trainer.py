@@ -282,6 +282,7 @@ class Trainer:
         # Note: Loading the model checkpoint may also update the current timestep!
         self.load_model_checkpoint()
 
+        self.ddp_mode = {}
         for policy in self.policies:
             # Push the models to the GPU
             self.models[policy].cuda()
@@ -290,6 +291,9 @@ class Trainer:
                 self.models[policy] = DDP(
                     self.models[policy], device_ids=[self.device_id]
                 )
+                self.ddp_mode[policy] = True
+            else:
+                self.ddp_mode[policy] = False
 
             # Initialize the (ADAM) optimizer
             lr_config = self._get_config(["policy", policy, "lr"])
@@ -481,7 +485,14 @@ class Trainer:
         assert isinstance(batch_index, int)
         probabilities = {}
         for policy in self.policies:
-            probabilities[policy], _ = self.models[policy](batch_index=batch_index)
+            if self.ddp_mode[policy]:
+                # self.models[policy] is a DDP wrapper of the model instance
+                obs = self.models[policy].module.process_one_step_obs()
+                self.models[policy].module.push_processed_obs_to_batch(batch_index, obs)
+            else:
+                obs = self.models[policy].process_one_step_obs()
+                self.models[policy].push_processed_obs_to_batch(batch_index, obs)
+            probabilities[policy], _ = self.models[policy](obs)
 
         # Combine probabilities across policies if there are multiple policies,
         # yet they share the same action placeholders.

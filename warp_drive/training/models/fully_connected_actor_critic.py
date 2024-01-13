@@ -15,14 +15,14 @@ from torch import nn
 from warp_drive.training.models.model_base import ModelBaseFullyConnected, apply_logit_mask
 
 
-# Policy + Value networks
+# Policy networks
 # ---------------
-class FullyConnected(ModelBaseFullyConnected):
+class FullyConnectedActor(ModelBaseFullyConnected):
     """
     Fully connected network implementation in Pytorch
     """
 
-    name = "torch_fully_connected"
+    name = "torch_fully_connected_actor"
 
     def __init__(
         self,
@@ -38,7 +38,8 @@ class FullyConnected(ModelBaseFullyConnected):
                          policy,
                          policy_tag_to_agent_id_map,
                          create_separate_placeholders_for_each_policy,
-                         obs_dim_corresponding_to_num_agents,)
+                         obs_dim_corresponding_to_num_agents,
+                         include_value_head=False,)
         num_fc_layers = len(self.fc_dims)
         input_dims = [self.flattened_obs_size] + self.fc_dims[:-1]
         output_dims = self.fc_dims
@@ -51,7 +52,7 @@ class FullyConnected(ModelBaseFullyConnected):
     def forward(self, obs=None, action=None):
         """
         Forward pass through the model.
-        Returns action probabilities and value functions.
+        Returns action probabilities.
         """
         ip = obs
         # Feed through the FC layers
@@ -83,7 +84,55 @@ class FullyConnected(ModelBaseFullyConnected):
                 func.softmax(apply_logit_mask(ph(logits), action_masks[idx]), dim=-1)
                 for idx, ph in enumerate(self.policy_head)
             ]
+
+        return action_probs
+
+
+# Q-Critic networks
+# ---------------
+class FullyConnectedActionValueCritic(ModelBaseFullyConnected):
+    """
+    Fully connected network implementation in Pytorch
+    """
+
+    name = "torch_fully_connected_q"
+
+    def __init__(
+        self,
+        env,
+        model_config,
+        policy,
+        policy_tag_to_agent_id_map,
+        create_separate_placeholders_for_each_policy=False,
+        obs_dim_corresponding_to_num_agents="first",
+    ):
+        super().__init__(env,
+                         model_config,
+                         policy,
+                         policy_tag_to_agent_id_map,
+                         create_separate_placeholders_for_each_policy,
+                         obs_dim_corresponding_to_num_agents,
+                         include_policy_head=False, )
+        num_fc_layers = len(self.fc_dims)
+        input_dims = [self.flattened_obs_size + self.flattened_action_size] + self.fc_dims[:-1]
+        output_dims = self.fc_dims
+        for fc_layer in range(num_fc_layers):
+            self.fc[str(fc_layer)] = nn.Sequential(
+                nn.Linear(input_dims[fc_layer], output_dims[fc_layer]),
+                nn.ReLU(),
+            )
+
+    def forward(self, obs=None, action=None):
+        """
+        Forward pass through the model.
+        Returns Q value.
+        """
+        ip = torch.cat([obs, action], dim=-1)
+        # Feed through the FC layers
+        for layer in range(len(self.fc)):
+            op = self.fc[str(layer)](ip)
+            ip = op
+        logits = op
+
         vals = self.vf_head(logits)[..., 0]
-
-        return action_probs, vals
-
+        return vals

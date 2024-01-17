@@ -18,20 +18,28 @@ import torch
 import yaml
 
 from example_envs.tag_continuous.tag_continuous import TagContinuous
-from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld
+from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld, CUDATagGridWorldWithResetPool
+from example_envs.single_agent.classic_control.cartpole.cartpole import CUDAClassicControlCartPoleEnv
+from example_envs.single_agent.classic_control.mountain_car.mountain_car import CUDAClassicControlMountainCarEnv
+from example_envs.single_agent.classic_control.acrobot.acrobot import CUDAClassicControlAcrobotEnv
 from warp_drive.env_wrapper import EnvWrapper
-from warp_drive.training.trainer import Trainer
-from warp_drive.training.utils.distributed_train.distributed_trainer_pycuda import (
+from warp_drive.training.trainer_a2c import TrainerA2C
+from warp_drive.training.utils.distributed_train.distributed_trainer_numba import (
     perform_distributed_training,
 )
 from warp_drive.training.utils.vertical_scaler import perform_auto_vertical_scaling
 from warp_drive.utils.common import get_project_root
 
-
 _ROOT_DIR = get_project_root()
 
 _TAG_CONTINUOUS = "tag_continuous"
 _TAG_GRIDWORLD = "tag_gridworld"
+_TAG_GRIDWORLD_WITH_RESET_POOL = "tag_gridworld_with_reset_pool"
+
+_CLASSIC_CONTROL_CARTPOLE = "single_cartpole"
+_CLASSIC_CONTROL_MOUNTAIN_CAR = "single_mountain_car"
+_CLASSIC_CONTROL_ACROBOT = "single_acrobot"
+
 
 # Example usages (from the root folder):
 # >> python warp_drive/training/example_training_script.py -e tag_gridworld
@@ -57,19 +65,51 @@ def setup_trainer_and_train(
     # Create a wrapped environment object via the EnvWrapper
     # Ensure that use_cuda is set to True (in order to run on the GPU)
     # ----------------------------------------------------------------
-    if run_configuration["name"] == _TAG_GRIDWORLD:
-        env_wrapper = EnvWrapper(
-            CUDATagGridWorld(**run_configuration["env"]),
-            num_envs=num_envs,
-            env_backend="pycuda",
-            event_messenger=event_messenger,
-            process_id=device_id,
-        )
-    elif run_configuration["name"] == _TAG_CONTINUOUS:
+    if run_configuration["name"] == _TAG_CONTINUOUS:
         env_wrapper = EnvWrapper(
             TagContinuous(**run_configuration["env"]),
             num_envs=num_envs,
-            env_backend="pycuda",
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
+    elif run_configuration["name"] == _TAG_GRIDWORLD:
+        env_wrapper = EnvWrapper(
+            CUDATagGridWorld(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
+    elif run_configuration["name"] == _TAG_GRIDWORLD_WITH_RESET_POOL:
+        env_wrapper = EnvWrapper(
+            CUDATagGridWorldWithResetPool(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
+    elif run_configuration["name"] == _CLASSIC_CONTROL_CARTPOLE:
+        env_wrapper = EnvWrapper(
+            CUDAClassicControlCartPoleEnv(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
+    elif run_configuration["name"] == _CLASSIC_CONTROL_MOUNTAIN_CAR:
+        env_wrapper = EnvWrapper(
+            CUDAClassicControlMountainCarEnv(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
+    elif run_configuration["name"] == _CLASSIC_CONTROL_ACROBOT:
+        env_wrapper = EnvWrapper(
+            CUDAClassicControlAcrobotEnv(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
             event_messenger=event_messenger,
             process_id=device_id,
         )
@@ -78,17 +118,9 @@ def setup_trainer_and_train(
             f"Currently, the environments supported are ["
             f"{_TAG_GRIDWORLD}, "
             f"{_TAG_CONTINUOUS}"
+            f"{_TAG_GRIDWORLD_WITH_RESET_POOL}"
+            f"{_CLASSIC_CONTROL_CARTPOLE}"
             f"]",
-        )
-    # Initialize shared constants for action index to sampled_actions_placeholder
-    # ---------------------------------------------------------------------------
-    if run_configuration["name"] == _TAG_GRIDWORLD:
-        kIndexToActionArr = env_wrapper.env.step_actions
-        env_wrapper.env.cuda_data_manager.add_shared_constants(
-            {"kIndexToActionArr": kIndexToActionArr}
-        )
-        env_wrapper.env.cuda_function_manager.initialize_shared_constants(
-            env_wrapper.env.cuda_data_manager, constant_names=["kIndexToActionArr"]
         )
     # Policy mapping to agent ids: agents can share models
     # The policy_tag_to_agent_id_map dictionary maps
@@ -97,22 +129,30 @@ def setup_trainer_and_train(
     if len(run_configuration["policy"].keys()) == 1:
         # Using a single (or shared policy) across all agents
         policy_name = list(run_configuration["policy"])[0]
-        policy_tag_to_agent_id_map = {
-            policy_name: list(env_wrapper.env.taggers) + list(env_wrapper.env.runners)
-        }
+        if "tag_" in run_configuration["name"]:
+            policy_tag_to_agent_id_map = {
+                policy_name: list(env_wrapper.env.taggers) + list(env_wrapper.env.runners)
+            }
+        elif "single_" in run_configuration["name"]:
+            policy_tag_to_agent_id_map = {
+                policy_name: list(env_wrapper.env.agents)
+            }
     else:
         # Using different policies for different (sets of) agents
-        policy_tag_to_agent_id_map = {
-            "tagger": list(env_wrapper.env.taggers),
-            "runner": list(env_wrapper.env.runners),
-        }
+        if "tag_" in run_configuration["name"]:
+            policy_tag_to_agent_id_map = {
+                "tagger": list(env_wrapper.env.taggers),
+                "runner": list(env_wrapper.env.runners),
+            }
+        else:
+            raise NotImplementedError
     # Assert that all the valid policies are mapped to at least one agent
     assert set(run_configuration["policy"].keys()) == set(
         policy_tag_to_agent_id_map.keys()
     )
     # Trainer object
     # --------------
-    trainer = Trainer(
+    trainer = TrainerA2C(
         env_wrapper=env_wrapper,
         config=run_configuration,
         policy_tag_to_agent_id_map=policy_tag_to_agent_id_map,

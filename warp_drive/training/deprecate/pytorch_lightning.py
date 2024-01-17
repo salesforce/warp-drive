@@ -31,7 +31,7 @@ from torch.utils.data import DataLoader, Dataset
 from warp_drive.training.algorithms.policygradient.a2c import A2C
 from warp_drive.training.algorithms.policygradient.ppo import PPO
 from warp_drive.training.models.factory import ModelFactory
-from warp_drive.training.trainer import Metrics
+from warp_drive.training.trainer_a2c import Metrics
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
 from warp_drive.training.utils.param_scheduler import LRScheduler, ParamScheduler
 from warp_drive.utils.common import get_project_root

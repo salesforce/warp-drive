@@ -30,13 +30,15 @@ policy: # list all the policies below
         gamma: 0.99 # discount factor
         lr: 0.001 # learning rate
         model: # policy model settings
-            type:
-                actor: "fully_connected_actor" # model type
-                critic: "fully_connected_action_value_critic"
-            fc_dims:
-                actor: [32, 32] # dimension(s) of the fully connected layers as a list
-                critic: [32, 32]
-            model_ckpt_filepath: "" # filepath (used to restore a previously saved model)
+            actor:
+                type: "fully_connected_actor" # model type
+                fc_dims: [32, 32]
+            critic:
+                type: "fully_connected_action_value_critic" # model type
+                fc_dims: [32, 32]
+            model_ckpt_filepath:
+                actor: "" # filepath (used to restore a previously saved model)
+                critic: ""
 # Checkpoint saving setting
 saving:
     metrics_log_freq: 100 # how often (in iterations) to log (and print) the metrics

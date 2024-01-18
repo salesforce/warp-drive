@@ -20,7 +20,7 @@ import yaml
 from example_envs.tag_continuous.tag_continuous import TagContinuous
 from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld
 from warp_drive.env_wrapper import EnvWrapper
-from warp_drive.training.trainer_a2c import TrainerA2C
+from warp_drive.training.trainers.trainer_a2c import TrainerA2C
 from warp_drive.training.utils.distributed_train.distributed_trainer_pycuda import (
     perform_distributed_training,
 )

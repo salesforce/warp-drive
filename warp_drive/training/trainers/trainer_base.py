@@ -245,10 +245,6 @@ class TrainerBase:
         np.random.seed(seed)
         self.cuda_envs.init_reset_pool(seed + random.randint(1, 10000))
 
-        # Define optimizers, and learning rate schedules
-        self.optimizers = {}
-        self.lr_schedules = {}
-
         # For logging episodic reward
         self.num_completed_episodes = {}
         self.episodic_reward_sum = {}

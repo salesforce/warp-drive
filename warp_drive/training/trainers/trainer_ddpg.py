@@ -20,7 +20,7 @@ import yaml
 from gym.spaces import Discrete, MultiDiscrete
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP
-from warp_drive.training.trainer_base import TrainerBase, all_equal, verbose_print
+from warp_drive.training.trainers.trainer_base import TrainerBase, all_equal, verbose_print
 
 from warp_drive.training.algorithms.policygradient.a2c import A2C
 from warp_drive.training.algorithms.policygradient.ppo import PPO
@@ -40,7 +40,7 @@ _COMBINED = "combined"
 _EPSILON = 1e-10  # small number to prevent indeterminate divisions
 
 
-class TrainerA2C(TrainerBase):
+class TrainerDDPG(TrainerBase):
     def __init__(
         self,
         env_wrapper=None,
@@ -53,7 +53,14 @@ class TrainerA2C(TrainerBase):
         results_dir=None,
         verbose=True,
     ):
-        self.models = {}
+        # Define models, optimizers, and learning rate schedules
+        self.actor_models = {}
+        self.critic_models = {}
+        self.actor_optimizers = {}
+        self.critic_optimizers = {}
+        self.actor_lr_schedules = {}
+        self.critic_lr_schedules = {}
+
         super().__init__(
             env_wrapper=env_wrapper,
             config=config,
@@ -68,7 +75,7 @@ class TrainerA2C(TrainerBase):
 
     def _initialize_policy_algorithm(self, policy):
         algorithm = self._get_config(["policy", policy, "algorithm"])
-        assert algorithm in ["A2C", "PPO"]
+        assert algorithm in ["DDPG"]
         entropy_coeff = self._get_config(["policy", policy, "entropy_coeff"])
         vf_loss_coeff = self._get_config(["policy", policy, "vf_loss_coeff"])
         self.clip_grad_norm[policy] = self._get_config(
@@ -109,33 +116,64 @@ class TrainerA2C(TrainerBase):
             raise NotImplementedError
 
     def _initialize_policy_model(self, policy):
-        policy_model_config = self._get_config(["policy", policy, "model"])
-        model_obj = ModelFactory.create(policy_model_config["type"])
-        model = model_obj(
+        if "actor" not in self._get_config(["policy", policy, "model"]) or "critic" \
+                not in self._get_config(["policy", policy, "model"]):
+            actor_model_config = self._get_config(["policy", policy, "model"])
+            critic_model_config = actor_model_config
+        else:
+            actor_model_config = self._get_config(["policy", policy, "model", "actor"])
+            critic_model_config = self._get_config(["policy", policy, "model", "critic"])
+
+        model_obj_actor = ModelFactory.create(actor_model_config["type"])
+        actor = model_obj_actor(
             env=self.cuda_envs,
-            model_config=policy_model_config,
+            model_config=actor_model_config,
             policy=policy,
             policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
             create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
             obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
         )
 
-        if "init_method" in policy_model_config and \
-                policy_model_config["init_method"] == "xavier":
+        if "init_method" in actor_model_config and \
+                actor_model_config["init_method"] == "xavier":
             def init_weights_by_xavier_uniform(m):
                 if isinstance(m, nn.Linear):
                     torch.nn.init.xavier_uniform(m.weight)
 
-            model.apply(init_weights_by_xavier_uniform)
+            actor.apply(init_weights_by_xavier_uniform)
 
-        self.models[policy] = model
+        self.actor_models[policy] = actor
+
+        model_obj_critic = ModelFactory.create(critic_model_config["type"])
+        critic = model_obj_critic(
+            env=self.cuda_envs,
+            model_config=critic_model_config,
+            policy=policy,
+            policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
+            create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
+            obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
+        )
+
+        if "init_method" in critic_model_config and \
+                critic_model_config["init_method"] == "xavier":
+            def init_weights_by_xavier_uniform(m):
+                if isinstance(m, nn.Linear):
+                    torch.nn.init.xavier_uniform(m.weight)
+
+            critic.apply(init_weights_by_xavier_uniform)
+
+        self.critic_models[policy] = critic
 
     def _send_policy_model_to_device(self, policy):
-        self.models[policy].cuda()
+        self.actor_models[policy].cuda()
+        self.critic_models[policy].cuda()
         # If distributed train, sync model using DDP
         if self.num_devices > 1:
-            self.models[policy] = DDP(
-                self.models[policy], device_ids=[self.device_id]
+            self.actor_models[policy] = DDP(
+                self.actor_models[policy], device_ids=[self.device_id]
+            )
+            self.critic_models[policy] = DDP(
+                self.critic_models[policy], device_ids=[self.device_id]
             )
             self.ddp_mode[policy] = True
         else:
@@ -143,13 +181,27 @@ class TrainerA2C(TrainerBase):
 
     def _initialize_optimizer(self, policy):
         # Initialize the (ADAM) optimizer
-        lr_config = self._get_config(["policy", policy, "lr"])
-        self.lr_schedules[policy] = ParamScheduler(lr_config)
-        initial_lr = self.lr_schedules[policy].get_param_value(
+        if "actor" not in self._get_config(["policy", policy, "lr"]) or "critic" \
+                not in self._get_config(["policy", policy, "lr"]):
+            actor_lr_config = self._get_config(["policy", policy, "lr"])
+            critic_lr_config = actor_lr_config
+        else:
+            actor_lr_config = self._get_config(["policy", policy, "lr", "actor"])
+            critic_lr_config = self._get_config(["policy", policy, "lr", "critic"])
+
+        self.actor_lr_schedules[policy] = ParamScheduler(actor_lr_config)
+        self.critic_lr_schedules[policy] = ParamScheduler(critic_lr_config)
+        initial_actor_lr = self.actor_lr_schedules[policy].get_param_value(
             timestep=self.current_timestep[policy]
         )
-        self.optimizers[policy] = torch.optim.Adam(
-            self.models[policy].parameters(), lr=initial_lr
+        initial_critic_lr = self.critic_lr_schedules[policy].get_param_value(
+            timestep=self.current_timestep[policy]
+        )
+        self.actor_optimizers[policy] = torch.optim.Adam(
+            self.actor_models[policy].parameters(), lr=initial_actor_lr
+        )
+        self.critic_optimizers[policy] = torch.optim.Adam(
+            self.critic_models[policy].parameters(), lr=initial_critic_lr
         )
 
     def _evaluate_policies(self, batch_index=0):
@@ -162,12 +214,12 @@ class TrainerA2C(TrainerBase):
         for policy in self.policies:
             if self.ddp_mode[policy]:
                 # self.models[policy] is a DDP wrapper of the model instance
-                obs = self.models[policy].module.process_one_step_obs()
-                self.models[policy].module.push_processed_obs_to_batch(batch_index, obs)
+                obs = self.actor_models[policy].module.process_one_step_obs()
+                self.actor_models[policy].module.push_processed_obs_to_batch(batch_index, obs)
             else:
-                obs = self.models[policy].process_one_step_obs()
-                self.models[policy].push_processed_obs_to_batch(batch_index, obs)
-            probabilities[policy], _ = self.models[policy](obs)
+                obs = self.actor_models[policy].process_one_step_obs()
+                self.actor_models[policy].push_processed_obs_to_batch(batch_index, obs)
+            probabilities[policy], _ = self.actor_models[policy](obs)
 
         # Combine probabilities across policies if there are multiple policies,
         # yet they share the same action placeholders.
@@ -250,11 +302,14 @@ class TrainerA2C(TrainerBase):
                 )
             )
             # Policy evaluation for the entire batch
-            probabilities_batch, value_functions_batch = self.models[policy](
+            probabilities_batch = self.actor_models[policy](
                 obs=processed_obs_batch
             )
+            value_functions_batch = self.critic_models[policy](
+                obs=processed_obs_batch, action=actions_batch
+            )
             # Loss and metrics computation
-            loss, metrics = self.trainers[policy].compute_loss_and_metrics(
+            actor_loss, critic_loss, metrics = self.trainers[policy].compute_loss_and_metrics(
                 self.current_timestep[policy],
                 actions_batch,
                 rewards_batch,
@@ -264,29 +319,47 @@ class TrainerA2C(TrainerBase):
                 perform_logging=logging_flag,
             )
             # Compute the gradient norm
-            grad_norm = 0.0
+            actor_grad_norm = 0.0
             for param in list(
-                filter(lambda p: p.grad is not None, self.models[policy].parameters())
+                filter(lambda p: p.grad is not None, self.actor_models[policy].parameters())
             ):
-                grad_norm += param.grad.data.norm(2).item()
+                actor_grad_norm += param.grad.data.norm(2).item()
+
+            critic_grad_norm = 0.0
+            for param in list(
+                    filter(lambda p: p.grad is not None, self.critic_models[policy].parameters())
+            ):
+                critic_grad_norm += param.grad.data.norm(2).item()
 
             # Update the timestep and learning rate based on the schedule
             self.current_timestep[policy] += self.training_batch_size
-            lr = self.lr_schedules[policy].get_param_value(
+            actor_lr = self.actor_lr_schedules[policy].get_param_value(
                 self.current_timestep[policy]
             )
-            for param_group in self.optimizers[policy].param_groups:
-                param_group["lr"] = lr
+            for param_group in self.actor_optimizers[policy].param_groups:
+                param_group["lr"] = actor_lr
+
+            critic_lr = self.critic_lr_schedules[policy].get_param_value(
+                self.current_timestep[policy]
+            )
+            for param_group in self.critic_optimizers[policy].param_groups:
+                param_group["lr"] = critic_lr
 
             # Loss backpropagation and optimization step
-            self.optimizers[policy].zero_grad()
-            loss.backward()
+            self.actor_optimizers[policy].zero_grad()
+            self.critic_optimizers[policy].zero_grad()
+            actor_loss.backward()
+            critic_loss.backward()
             if self.clip_grad_norm[policy]:
                 nn.utils.clip_grad_norm_(
-                    self.models[policy].parameters(), self.max_grad_norm[policy]
+                    self.actor_models[policy].parameters(), self.max_grad_norm[policy]
+                )
+                nn.utils.clip_grad_norm_(
+                    self.critic_models[policy].parameters(), self.max_grad_norm[policy]
                 )
 
-            self.optimizers[policy].step()
+            self.actor_optimizers[policy].step()
+            self.critic_optimizers[policy].step()
             # Logging
             if logging_flag:
                 metrics_dict[policy] = metrics
@@ -294,8 +367,10 @@ class TrainerA2C(TrainerBase):
                 metrics_dict[policy].update(
                     {
                         "Current timestep": self.current_timestep[policy],
-                        "Gradient norm": grad_norm,
-                        "Learning rate": lr,
+                        "Gradient norm (Actor)": actor_grad_norm,
+                        "Gradient norm (Critic)": critic_grad_norm,
+                        "Learning rate (Actor)": actor_lr,
+                        "Learning rate (Critic)": critic_lr,
                         "Mean episodic reward": self.episodic_reward_sum[policy].item()
                         / (self.num_completed_episodes[policy] + _EPSILON),
                         "Mean episodic steps": self.episodic_step_sum[policy].item()
@@ -319,24 +394,32 @@ class TrainerA2C(TrainerBase):
         return metrics_dict
 
     def _load_model_checkpoint_helper(self, policy, ckpt_filepath):
-        if ckpt_filepath != "":
-            assert os.path.isfile(ckpt_filepath), "Invalid model checkpoint path!"
-            if self.verbose:
-                verbose_print(
-                    f"Loading the '{policy}' torch model "
-                    f"from the previously saved checkpoint: '{ckpt_filepath}'",
-                    self.device_id,
-                )
-            self.models[policy].load_state_dict(torch.load(ckpt_filepath))
+        if isinstance(ckpt_filepath, dict) and "actor" in ckpt_filepath and "critic" in ckpt_filepath:
+            if ckpt_filepath["actor"] != "" and ckpt_filepath["critic"] != "":
+                assert os.path.isfile(ckpt_filepath["actor"]), "Invalid actor model checkpoint path!"
+                assert os.path.isfile(ckpt_filepath["critic"]), "Invalid critic model checkpoint path!"
+                # Update the current timestep using the saved checkpoint filename
+                actor_timestep = int(ckpt_filepath["actor"].split(".state_dict")[0].split("_")[-1])
+                critic_timestep = int(ckpt_filepath["critic"].split(".state_dict")[0].split("_")[-1])
+                assert actor_timestep == critic_timestep, \
+                    "The timestep is different between the actor model and the critic model "
+                if self.verbose:
+                    verbose_print(
+                        f"Loading the '{policy}' torch model "
+                        f"from the previously saved checkpoint: "
+                        f"actor: '{ckpt_filepath['actor']}'"
+                        f"critic: '{ckpt_filepath['critic']}'",
+                        self.device_id,
+                    )
+                self.actor_models[policy].load_state_dict(torch.load(ckpt_filepath["actor"]))
+                self.critic_models[policy].load_state_dict(torch.load(ckpt_filepath["critic"]))
 
-            # Update the current timestep using the saved checkpoint filename
-            timestep = int(ckpt_filepath.split(".state_dict")[0].split("_")[-1])
-            if self.verbose:
-                verbose_print(
-                    f"Updating the timestep for the '{policy}' model to {timestep}.",
-                    self.device_id,
-                )
-            self.current_timestep[policy] = timestep
+                if self.verbose:
+                    verbose_print(
+                        f"Updating the timestep for the '{policy}' model to {timestep}.",
+                        self.device_id,
+                    )
+                self.current_timestep[policy] = actor_timestep
 
     def save_model_checkpoint(self, iteration=0):
         """
@@ -349,16 +432,30 @@ class TrainerA2C(TrainerBase):
                 iteration % self.config["saving"]["model_params_save_freq"] == 0
                 or iteration == self.num_iters - 1
             ):
-                for policy, model in self.models.items():
+                for policy, actor_model in self.actor_models.items():
                     filepath = os.path.join(
                         self.save_dir,
-                        f"{policy}_{self.current_timestep[policy]}.state_dict",
+                        f"{policy}_actor_{self.current_timestep[policy]}.state_dict",
                     )
                     if self.verbose:
                         verbose_print(
-                            f"Saving the '{policy}' torch model "
+                            f"Saving the '{policy}' (actor) torch model "
                             f"to the file: '{filepath}'.",
                             self.device_id,
                         )
 
-                    torch.save(model.state_dict(), filepath)
+                    torch.save(actor_model.state_dict(), filepath)
+
+                for policy, critic_model in self.critic_models.items():
+                    filepath = os.path.join(
+                        self.save_dir,
+                        f"{policy}_critic_{self.current_timestep[policy]}.state_dict",
+                    )
+                    if self.verbose:
+                        verbose_print(
+                            f"Saving the '{policy}' (critic) torch model "
+                            f"to the file: '{filepath}'.",
+                            self.device_id,
+                        )
+
+                    torch.save(critic_model.state_dict(), filepath)

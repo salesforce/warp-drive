@@ -23,7 +23,7 @@ from example_envs.single_agent.classic_control.cartpole.cartpole import CUDAClas
 from example_envs.single_agent.classic_control.mountain_car.mountain_car import CUDAClassicControlMountainCarEnv
 from example_envs.single_agent.classic_control.acrobot.acrobot import CUDAClassicControlAcrobotEnv
 from warp_drive.env_wrapper import EnvWrapper
-from warp_drive.training.trainer_a2c import TrainerA2C
+from warp_drive.training.trainers.trainer_a2c import TrainerA2C
 from warp_drive.training.utils.distributed_train.distributed_trainer_numba import (
     perform_distributed_training,
 )

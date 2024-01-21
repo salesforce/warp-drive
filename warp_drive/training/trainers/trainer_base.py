@@ -219,7 +219,7 @@ class TrainerBase:
             )
         elif env_wrapper.env_backend == "numba":
             from warp_drive.managers.numba_managers.numba_function_manager import (
-                NumbaSampler,
+                NumbaSampler
             )
 
             self.cuda_sample_controller = NumbaSampler(

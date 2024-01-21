@@ -47,6 +47,9 @@ class ModelBaseFullyConnected(nn.Module):
 
         self.env = env
         self.fc_dims = model_config["fc_dims"]
+        self.action_scale = model_config["output_w"] if "output_w" in model_config else 1.0
+        self.action_bias = model_config["output_b"] if "output_b" in model_config else 0.0
+
         assert isinstance(self.fc_dims, list)
         self.policy = policy
         self.policy_tag_to_agent_id_map = policy_tag_to_agent_id_map
@@ -80,7 +83,7 @@ class ModelBaseFullyConnected(nn.Module):
             # policy network (list of heads)
             if self.is_deterministic:
                 self.output_dims = [len(action_space)]
-                self.policy_head = nn.Linear(self.fc_dims, len(action_space))
+                self.policy_head = nn.Linear(self.fc_dims[-1], len(action_space))
             else:
                 policy_heads = [None for _ in range(len(action_space))]
                 self.output_dims = []  # Network output dimension(s)

@@ -22,8 +22,10 @@ from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld, CUDATagGr
 from example_envs.single_agent.classic_control.cartpole.cartpole import CUDAClassicControlCartPoleEnv
 from example_envs.single_agent.classic_control.mountain_car.mountain_car import CUDAClassicControlMountainCarEnv
 from example_envs.single_agent.classic_control.acrobot.acrobot import CUDAClassicControlAcrobotEnv
+from example_envs.single_agent.classic_control.pendulum.pendulum import CUDAClassicControlPendulumEnv
 from warp_drive.env_wrapper import EnvWrapper
 from warp_drive.training.trainers.trainer_a2c import TrainerA2C
+from warp_drive.training.trainers.trainer_ddpg import TrainerDDPG
 from warp_drive.training.utils.distributed_train.distributed_trainer_numba import (
     perform_distributed_training,
 )
@@ -39,6 +41,7 @@ _TAG_GRIDWORLD_WITH_RESET_POOL = "tag_gridworld_with_reset_pool"
 _CLASSIC_CONTROL_CARTPOLE = "single_cartpole"
 _CLASSIC_CONTROL_MOUNTAIN_CAR = "single_mountain_car"
 _CLASSIC_CONTROL_ACROBOT = "single_acrobot"
+_CLASSIC_CONTROL_PENDULUM = "single_pendulum"
 
 
 # Example usages (from the root folder):
@@ -113,6 +116,14 @@ def setup_trainer_and_train(
             event_messenger=event_messenger,
             process_id=device_id,
         )
+    elif run_configuration["name"] == _CLASSIC_CONTROL_PENDULUM:
+        env_wrapper = EnvWrapper(
+            CUDAClassicControlPendulumEnv(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
     else:
         raise NotImplementedError(
             f"Currently, the environments supported are ["
@@ -120,6 +131,9 @@ def setup_trainer_and_train(
             f"{_TAG_CONTINUOUS}"
             f"{_TAG_GRIDWORLD_WITH_RESET_POOL}"
             f"{_CLASSIC_CONTROL_CARTPOLE}"
+            f"{_CLASSIC_CONTROL_MOUNTAIN_CAR}"
+            f"{_CLASSIC_CONTROL_ACROBOT}"
+            f"{_CLASSIC_CONTROL_PENDULUM}"
             f"]",
         )
     # Policy mapping to agent ids: agents can share models
@@ -152,15 +166,27 @@ def setup_trainer_and_train(
     )
     # Trainer object
     # --------------
-    trainer = TrainerA2C(
-        env_wrapper=env_wrapper,
-        config=run_configuration,
-        policy_tag_to_agent_id_map=policy_tag_to_agent_id_map,
-        device_id=device_id,
-        num_devices=num_devices,
-        results_dir=results_directory,
-        verbose=verbose,
-    )
+    first_policy_name = list(run_configuration["policy"])[0]
+    if run_configuration["policy"][first_policy_name]["algorithm"] == "DDPG":
+        trainer = TrainerDDPG(
+            env_wrapper=env_wrapper,
+            config=run_configuration,
+            policy_tag_to_agent_id_map=policy_tag_to_agent_id_map,
+            device_id=device_id,
+            num_devices=num_devices,
+            results_dir=results_directory,
+            verbose=verbose,
+        )
+    else:
+        trainer = TrainerA2C(
+            env_wrapper=env_wrapper,
+            config=run_configuration,
+            policy_tag_to_agent_id_map=policy_tag_to_agent_id_map,
+            device_id=device_id,
+            num_devices=num_devices,
+            results_dir=results_directory,
+            verbose=verbose,
+        )
 
     # Perform training
     # ----------------

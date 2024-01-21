@@ -22,8 +22,7 @@ from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 from warp_drive.training.trainers.trainer_base import TrainerBase, all_equal, verbose_print
 
-from warp_drive.training.algorithms.policygradient.a2c import A2C
-from warp_drive.training.algorithms.policygradient.ppo import PPO
+from warp_drive.training.algorithms.policygradient.ddpg import DDPG
 from warp_drive.training.models.factory import ModelFactory
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
 from warp_drive.training.utils.param_scheduler import ParamScheduler
@@ -76,8 +75,6 @@ class TrainerDDPG(TrainerBase):
     def _initialize_policy_algorithm(self, policy):
         algorithm = self._get_config(["policy", policy, "algorithm"])
         assert algorithm in ["DDPG"]
-        entropy_coeff = self._get_config(["policy", policy, "entropy_coeff"])
-        vf_loss_coeff = self._get_config(["policy", policy, "vf_loss_coeff"])
         self.clip_grad_norm[policy] = self._get_config(
             ["policy", policy, "clip_grad_norm"]
         )
@@ -90,33 +87,20 @@ class TrainerDDPG(TrainerBase):
         )
         normalize_return = self._get_config(["policy", policy, "normalize_return"])
         gamma = self._get_config(["policy", policy, "gamma"])
-        if algorithm == "A2C":
+        if algorithm == "DDPG":
             # Advantage Actor-Critic
-            self.trainers[policy] = A2C(
+            self.trainers[policy] = DDPG(
                 discount_factor_gamma=gamma,
                 normalize_advantage=normalize_advantage,
                 normalize_return=normalize_return,
-                vf_loss_coeff=vf_loss_coeff,
-                entropy_coeff=entropy_coeff,
             )
-            logging.info(f"Initializing the A2C trainer for policy {policy}")
-        elif algorithm == "PPO":
-            # Proximal Policy Optimization
-            clip_param = self._get_config(["policy", policy, "clip_param"])
-            self.trainers[policy] = PPO(
-                discount_factor_gamma=gamma,
-                clip_param=clip_param,
-                normalize_advantage=normalize_advantage,
-                normalize_return=normalize_return,
-                vf_loss_coeff=vf_loss_coeff,
-                entropy_coeff=entropy_coeff,
-            )
-            logging.info(f"Initializing the PPO trainer for policy {policy}")
+            logging.info(f"Initializing the DDPG trainer for policy {policy}")
         else:
             raise NotImplementedError
 
     def _initialize_policy_model(self, policy):
-        if "actor" not in self._get_config(["policy", policy, "model"]) or "critic" \
+        if not isinstance(self._get_config(["policy", policy, "model"]), dict) or \
+                "actor" not in self._get_config(["policy", policy, "model"]) or "critic" \
                 not in self._get_config(["policy", policy, "model"]):
             actor_model_config = self._get_config(["policy", policy, "model"])
             critic_model_config = actor_model_config
@@ -181,7 +165,8 @@ class TrainerDDPG(TrainerBase):
 
     def _initialize_optimizer(self, policy):
         # Initialize the (ADAM) optimizer
-        if "actor" not in self._get_config(["policy", policy, "lr"]) or "critic" \
+        if not isinstance(self._get_config(["policy", policy, "lr"]), dict) or \
+                "actor" not in self._get_config(["policy", policy, "lr"]) or "critic" \
                 not in self._get_config(["policy", policy, "lr"]):
             actor_lr_config = self._get_config(["policy", policy, "lr"])
             critic_lr_config = actor_lr_config
@@ -219,7 +204,7 @@ class TrainerDDPG(TrainerBase):
             else:
                 obs = self.actor_models[policy].process_one_step_obs()
                 self.actor_models[policy].push_processed_obs_to_batch(batch_index, obs)
-            probabilities[policy], _ = self.actor_models[policy](obs)
+            probabilities[policy] = self.actor_models[policy](obs)
 
         # Combine probabilities across policies if there are multiple policies,
         # yet they share the same action placeholders.
@@ -247,6 +232,7 @@ class TrainerDDPG(TrainerBase):
             combined_probabilities = [None for _ in range(num_action_types)]
             for action_type_id in range(num_action_types):
                 action_dim = probabilities[first_policy][action_type_id].shape[-1]
+                assert action_dim == 1, "action_dim != 1 but DDPG samples deterministic actions"
                 combined_probabilities[action_type_id] = torch.zeros(
                     (num_envs, num_agents, action_dim)
                 ).cuda()
@@ -305,8 +291,14 @@ class TrainerDDPG(TrainerBase):
             probabilities_batch = self.actor_models[policy](
                 obs=processed_obs_batch
             )
+            # Critic Q(s, a) is a function of both obs and action
+            # value_functions_batch includes sampled actions
             value_functions_batch = self.critic_models[policy](
                 obs=processed_obs_batch, action=actions_batch
+            )
+            # j_functions_batch includes actor network for the back-propagation
+            j_functions_batch = self.critic_models[policy](
+                obs=processed_obs_batch, action=probabilities_batch
             )
             # Loss and metrics computation
             actor_loss, critic_loss, metrics = self.trainers[policy].compute_loss_and_metrics(
@@ -314,8 +306,8 @@ class TrainerDDPG(TrainerBase):
                 actions_batch,
                 rewards_batch,
                 done_flags_batch,
-                probabilities_batch,
                 value_functions_batch,
+                j_functions_batch,
                 perform_logging=logging_flag,
             )
             # Compute the gradient norm
@@ -416,7 +408,7 @@ class TrainerDDPG(TrainerBase):
 
                 if self.verbose:
                     verbose_print(
-                        f"Updating the timestep for the '{policy}' model to {timestep}.",
+                        f"Updating the timestep for the '{policy}' model to {actor_timestep}.",
                         self.device_id,
                     )
                 self.current_timestep[policy] = actor_timestep

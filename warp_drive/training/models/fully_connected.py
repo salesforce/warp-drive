@@ -64,6 +64,7 @@ class FullyConnected(ModelBaseFullyConnected):
         # Apply action mask to the logits as well.
         if self.is_deterministic:
             combined_action_probs = func.tanh(apply_logit_mask(self.policy_head(logits), self.action_mask))
+            combined_action_probs = self.action_scale * combined_action_probs + self.action_bias
             if self.output_dims[0] > 1:
                 # we split the actions to their corresponding heads
                 # we make sure after the split, we rearrange the memory so each chunk is still C-continguous

@@ -39,6 +39,18 @@ _COMBINED = "combined"
 _EPSILON = 1e-10  # small number to prevent indeterminate divisions
 
 
+def soft_update(target, source, tau):
+    for target_param, param in zip(target.parameters(), source.parameters()):
+        target_param.data.copy_(
+            target_param.data * (1.0 - tau) + param.data * tau
+        )
+
+
+def hard_update(target, source):
+    for target_param, param in zip(target.parameters(), source.parameters()):
+            target_param.data.copy_(param.data)
+
+
 class TrainerDDPG(TrainerBase):
     def __init__(
         self,
@@ -55,10 +67,13 @@ class TrainerDDPG(TrainerBase):
         # Define models, optimizers, and learning rate schedules
         self.actor_models = {}
         self.critic_models = {}
+        self.target_actor_models = {}
+        self.target_critic_models = {}
         self.actor_optimizers = {}
         self.critic_optimizers = {}
         self.actor_lr_schedules = {}
         self.critic_lr_schedules = {}
+        self.tau = {}
 
         super().__init__(
             env_wrapper=env_wrapper,
@@ -87,6 +102,7 @@ class TrainerDDPG(TrainerBase):
         )
         normalize_return = self._get_config(["policy", policy, "normalize_return"])
         gamma = self._get_config(["policy", policy, "gamma"])
+        self.tau[policy] = self._get_config(["policy", policy, "tau"])
         if algorithm == "DDPG":
             # Advantage Actor-Critic
             self.trainers[policy] = DDPG(
@@ -117,6 +133,14 @@ class TrainerDDPG(TrainerBase):
             create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
             obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
         )
+        target_actor = model_obj_actor(
+            env=self.cuda_envs,
+            model_config=actor_model_config,
+            policy=policy,
+            policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
+            create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
+            obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
+        )
 
         if "init_method" in actor_model_config and \
                 actor_model_config["init_method"] == "xavier":
@@ -126,10 +150,20 @@ class TrainerDDPG(TrainerBase):
 
             actor.apply(init_weights_by_xavier_uniform)
 
+        hard_update(target_actor, actor)
         self.actor_models[policy] = actor
+        self.target_actor_models[policy] = target_actor
 
         model_obj_critic = ModelFactory.create(critic_model_config["type"])
         critic = model_obj_critic(
+            env=self.cuda_envs,
+            model_config=critic_model_config,
+            policy=policy,
+            policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
+            create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
+            obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
+        )
+        target_critic = model_obj_critic(
             env=self.cuda_envs,
             model_config=critic_model_config,
             policy=policy,
@@ -146,11 +180,15 @@ class TrainerDDPG(TrainerBase):
 
             critic.apply(init_weights_by_xavier_uniform)
 
+        hard_update(target_critic, critic)
         self.critic_models[policy] = critic
+        self.target_critic_models[policy] = target_critic
 
     def _send_policy_model_to_device(self, policy):
         self.actor_models[policy].cuda()
         self.critic_models[policy].cuda()
+        self.target_actor_models[policy].cuda()
+        self.target_critic_models[policy].cuda()
         # If distributed train, sync model using DDP
         if self.num_devices > 1:
             self.actor_models[policy] = DDP(
@@ -158,6 +196,12 @@ class TrainerDDPG(TrainerBase):
             )
             self.critic_models[policy] = DDP(
                 self.critic_models[policy], device_ids=[self.device_id]
+            )
+            self.target_actor_models[policy] = DDP(
+                self.target_actor_models[policy], device_ids=[self.device_id]
+            )
+            self.target_critic_models[policy] = DDP(
+                self.target_critic_models[policy], device_ids=[self.device_id]
             )
             self.ddp_mode[policy] = True
         else:
@@ -291,12 +335,21 @@ class TrainerDDPG(TrainerBase):
             probabilities_batch = self.actor_models[policy](
                 obs=processed_obs_batch
             )
-            # Critic Q(s, a) is a function of both obs and action
+            target_probabilities_batch = self.target_actor_models[policy](
+                obs=processed_obs_batch
+            )
+            # Critic Q(s_t, a_t) is a function of both obs and action
             # value_functions_batch includes sampled actions
             value_functions_batch = self.critic_models[policy](
                 obs=processed_obs_batch, action=actions_batch
             )
-            # j_functions_batch includes actor network for the back-propagation
+            # Critic Q(s_t+1, a_t+1) is a function of both obs and action
+            # next_value_functions_batch not includes sampled action but
+            # the detached output from actor directly
+            next_value_functions_batch = self.target_critic_models[policy](
+                obs=processed_obs_batch[1:], action=[pb[1:].detach() for pb in target_probabilities_batch]
+            )
+            # j_functions_batch includes the graph of actor network for the back-propagation
             j_functions_batch = self.critic_models[policy](
                 obs=processed_obs_batch, action=probabilities_batch
             )
@@ -307,6 +360,7 @@ class TrainerDDPG(TrainerBase):
                 rewards_batch,
                 done_flags_batch,
                 value_functions_batch,
+                next_value_functions_batch,
                 j_functions_batch,
                 perform_logging=logging_flag,
             )
@@ -352,6 +406,9 @@ class TrainerDDPG(TrainerBase):
 
             self.actor_optimizers[policy].step()
             self.critic_optimizers[policy].step()
+
+            soft_update(self.target_actor_models[policy], self.actor_models[policy], self.tau[policy])
+            soft_update(self.target_critic_models[policy], self.critic_models[policy], self.tau[policy])
             # Logging
             if logging_flag:
                 metrics_dict[policy] = metrics

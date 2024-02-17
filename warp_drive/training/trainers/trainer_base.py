@@ -21,6 +21,7 @@ from gym.spaces import Discrete, MultiDiscrete
 from torch import nn
 
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
+from warp_drive.training.utils.ring_buffer import RingBufferManager
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.constants import Constants
 
@@ -205,6 +206,8 @@ class TrainerBase:
         self.training_batch_size_per_env = self.training_batch_size // self.num_envs
         assert self.training_batch_size_per_env > 0
 
+        self.n_step = self.config["trainer"].get("n_step", 1)
+
         # Push all the data and tensor arrays to the GPU
         # upon resetting environments for the very first time.
         self.cuda_envs.reset_all_envs()
@@ -233,7 +236,7 @@ class TrainerBase:
             policy_tag_to_agent_id_map=self.policy_tag_to_agent_id_map,
             create_separate_placeholders_for_each_policy=self.create_separate_placeholders_for_each_policy,
             obs_dim_corresponding_to_num_agents=self.obs_dim_corresponding_to_num_agents,
-            training_batch_size_per_env=self.training_batch_size_per_env,
+            training_batch_size_per_env=self.training_batch_size_per_env + self.n_step - 1,
         )
         # Seeding (device_id is included for distributed training)
         seed = (
@@ -301,6 +304,9 @@ class TrainerBase:
 
         # Metrics
         self.metrics = Metrics()
+
+        # Ring Buffer to save batch data
+        self.ring_buffer = RingBufferManager()
 
     def _get_config(self, args):
         assert isinstance(args, (tuple, list))
@@ -427,9 +433,13 @@ class TrainerBase:
                 actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     _ACTIONS + policy_suffix
                 )
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=f"{_ACTIONS}_batch" + policy_suffix
-                )[batch_index] = actions
+                action_batch_name = f"{_ACTIONS}_batch" + policy_suffix
+                if self.ring_buffer.has(action_batch_name):
+                    self.ring_buffer.get(action_batch_name).enqueue(actions)
+                else:
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        name=action_batch_name
+                    )[batch_index] = actions
         else:
             assert len(probabilities) == 1
             policy = list(probabilities.keys())[0]
@@ -442,15 +452,22 @@ class TrainerBase:
             # (1) there is only one policy, then action -> action_batch_policy
             # (2) there are multiple policies, then action[policy_tag_to_agent_id[policy]] -> action_batch_policy
             for policy in self.policies:
+                action_batch_name = f"{_ACTIONS}_batch_{policy}"
                 if len(self.policies) > 1:
                     agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=f"{_ACTIONS}_batch_{policy}"
-                    )[batch_index] = actions[:, agent_ids_for_policy]
+                    if self.ring_buffer.has(action_batch_name):
+                        self.ring_buffer.get(action_batch_name).enqueue(actions[:, agent_ids_for_policy])
+                    else:
+                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                            name=action_batch_name
+                        )[batch_index] = actions[:, agent_ids_for_policy]
                 else:
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=f"{_ACTIONS}_batch_{policy}"
-                    )[batch_index] = actions
+                    if self.ring_buffer.has(action_batch_name):
+                        self.ring_buffer.get(action_batch_name).enqueue(actions)
+                    else:
+                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                            name=action_batch_name
+                        )[batch_index] = actions
 
     def _sample_actions_helper(self, probabilities, policy_suffix="", **sample_params):
         # Sample actions with policy_suffix tag
@@ -485,9 +502,13 @@ class TrainerBase:
         done_flags = (
             self.cuda_envs.cuda_data_manager.data_on_device_via_torch("_done_") > 0
         )
-        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-            name=f"{_DONE_FLAGS}_batch"
-        )[batch_index] = done_flags
+        done_batch_name = f"{_DONE_FLAGS}_batch"
+        if self.ring_buffer.has(done_batch_name):
+            self.ring_buffer.get(done_batch_name).enqueue(done_flags)
+        else:
+            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                name=done_batch_name
+            )[batch_index] = done_flags
 
         done_env_ids = done_flags.nonzero()
 
@@ -497,9 +518,13 @@ class TrainerBase:
                 rewards = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                     f"{_REWARDS}_{policy}"
                 )
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    name=f"{_REWARDS}_batch_{policy}"
-                )[batch_index] = rewards
+                reward_batch_name = f"{_REWARDS}_batch_{policy}"
+                if self.ring_buffer.has(reward_batch_name):
+                    self.ring_buffer.get(reward_batch_name).enqueue(rewards)
+                else:
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        name=reward_batch_name
+                    )[batch_index] = rewards
 
                 # Update the episodic rewards
                 self._update_episodic_rewards(rewards, done_env_ids, policy)
@@ -509,15 +534,22 @@ class TrainerBase:
                 _REWARDS
             )
             for policy in self.policies:
+                reward_batch_name = f"{_REWARDS}_batch_{policy}"
                 if len(self.policies) > 1:
                     agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=f"{_REWARDS}_batch_{policy}"
-                    )[batch_index] = rewards[:, agent_ids_for_policy]
+                    if self.ring_buffer.has(reward_batch_name):
+                        self.ring_buffer.get(reward_batch_name).enqueue(rewards[:, agent_ids_for_policy])
+                    else:
+                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                            name=reward_batch_name
+                        )[batch_index] = rewards[:, agent_ids_for_policy]
                 else:
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=f"{_REWARDS}_batch_{policy}"
-                    )[batch_index] = rewards
+                    if self.ring_buffer.has(reward_batch_name):
+                        self.ring_buffer.get(reward_batch_name).enqueue(rewards)
+                    else:
+                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                            name=reward_batch_name
+                        )[batch_index] = rewards
 
             # Update the episodic rewards
             # (sum of individual step rewards over an episode)

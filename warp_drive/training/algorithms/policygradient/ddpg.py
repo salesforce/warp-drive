@@ -8,6 +8,7 @@
 import torch
 from torch import nn
 from torch.distributions import Categorical
+import numpy as np
 
 from warp_drive.training.utils.param_scheduler import ParamScheduler
 
@@ -25,11 +26,14 @@ class DDPG:
         discount_factor_gamma=1.0,
         normalize_advantage=False,
         normalize_return=False,
+        n_step=1,
     ):
         assert 0 <= discount_factor_gamma <= 1
+        assert n_step >= 1
         self.discount_factor_gamma = discount_factor_gamma
         self.normalize_advantage = normalize_advantage
         self.normalize_return = normalize_return
+        self.n_step = n_step
 
     def compute_loss_and_metrics(
         self,
@@ -50,20 +54,31 @@ class DDPG:
         assert next_value_functions_batch is not None
         assert j_functions_batch is not None
 
+        # we only calculate up to batch - n_step + 1 point,
+        # after that it is not enough points to calculate n_step
+        valid_batch_range = rewards_batch.shape[0] - self.n_step + 1
         # Detach value_functions_batch from the computation graph
         # for return and advantage computations.
         next_value_functions_batch_detached = next_value_functions_batch.detach()
 
         # Value objective.
-        returns_batch = torch.zeros_like(rewards_batch)
+        returns_batch = torch.zeros_like(rewards_batch[:valid_batch_range])
 
-        returns_batch[-1] = (
-            done_flags_batch[-1][:, None] * rewards_batch[-1]
-            + (1 - done_flags_batch[-1][:, None]) * next_value_functions_batch_detached[-1]
-        )
-        returns_batch[:-1] = rewards_batch[:-1] + \
-            self.discount_factor_gamma * (1 - done_flags_batch[:-1][:, :, None]) * next_value_functions_batch_detached
-
+        for i in range(valid_batch_range):
+            last_step = i + self.n_step - 1
+            if last_step < rewards_batch.shape[0] - 1:
+                r = rewards_batch[last_step] + \
+                    (1 - done_flags_batch[last_step][:, None]) * \
+                    self.discount_factor_gamma * next_value_functions_batch_detached[last_step]
+            else:
+                r = done_flags_batch[last_step][:, None] * rewards_batch[last_step] + \
+                    (1 - done_flags_batch[last_step][:, None]) * \
+                    self.discount_factor_gamma * next_value_functions_batch_detached[-1]
+            for j in range(1, self.n_step):
+                r = (1 - done_flags_batch[last_step - j][:, None]) * self.discount_factor_gamma * r + \
+                    done_flags_batch[last_step - j][:, None] * torch.zeros_like(rewards_batch[last_step - j])
+                r += rewards_batch[last_step - j]
+            returns_batch[i] = r
         # Normalize across the agents and env dimensions
         if self.normalize_return:
             normalized_returns_batch = (
@@ -72,6 +87,7 @@ class DDPG:
         else:
             normalized_returns_batch = returns_batch
 
+        value_functions_batch = value_functions_batch[:valid_batch_range]
         critic_loss = nn.MSELoss()(normalized_returns_batch, value_functions_batch)
 
         advantages_batch = normalized_returns_batch - value_functions_batch
@@ -87,6 +103,7 @@ class DDPG:
             normalized_advantages_batch = advantages_batch
 
         # Policy objective
+        j_functions_batch = j_functions_batch[:valid_batch_range]
         if self.normalize_return:
             normalized_j_functions_batch = (
                 j_functions_batch - j_functions_batch.mean(dim=(1, 2), keepdim=True)

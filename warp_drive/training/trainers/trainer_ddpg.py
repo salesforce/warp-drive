@@ -86,6 +86,12 @@ class TrainerDDPG(TrainerBase):
             results_dir=results_dir,
             verbose=verbose,
         )
+        self._init_ring_buffer()
+
+    def _init_ring_buffer(self):
+        for k in self.cuda_envs.cuda_data_manager.device_data_via_torch.keys():
+            if "_batch" in k:
+                self.ring_buffer.add(name=k, data_manager=self.cuda_envs.cuda_data_manager)
 
     def _initialize_policy_algorithm(self, policy):
         algorithm = self._get_config(["policy", policy, "algorithm"])
@@ -109,6 +115,7 @@ class TrainerDDPG(TrainerBase):
                 discount_factor_gamma=gamma,
                 normalize_advantage=normalize_advantage,
                 normalize_return=normalize_return,
+                n_step=self.n_step,
             )
             logging.info(f"Initializing the DDPG trainer for policy {policy}")
         else:
@@ -244,10 +251,12 @@ class TrainerDDPG(TrainerBase):
             if self.ddp_mode[policy]:
                 # self.models[policy] is a DDP wrapper of the model instance
                 obs = self.actor_models[policy].module.process_one_step_obs()
-                self.actor_models[policy].module.push_processed_obs_to_batch(batch_index, obs)
+                self.actor_models[policy].module.push_processed_obs_to_batch(
+                    batch_index, obs, ring_buffer=self.ring_buffer)
             else:
                 obs = self.actor_models[policy].process_one_step_obs()
-                self.actor_models[policy].push_processed_obs_to_batch(batch_index, obs)
+                self.actor_models[policy].push_processed_obs_to_batch(
+                    batch_index, obs, ring_buffer=self.ring_buffer)
             probabilities[policy] = self.actor_models[policy](obs)
 
         # Combine probabilities across policies if there are multiple policies,
@@ -307,30 +316,21 @@ class TrainerDDPG(TrainerBase):
 
         metrics_dict = {}
 
-        done_flags_batch = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-            f"{_DONE_FLAGS}_batch"
-        )
+        if not self.ring_buffer.get(f"{_DONE_FLAGS}_batch").isfull():
+            return metrics_dict
+
+        done_flags_batch = self.ring_buffer.get(f"{_DONE_FLAGS}_batch").unroll()
+
         # On the device, observations_batch, actions_batch,
         # rewards_batch are all shaped
         # (batch_size, num_envs, num_agents, *feature_dim).
+        # Notice that, in ddpg we used a ring_buffer to rolling store the batch
         # done_flags_batch is shaped (batch_size, num_envs)
         # Perform training sequentially for each policy
         for policy in self.policies_to_train:
-            actions_batch = (
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    f"{_ACTIONS}_batch_{policy}"
-                )
-            )
-            rewards_batch = (
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    f"{_REWARDS}_batch_{policy}"
-                )
-            )
-            processed_obs_batch = (
-                self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    f"{_PROCESSED_OBSERVATIONS}_batch_{policy}"
-                )
-            )
+            actions_batch = self.ring_buffer.get(f"{_ACTIONS}_batch_{policy}").unroll()
+            rewards_batch = self.ring_buffer.get(f"{_REWARDS}_batch_{policy}").unroll()
+            processed_obs_batch = self.ring_buffer.get(f"{_PROCESSED_OBSERVATIONS}_batch_{policy}").unroll()
             # Policy evaluation for the entire batch
             probabilities_batch = self.actor_models[policy](
                 obs=processed_obs_batch

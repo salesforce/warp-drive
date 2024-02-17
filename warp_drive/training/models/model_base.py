@@ -188,13 +188,16 @@ class ModelBaseFullyConnected(nn.Module):
     def forward(self, obs=None, action=None):
         raise NotImplementedError
 
-    def push_processed_obs_to_batch(self, batch_index, processed_obs):
+    def push_processed_obs_to_batch(self, batch_index, processed_obs, ring_buffer=None):
         if batch_index >= 0:
             assert batch_index < self.batch_size, f"batch_index: {batch_index}, self.batch_size: {self.batch_size}"
             name = f"{_PROCESSED_OBSERVATIONS}_batch_{self.policy}"
-            self.env.cuda_data_manager.data_on_device_via_torch(name=name)[
-                batch_index
-            ] = processed_obs
+            if ring_buffer is not None and ring_buffer.has(name):
+                ring_buffer.get(name).enqueue(processed_obs)
+            else:
+                self.env.cuda_data_manager.data_on_device_via_torch(name=name)[
+                    batch_index
+                ] = processed_obs
 
 
 def apply_logit_mask(logits, mask=None):

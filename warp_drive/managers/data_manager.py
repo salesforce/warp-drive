@@ -479,3 +479,7 @@ class CUDADataManager:
     @property
     def log_data_list(self):
         return self._log_data_list
+
+    @property
+    def device_data_via_torch(self):
+        return self._device_data_via_torch

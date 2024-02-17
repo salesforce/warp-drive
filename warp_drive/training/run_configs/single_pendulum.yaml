@@ -12,9 +12,9 @@ env:
     reset_pool_size: 10000
 # Trainer settings
 trainer:
-    num_envs: 100 # number of environment replicas
-    num_episodes: 2000000 # number of episodes to run the training for. Can be arbitrarily high!
-    train_batch_size: 500 # total batch size used for training per iteration (across all the environments)
+    num_envs: 10000 # number of environment replicas
+    num_episodes: 10000000 # number of episodes to run the training for. Can be arbitrarily high!
+    train_batch_size: 50000 # total batch size used for training per iteration (across all the environments)
     n_step: 5 # n_step for calculating return
     env_backend: "numba" # environment backend, pycuda or numba
 # Policy network settings
@@ -27,10 +27,10 @@ policy: # list all the policies below
         normalize_advantage: False # flag indicating whether to normalize advantage or not
         normalize_return: False # flag indicating whether to normalize return or not
         gamma: 0.99 # discount factor
-        tau: 0.01 # target copy rate
+        tau: 0.05 # target copy rate
         lr:
-            actor: 0.0001 # learning rate
-            critic: 0.0001
+            actor: [[2500000000, 0.001], [3750000000, 0.0005]] # learning rate
+            critic: [[2500000000, 0.0001], [3750000000, 0.00005]]
         model: # policy model settings
             actor:
                 type: "fully_connected_actor" # model type
@@ -51,7 +51,7 @@ sampler:
 saving:
     metrics_log_freq: 1000 # how often (in iterations) to log (and print) the metrics
     model_params_save_freq: 5000 # how often (in iterations) to save the model parameters
-    basedir: "/tmp" # base folder used for saving
-    name: "single_pendulum" # base folder used for saving
-    tag: "experiments" # experiment name
+    basedir: "/export/home/experiments/warpdrive" # base folder used for saving
+    name: "pendulum" # base folder used for saving
+    tag: "10000" # experiment name
 

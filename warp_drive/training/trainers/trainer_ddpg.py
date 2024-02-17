@@ -316,9 +316,6 @@ class TrainerDDPG(TrainerBase):
 
         metrics_dict = {}
 
-        if not self.ring_buffer.get(f"{_DONE_FLAGS}_batch").isfull():
-            return metrics_dict
-
         done_flags_batch = self.ring_buffer.get(f"{_DONE_FLAGS}_batch").unroll()
 
         # On the device, observations_batch, actions_batch,
@@ -328,87 +325,98 @@ class TrainerDDPG(TrainerBase):
         # done_flags_batch is shaped (batch_size, num_envs)
         # Perform training sequentially for each policy
         for policy in self.policies_to_train:
-            actions_batch = self.ring_buffer.get(f"{_ACTIONS}_batch_{policy}").unroll()
-            rewards_batch = self.ring_buffer.get(f"{_REWARDS}_batch_{policy}").unroll()
-            processed_obs_batch = self.ring_buffer.get(f"{_PROCESSED_OBSERVATIONS}_batch_{policy}").unroll()
-            # Policy evaluation for the entire batch
-            probabilities_batch = self.actor_models[policy](
-                obs=processed_obs_batch
-            )
-            target_probabilities_batch = self.target_actor_models[policy](
-                obs=processed_obs_batch
-            )
-            # Critic Q(s_t, a_t) is a function of both obs and action
-            # value_functions_batch includes sampled actions
-            value_functions_batch = self.critic_models[policy](
-                obs=processed_obs_batch, action=actions_batch
-            )
-            # Critic Q(s_t+1, a_t+1) is a function of both obs and action
-            # next_value_functions_batch not includes sampled action but
-            # the detached output from actor directly
-            next_value_functions_batch = self.target_critic_models[policy](
-                obs=processed_obs_batch[1:], action=[pb[1:].detach() for pb in target_probabilities_batch]
-            )
-            # j_functions_batch includes the graph of actor network for the back-propagation
-            j_functions_batch = self.critic_models[policy](
-                obs=processed_obs_batch, action=probabilities_batch
-            )
-            # Loss and metrics computation
-            actor_loss, critic_loss, metrics = self.trainers[policy].compute_loss_and_metrics(
-                self.current_timestep[policy],
-                actions_batch,
-                rewards_batch,
-                done_flags_batch,
-                value_functions_batch,
-                next_value_functions_batch,
-                j_functions_batch,
-                perform_logging=logging_flag,
-            )
-            # Compute the gradient norm
-            actor_grad_norm = 0.0
-            for param in list(
-                filter(lambda p: p.grad is not None, self.actor_models[policy].parameters())
-            ):
-                actor_grad_norm += param.grad.data.norm(2).item()
 
-            critic_grad_norm = 0.0
-            for param in list(
-                    filter(lambda p: p.grad is not None, self.critic_models[policy].parameters())
-            ):
-                critic_grad_norm += param.grad.data.norm(2).item()
-
-            # Update the timestep and learning rate based on the schedule
-            self.current_timestep[policy] += self.training_batch_size
-            actor_lr = self.actor_lr_schedules[policy].get_param_value(
-                self.current_timestep[policy]
-            )
-            for param_group in self.actor_optimizers[policy].param_groups:
-                param_group["lr"] = actor_lr
-
-            critic_lr = self.critic_lr_schedules[policy].get_param_value(
-                self.current_timestep[policy]
-            )
-            for param_group in self.critic_optimizers[policy].param_groups:
-                param_group["lr"] = critic_lr
-
-            # Loss backpropagation and optimization step
-            self.actor_optimizers[policy].zero_grad()
-            self.critic_optimizers[policy].zero_grad()
-            actor_loss.backward()
-            critic_loss.backward()
-            if self.clip_grad_norm[policy]:
-                nn.utils.clip_grad_norm_(
-                    self.actor_models[policy].parameters(), self.max_grad_norm[policy]
+            if self.ring_buffer.get(f"{_DONE_FLAGS}_batch").isfull():
+                # buffer is full, we can train
+                # this should skip the first roll-out train only
+                actions_batch = self.ring_buffer.get(f"{_ACTIONS}_batch_{policy}").unroll()
+                rewards_batch = self.ring_buffer.get(f"{_REWARDS}_batch_{policy}").unroll()
+                processed_obs_batch = self.ring_buffer.get(f"{_PROCESSED_OBSERVATIONS}_batch_{policy}").unroll()
+                # Policy evaluation for the entire batch
+                probabilities_batch = self.actor_models[policy](
+                    obs=processed_obs_batch
                 )
-                nn.utils.clip_grad_norm_(
-                    self.critic_models[policy].parameters(), self.max_grad_norm[policy]
+                target_probabilities_batch = self.target_actor_models[policy](
+                    obs=processed_obs_batch
                 )
+                # Critic Q(s_t, a_t) is a function of both obs and action
+                # value_functions_batch includes sampled actions
+                value_functions_batch = self.critic_models[policy](
+                    obs=processed_obs_batch, action=actions_batch
+                )
+                # Critic Q(s_t+1, a_t+1) is a function of both obs and action
+                # next_value_functions_batch not includes sampled action but
+                # the detached output from actor directly
+                next_value_functions_batch = self.target_critic_models[policy](
+                    obs=processed_obs_batch[1:], action=[pb[1:].detach() for pb in target_probabilities_batch]
+                )
+                # j_functions_batch includes the graph of actor network for the back-propagation
+                j_functions_batch = self.critic_models[policy](
+                    obs=processed_obs_batch, action=probabilities_batch
+                )
+                # Loss and metrics computation
+                actor_loss, critic_loss, metrics = self.trainers[policy].compute_loss_and_metrics(
+                    self.current_timestep[policy],
+                    actions_batch,
+                    rewards_batch,
+                    done_flags_batch,
+                    value_functions_batch,
+                    next_value_functions_batch,
+                    j_functions_batch,
+                    perform_logging=logging_flag,
+                )
+                # Compute the gradient norm
+                actor_grad_norm = 0.0
+                for param in list(
+                    filter(lambda p: p.grad is not None, self.actor_models[policy].parameters())
+                ):
+                    actor_grad_norm += param.grad.data.norm(2).item()
 
-            self.actor_optimizers[policy].step()
-            self.critic_optimizers[policy].step()
+                critic_grad_norm = 0.0
+                for param in list(
+                        filter(lambda p: p.grad is not None, self.critic_models[policy].parameters())
+                ):
+                    critic_grad_norm += param.grad.data.norm(2).item()
 
-            soft_update(self.target_actor_models[policy], self.actor_models[policy], self.tau[policy])
-            soft_update(self.target_critic_models[policy], self.critic_models[policy], self.tau[policy])
+                # Update the timestep and learning rate based on the schedule
+                self.current_timestep[policy] += self.training_batch_size
+                actor_lr = self.actor_lr_schedules[policy].get_param_value(
+                    self.current_timestep[policy]
+                )
+                for param_group in self.actor_optimizers[policy].param_groups:
+                    param_group["lr"] = actor_lr
+
+                critic_lr = self.critic_lr_schedules[policy].get_param_value(
+                    self.current_timestep[policy]
+                )
+                for param_group in self.critic_optimizers[policy].param_groups:
+                    param_group["lr"] = critic_lr
+
+                # Loss backpropagation and optimization step
+                self.actor_optimizers[policy].zero_grad()
+                self.critic_optimizers[policy].zero_grad()
+                actor_loss.backward()
+                critic_loss.backward()
+                if self.clip_grad_norm[policy]:
+                    nn.utils.clip_grad_norm_(
+                        self.actor_models[policy].parameters(), self.max_grad_norm[policy]
+                    )
+                    nn.utils.clip_grad_norm_(
+                        self.critic_models[policy].parameters(), self.max_grad_norm[policy]
+                    )
+
+                self.actor_optimizers[policy].step()
+                self.critic_optimizers[policy].step()
+
+                soft_update(self.target_actor_models[policy], self.actor_models[policy], self.tau[policy])
+                soft_update(self.target_critic_models[policy], self.critic_models[policy], self.tau[policy])
+
+            else:
+                metrics = {}
+                actor_grad_norm = 0.0
+                critic_grad_norm = 0.0
+                actor_lr = 0.0
+                critic_lr = 0.0
             # Logging
             if logging_flag:
                 metrics_dict[policy] = metrics

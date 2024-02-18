@@ -7,14 +7,17 @@ Using the extreme parallelization capability of GPUs, WarpDrive enables orders-o
 faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, 
 and runs simulations across multiple agents and multiple environment replicas in parallel. 
 
+Together, these allow the user to run thousands or even millions of concurrent simulations and train 
+on extremely large batches of experience, achieving at least 100x throughput over CPU-based counterparts. 
+
 |                     | Support | Concurrency  | Version
 :---                  | :---:       | :---:              | :---:   
-| Environments | Single ✅ Multi ✅ | >= 1000 per GPU | 1.0
-| Agents       | Single ✅ Multi ✅ | 1024            | 1.0
+| Environments | Single ✅ Multi ✅ | 1 to 1000 per GPU | 1.0
+| Agents       | Single ✅ Multi ✅ | 1 to 1024 per environment        | 1.0
 | Agents       | Multi across blocks ✅| 1024 per block | 1.6
 | Discrete Actions      | Single ✅ Multi ✅|        -         | 1.0
 | Continuous Action     | Single ✅ Multi ✅|        -         | 2.7
-| On-Policy Policy Gradient | A2C ✅, PPO ✅ |       -          | 1.0
+| On-Policy Policy Gradient | A2C ✅ PPO ✅ |       -          | 1.0
 | Off-Policy Policy Gradient| DDPG ✅        |       -           | 2.7
 | Auto-Scaling              | ✅             |       -          | 1.3   
 | Distributed Simulation    | ✅             | 2 to 16 GPUs node| 1.4 
@@ -22,8 +25,6 @@ and runs simulations across multiple agents and multiple environment replicas in
 | Environment Backend       | CUDA C ✅ Numba ✅  |    -          | 2.0
 | Training Backend          | Pytorch ✅     |        -           | 1.0 
 
-Together, these allow the user to run thousands or even millions of concurrent simulations and train 
-on extremely large batches of experience, achieving at least 100x throughput over CPU-based counterparts. 
 
 ## Environments
 1. We include several default multi-agent environments

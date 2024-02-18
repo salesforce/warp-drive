@@ -4,11 +4,11 @@ WarpDrive is a flexible, lightweight, and easy-to-use open-source reinforcement 
 framework that implements end-to-end multi-agent RL on a single or multiple GPUs (Graphics Processing Unit). 
 
 Using the extreme parallelization capability of GPUs, WarpDrive enables orders-of-magnitude 
-faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, 
-and runs simulations across multiple agents and multiple environment replicas in parallel. 
-
+faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, and runs simulations across multiple agents and multiple environment replicas in parallel. 
 Together, these allow the user to run thousands or even millions of concurrent simulations and train 
-on extremely large batches of experience, achieving at least 100x throughput over CPU-based counterparts. 
+on extremely large batches of experience, achieving at least 100x throughput over CPU-based counterparts.
+
+The table below provides a visual overview of Warpdrive's key features and scalability over various dimensions.
 
 |                     | Support | Concurrency  | Version
 :---                  | :---:       | :---:              | :---:   
@@ -20,7 +20,7 @@ on extremely large batches of experience, achieving at least 100x throughput ove
 | On-Policy Policy Gradient | A2C ✅ PPO ✅ |       -          | 1.0
 | Off-Policy Policy Gradient| DDPG ✅        |       -           | 2.7
 | Auto-Scaling              | ✅             |       -          | 1.3   
-| Distributed Simulation    | ✅             | 2 to 16 GPUs node| 1.4 
+| Distributed Simulation    | 1 GPU ✅  2-16 GPU node ✅ | - | 1.4 
 | Environment Backend       | CUDA C ✅  |    -          | 1.0
 | Environment Backend       | CUDA C ✅ Numba ✅  |    -          | 2.0
 | Training Backend          | Pytorch ✅     |        -           | 1.0 

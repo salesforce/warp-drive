@@ -7,7 +7,7 @@ Using the extreme parallelization capability of GPUs, WarpDrive enables orders-o
 faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, 
 and runs simulations across multiple agents and multiple environment replicas in parallel. 
 
-|                     | Support | Concurrent Number  | Version
+|                     | Support | Concurrency  | Version
 :---                  | :---:       | :---:              | :---:   
 | Environments | Single ✅ Multi ✅ | >= 1000 per GPU | 1.0
 | Agents       | Single ✅ Multi ✅ | 1024            | 1.0

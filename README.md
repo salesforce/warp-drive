@@ -7,12 +7,20 @@ Using the extreme parallelization capability of GPUs, WarpDrive enables orders-o
 faster RL compared to CPU simulation + GPU model implementations. It is extremely efficient as it avoids back-and-forth data copying between the CPU and the GPU, 
 and runs simulations across multiple agents and multiple environment replicas in parallel. 
 
-We have some main updates since its initial open source,
-- version 1.3: provides the auto scaling tools to achieve the optimal throughput per device.
-- version 1.4: supports the distributed asynchronous training among multiple GPU devices.
-- version 1.6: supports the aggregation of multiple GPU blocks for one environment replica. 
-- version 2.0: supports the dual backends of both CUDA C and JIT compiled Numba. [(Our Blog article)](https://blog.salesforceairesearch.com/warpdrive-v2-numba-nvidia-gpu-simulations/)
-- version 2.6: supports single agent environments, including Cartpole, MountainCar, Acrobot
+|                     | Support | Concurrent Number  | Version
+:---                  | :---:       | :---:              | :---:   
+| Environments | Single ✅ Multi ✅ | >= 1000 per GPU | 1.0
+| Agents       | Single ✅ Multi ✅ | 1024            | 1.0
+| Agents       | Multi across blocks ✅| 1024 per block | 1.6
+| Discrete Actions      | Single ✅ Multi ✅|        -         | 1.0
+| Continuous Action     | Single ✅ Multi ✅|        -         | 2.7
+| On-Policy Policy Gradient | A2C ✅, PPO ✅ |       -          | 1.0
+| Off-Policy Policy Gradient| DDPG ✅        |       -           | 2.7
+| Auto-Scaling              | ✅             |       -          | 1.3   
+| Distributed Simulation    | ✅             | 2 to 16 GPUs node| 1.4 
+| Environment Backend       | CUDA C ✅  |    -          | 1.0
+| Environment Backend       | CUDA C ✅ Numba ✅  |    -          | 2.0
+| Training Backend          | Pytorch ✅     |        -           | 1.0 
 
 Together, these allow the user to run thousands or even millions of concurrent simulations and train 
 on extremely large batches of experience, achieving at least 100x throughput over CPU-based counterparts. 

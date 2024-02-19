@@ -1,0 +1,57 @@
+# Copyright (c) 2021, salesforce.com, inc.
+# All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+# For full license text, see the LICENSE file in the repo root
+# or https://opensource.org/licenses/BSD-3-Clause
+
+# YAML configuration for the tag gridworld environment
+name: "single_pendulum"
+# Environment settings
+env:
+    episode_length: 500
+    reset_pool_size: 10000
+# Trainer settings
+trainer:
+    num_envs: 10000 # number of environment replicas
+    num_episodes: 10000000 # number of episodes to run the training for. Can be arbitrarily high!
+    train_batch_size: 50000 # total batch size used for training per iteration (across all the environments)
+    n_step: 5 # n_step for calculating return
+    env_backend: "numba" # environment backend, pycuda or numba
+# Policy network settings
+policy: # list all the policies below
+    shared:
+        to_train: True # flag indicating whether the model needs to be trained
+        algorithm: "DDPG" # algorithm used to train the policy
+        clip_grad_norm: True # flag indicating whether to clip the gradient norm or not
+        max_grad_norm: 3 # when clip_grad_norm is True, the clip level
+        normalize_advantage: False # flag indicating whether to normalize advantage or not
+        normalize_return: False # flag indicating whether to normalize return or not
+        gamma: 0.99 # discount factor
+        tau: 0.05 # target copy rate
+        lr:
+            actor: [[2500000000, 0.001], [3750000000, 0.0005]] # learning rate
+            critic: [[2500000000, 0.0001], [3750000000, 0.00005]]
+        model: # policy model settings
+            actor:
+                type: "fully_connected_actor" # model type
+                fc_dims: [64, 64]
+                output_w: 2.0 # model default range is (-1, 1), this changes to (-2, 2)
+            critic:
+                type: "fully_connected_action_value_critic" # model type
+                fc_dims: [64, 64]
+            model_ckpt_filepath:
+                actor: "" # filepath (used to restore a previously saved model)
+                critic: ""
+sampler:
+    params:
+        damping: 0.15
+        stddev: 0.2
+        scale: 1.0
+# Checkpoint saving setting
+saving:
+    metrics_log_freq: 1000 # how often (in iterations) to log (and print) the metrics
+    model_params_save_freq: 5000 # how often (in iterations) to save the model parameters
+    basedir: "/export/home/experiments/warpdrive" # base folder used for saving
+    name: "pendulum" # base folder used for saving
+    tag: "10000" # experiment name
+

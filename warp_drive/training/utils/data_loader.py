@@ -299,9 +299,11 @@ def _validate_obs_action_spaces(agent_ids, env_wrapper):
         action_dims = [tuple(act_space.nvec) for act_space in action_spaces]
     elif isinstance(first_agent_action_space, Discrete):
         action_dims = [tuple([act_space.n]) for act_space in action_spaces]
+    elif isinstance(first_agent_action_space, Box):
+        action_dims = [act_space.shape for act_space in action_spaces]
     else:
         raise NotImplementedError(
-            "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"
+            "Only 'Discrete', 'MultiDiscrete' or 'Box' type action spaces are supported!"
         )
     assert all_equal(action_dims)
 
@@ -463,10 +465,43 @@ def _create_action_placeholders_helper(
                 dtype=np.int32,
             ),
         )
-
+    # continuous action space
+    elif isinstance(action_space, Box):
+        num_action_types = action_space.shape[0]
+        if num_action_types == 1:
+            tensor_feed.add_data(
+                name=_ACTIONS + policy_suffix,
+                data=np.zeros(
+                    (num_envs, num_agents, 1),
+                    dtype=np.float32,
+                ),
+            )
+        else:
+            # Add separate placeholders for each type of action space.
+            # This is required since our sampler will be invoked for each
+            # action dimension separately.
+            for action_type_id in range(num_action_types):
+                tensor_feed.add_data(
+                    name=f"{_ACTIONS}_{action_type_id}" + policy_suffix,
+                    data=np.zeros(
+                        (num_envs, num_agents, 1),
+                        dtype=np.float32,
+                    ),
+                )
+            tensor_feed.add_data(
+                name=_ACTIONS + policy_suffix,
+                data=np.zeros(
+                    (
+                        num_envs,
+                        num_agents,
+                    )
+                    + (num_action_types,),
+                    dtype=np.float32,
+                ),
+            )
     else:
         raise NotImplementedError(
-            "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"
+            "Only 'Discrete', 'MultiDiscrete' or 'Box' type action spaces are supported!"
         )
 
     env_wrapper.cuda_data_manager.push_data_to_device(
@@ -487,9 +522,14 @@ def _create_action_batches_helper(
     num_agents = len(agent_ids)
     first_agent_id = agent_ids[0]
     action_space = env_wrapper.env.action_space[first_agent_id]
+    action_dtype = np.int32
     if isinstance(action_space, MultiDiscrete):
         action_dim = action_space.nvec
         num_action_types = len(action_dim)
+    # continuous action space
+    elif isinstance(action_space, Box):
+        num_action_types = action_space.shape[0]
+        action_dtype = np.float32
     else:
         num_action_types = 1
 
@@ -504,7 +544,7 @@ def _create_action_batches_helper(
                     num_agents,
                 )
                 + (num_action_types,),
-                dtype=np.int32,
+                dtype=action_dtype,
                 ),
         )
 
@@ -529,6 +569,7 @@ def _prepare_action_sampler_helper(
             env_wrapper.cuda_data_manager,
             action_name=_ACTIONS + policy_suffix,
             num_actions=action_dim,
+            is_deterministic=False,
         )
     elif isinstance(action_space, MultiDiscrete):
         action_dim = action_space.nvec
@@ -538,7 +579,25 @@ def _prepare_action_sampler_helper(
                 env_wrapper.cuda_data_manager,
                 action_name=f"{_ACTIONS}_{action_type_id}" + policy_suffix,
                 num_actions=action_type_dim,
+                is_deterministic=False,
             )
+    elif isinstance(action_space, Box):
+        num_action_types = action_space.shape[0]
+        if num_action_types == 1:
+            action_sampler.register_actions(
+                env_wrapper.cuda_data_manager,
+                action_name=_ACTIONS + policy_suffix,
+                num_actions=1,
+                is_deterministic=True,
+            )
+        else:
+            for action_type_id in range(num_action_types):
+                action_sampler.register_actions(
+                    env_wrapper.cuda_data_manager,
+                    action_name=f"{_ACTIONS}_{action_type_id}" + policy_suffix,
+                    num_actions=1,
+                    is_deterministic=True,
+                )
     else:
         raise NotImplementedError(
             "Only 'Discrete' or 'MultiDiscrete' type action spaces are supported!"

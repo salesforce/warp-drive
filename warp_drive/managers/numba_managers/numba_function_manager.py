@@ -193,6 +193,7 @@ class NumbaFunctionManager(CUDAFunctionManager):
             "log_one_step_3d",
             "init_random",
             "sample_actions",
+            "sample_ou_process",
             "reset_when_done_1d",
             "reset_when_done_2d",
             "reset_when_done_3d",
@@ -266,6 +267,8 @@ class NumbaSampler(CUDASampler):
 
         self.sample_actions = self._function_manager.get_function("sample_actions")
 
+        self.sample_ou_process = self._function_manager.get_function("sample_ou_process")
+
         self.rng_states_dict = {}
 
     def init_random(self, seed: Optional[int] = None):
@@ -295,7 +298,7 @@ class NumbaSampler(CUDASampler):
         data_manager: NumbaDataManager,
         distribution: torch.Tensor,
         action_name: str,
-        use_argmax: bool = False,
+        **sample_params,
     ):
         """
         Sample based on the distribution
@@ -305,32 +308,60 @@ class NumbaSampler(CUDASampler):
         (num_env, num_agents, num_actions)
         :param action_name: the name of action array that will
         record the sampled actions
-        :param use_argmax: if True, sample based on the argmax(distribution)
+        :param sample_params:
+            sample_params["use_argmax"] = True, sample based on the argmax(distribution)
+            sample_params["damping"]
+            sample_params["stddev"]
+            sample_params["scale"]
+
         """
         assert self._random_initialized, (
             "sample() requires the random seed initialized first, "
             "please call init_random()"
         )
         assert torch.is_tensor(distribution)
+        assert distribution.is_contiguous(), "distribution is required to be C contiguous"
         assert distribution.shape[0] == self._num_envs
         n_agents = int(distribution.shape[1])
         assert data_manager.get_shape(action_name)[1] == n_agents
         n_actions = distribution.shape[2]
-        assert data_manager.get_shape(f"{action_name}_cum_distr")[2] == n_actions
 
         # distribution is a runtime output from pytorch at device,
         # it should not be managed by data manager because
         # it is a temporary output and never sit at the host
-        self.sample_actions[
-            self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)
-        ](
-            self.rng_states_dict["rng_states"],
-            numba_driver.as_cuda_array(distribution.detach()),
-            data_manager.device_data(action_name),
-            data_manager.device_data(f"{action_name}_cum_distr"),
-            np.int32(n_actions),
-            np.int32(use_argmax),
-        )
+        if n_actions > 1:
+            # has a probability distribution over multiple discrete actions
+            assert data_manager.get_shape(f"{action_name}_cum_distr")[2] == n_actions
+
+            use_argmax = sample_params.get("use_argmax", False)
+
+            self.sample_actions[
+                self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)
+            ](
+                self.rng_states_dict["rng_states"],
+                numba_driver.as_cuda_array(distribution.detach()),
+                data_manager.device_data(action_name),
+                data_manager.device_data(f"{action_name}_cum_distr"),
+                np.int32(n_actions),
+                np.int32(use_argmax),
+            )
+        else:
+            # deterministic action
+            damping = sample_params.get("damping", 0.15)
+            stddev = sample_params.get("stddev", 0.2)
+            scale = sample_params.get("scale", 1.0)
+
+            self.sample_ou_process[
+                self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)
+            ](
+                self.rng_states_dict["rng_states"],
+                numba_driver.as_cuda_array(distribution.detach()),
+                data_manager.device_data(action_name),
+                data_manager.device_data(f"{action_name}_ou_state"),
+                np.float32(damping),
+                np.float32(stddev),
+                np.float32(scale),
+            )
 
 
 class NumbaEnvironmentReset(CUDAEnvironmentReset):
@@ -543,7 +574,7 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         )
 
         for name, pool_name in data_manager.reset_target_to_pool.items():
-            f_shape = data_manager.get_shape(name)
+            f_shape = data_manager.get_shape(pool_name)
             assert f_shape[0] > 1, "reset function assumes the 0th dimension is n_pool"
             if len(f_shape) >= 3:
                 if len(f_shape) > 3:
@@ -695,3 +726,93 @@ class NumbaLogController(CUDALogController):
             data_manager.device_data("_log_mask_"),
             data_manager.meta_info("episode_length"),
         )
+
+
+class NumbaOUProcess(CUDASampler):
+
+    def __init__(self, function_manager: NumbaFunctionManager):
+        """
+        :param function_manager: CUDAFunctionManager object
+        """
+        super().__init__(function_manager)
+
+        self.sample_ou_process = self._function_manager.get_function("sample_ou_process")
+
+        self.rng_states_dict = {}
+
+    def init_random(self, seed: Optional[int] = None):
+        """
+        Init random function for all the threads
+        :param seed: random seed selected for the initialization
+        """
+        if seed is None:
+            seed = time.time()
+            logging.info(
+                f"random seed is not provided, by default, "
+                f"using the current timestamp {seed} as seed"
+            )
+        seed = np.int32(seed)
+        xoroshiro128p_dtype = np.dtype(
+            [("s0", np.uint64), ("s1", np.uint64)], align=True
+        )
+        sz = self._function_manager._num_envs * self._function_manager._num_agents
+        rng_states = numba_driver.device_array(sz, dtype=xoroshiro128p_dtype)
+        init = self._function_manager.get_function("init_random")
+        init(rng_states, seed)
+        self.rng_states_dict["rng_states"] = rng_states
+        self._random_initialized = True
+
+    def reset_state(self, data_manager: NumbaDataManager, action_name: str,):
+        host_array = np.zeros(
+            shape=data_manager.get_shape(f"{action_name}_ou_state"), dtype=np.float32
+        )
+        data_feed = DataFeed()
+        data_feed.add_data(name=f"{action_name}_ou_state", data=host_array)
+        data_manager.push_data_to_device(data_feed)
+
+    def sample(
+        self,
+        data_manager: NumbaDataManager,
+        distribution: torch.Tensor,
+        action_name: str,
+        damping=0.15,
+        stddev=0.2,
+        scale=1.0
+    ):
+        """
+        Sample continuous actions based on the Ornstein–Uhlenbeck process
+
+        :param data_manager: NumbaDataManager object
+        :param distribution: Torch tensor of deterministic action in the shape of
+        (num_env, num_agents, 1)
+        :param action_name: the name of action array that will
+        record the sampled actions
+        :param damping: damping factor for OU process
+        :param stddev: standard dev for normal process
+        :param scale: scale of ou process
+        """
+        assert self._random_initialized, (
+            "sample() requires the random seed initialized first, "
+            "please call init_random()"
+        )
+        assert torch.is_tensor(distribution)
+        assert distribution.shape[0] == self._num_envs
+        n_agents = int(distribution.shape[1])
+        assert data_manager.get_shape(action_name)[1] == n_agents
+        assert data_manager.get_shape(f"{action_name}_ou_state")[2] == 1
+
+        # distribution is a runtime output from pytorch at device,
+        # it should not be managed by data manager because
+        # it is a temporary output and never sit at the host
+        self.sample_ou_process[
+            self._grid, (int((n_agents - 1) // self._blocks_per_env + 1), 1, 1)
+        ](
+            self.rng_states_dict["rng_states"],
+            numba_driver.as_cuda_array(distribution.detach()),
+            data_manager.device_data(action_name),
+            data_manager.device_data(f"{action_name}_ou_state"),
+            np.float32(damping),
+            np.float32(stddev),
+            np.float32(scale),
+        )
+

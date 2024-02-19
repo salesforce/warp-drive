@@ -20,6 +20,7 @@ def get_default_env_directory(env_name):
         "ClassicControlCartPoleEnv": "example_envs.single_agent.classic_control.cartpole.cartpole_step_numba",
         "ClassicControlMountainCarEnv": "example_envs.single_agent.classic_control.mountain_car.mountain_car_step_numba",
         "ClassicControlAcrobotEnv": "example_envs.single_agent.classic_control.acrobot.acrobot_step_numba",
+        "ClassicControlPendulumEnv": "example_envs.single_agent.classic_control.pendulum.pendulum_step_numba",
         "YOUR_ENVIRONMENT": "PYTHON_PATH_TO_YOUR_ENV_SRC",
     }
     return envs.get(env_name, None)

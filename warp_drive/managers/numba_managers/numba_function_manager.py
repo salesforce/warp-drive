@@ -574,7 +574,7 @@ class NumbaEnvironmentReset(CUDAEnvironmentReset):
         )
 
         for name, pool_name in data_manager.reset_target_to_pool.items():
-            f_shape = data_manager.get_shape(name)
+            f_shape = data_manager.get_shape(pool_name)
             assert f_shape[0] > 1, "reset function assumes the 0th dimension is n_pool"
             if len(f_shape) >= 3:
                 if len(f_shape) > 3:

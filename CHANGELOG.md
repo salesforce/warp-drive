@@ -1,4 +1,9 @@
 # Changelog
+# Release 2.7 (2024-02-17)
+- Support continuous actions
+- Add Pendulum environment that can run up to 100K concurrent replicates
+- Add DDPG algorithms for training continuous action policies
+
 # Release 2.6.2 (2023-12-12)
 - Add Acrobot environment that can run up to 100K concurrent replicates.
 - Add Mountain Car environment that can run up to 100K concurrent replicates.

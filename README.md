@@ -12,18 +12,18 @@ The table below provides a visual overview of Warpdrive's key features and scala
 
 |                     | Support | Concurrency  | Version
 :---                  | :---:       | :---:              | :---:   
-| Environments | Single ✅ Multi ✅ | 1 to 1000 per GPU | 1.0
-| Agents       | Single ✅ Multi ✅ | 1 to 1024 per environment        | 1.0
-| Agents       | Multi across blocks ✅| 1024 per block | 1.6
-| Discrete Actions      | Single ✅ Multi ✅|        -         | 1.0
-| Continuous Action     | Single ✅ Multi ✅|        -         | 2.7
-| On-Policy Policy Gradient | A2C ✅ PPO ✅ |       -          | 1.0
-| Off-Policy Policy Gradient| DDPG ✅        |       -           | 2.7
-| Auto-Scaling              | ✅             |       -          | 1.3   
-| Distributed Simulation    | 1 GPU ✅  2-16 GPU node ✅ | - | 1.4 
-| Environment Backend       | CUDA C ✅  |    -          | 1.0
-| Environment Backend       | CUDA C ✅ Numba ✅  |    -          | 2.0
-| Training Backend          | Pytorch ✅     |        -           | 1.0 
+| Environments | Single ✅ Multi ✅ | 1 to 1000 per GPU | 1.0+
+| Agents       | Single ✅ Multi ✅ | 1 to 1024 per environment        | 1.0+
+| Agents       | Multi across blocks ✅| 1024 per block | 1.6+
+| Discrete Actions      | Single ✅ Multi ✅|        -         | 1.0+
+| Continuous Action     | Single ✅ Multi ✅|        -         | 2.7+
+| On-Policy Policy Gradient | A2C ✅ PPO ✅ |       -          | 1.0+
+| Off-Policy Policy Gradient| DDPG ✅        |       -           | 2.7+
+| Auto-Scaling              | ✅             |       -          | 1.3+   
+| Distributed Simulation    | 1 GPU ✅  2-16 GPU node ✅ | - | 1.4+ 
+| Environment Backend       | CUDA C ✅  |    -          | 1.0+
+| Environment Backend       | CUDA C ✅ Numba ✅  |    -          | 2.0+
+| Training Backend          | Pytorch ✅     |        -           | 1.0+ 
 
 
 ## Environments

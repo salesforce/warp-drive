@@ -33,7 +33,7 @@ trained for different tagger:runner speed ratios using WarpDrive.
 These environments can **run** at **millions of steps per second**, 
 and **train** in just a few **hours**, all on a single GPU!
 
-<img src="https://blog.einstein.ai/content/images/2021/08/tagger2x-1.gif" width="250" height="250"/> <img src="https://blog.einstein.ai/content/images/2021/08/same_speed_50fps-1.gif" width="250" height="250"/> <img src="https://blog.einstein.ai/content/images/2021/08/runner2x-2.gif" width="250" height="250"/>
+<img src="https://blog.salesforceairesearch.com/content/images/2021/08/tagger2x-1.gif" width="250" height="250"/> <img src="https://blog.salesforceairesearch.com/content/images/2021/08/same_speed_50fps-1.gif" width="250" height="250"/> <img src="https://blog.salesforceairesearch.com/content/images/2021/08/runner2x-2.gif" width="250" height="250"/>
 
 #  
 

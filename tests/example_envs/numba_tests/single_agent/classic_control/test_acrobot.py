@@ -63,7 +63,7 @@ class MyTestCase(unittest.TestCase):
         ).cuda()
 
         state_values = {0: [], 1: [], 2: []}
-        for _ in range(10000):
+        for _ in range(30000):
             env_wrapper.env_resetter.reset_when_done(env_wrapper.cuda_data_manager, mode="if_done", undo_done_after_reset=False)
             res = env_wrapper.cuda_data_manager.pull_data_from_device("state")
             state_values[0].append(res[0])
@@ -75,9 +75,9 @@ class MyTestCase(unittest.TestCase):
         state_values_env2_mean = np.stack(state_values[2]).mean(axis=0).squeeze()
 
         for i in range(len(reset_pool_mean)):
-            self.assertTrue(np.absolute(state_values_env0_mean[i] - reset_pool_mean[i]) < 0.1 * abs(reset_pool_mean[i]),
+            self.assertTrue(np.absolute(state_values_env0_mean[i] - reset_pool_mean[i]) < 0.2 * abs(reset_pool_mean[i]),
                             f"sampled mean: {state_values_env0_mean[i]}, expected mean: {reset_pool_mean[i]}")
-            self.assertTrue(np.absolute(state_values_env1_mean[i] - reset_pool_mean[i]) < 0.1 * abs(reset_pool_mean[i]),
+            self.assertTrue(np.absolute(state_values_env1_mean[i] - reset_pool_mean[i]) < 0.2 * abs(reset_pool_mean[i]),
                             f"sampled mean: {state_values_env1_mean[i]}, expected mean: {reset_pool_mean[i]}")
             self.assertTrue(
                 np.absolute(

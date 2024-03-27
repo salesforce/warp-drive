@@ -3,16 +3,21 @@ import numpy as np
 import torch
 
 from warp_drive.env_cpu_gpu_consistency_checker import EnvironmentCPUvsGPU
-from example_envs.single_agent.classic_control.pendulum.pendulum import \
-    ClassicControlPendulumEnv, CUDAClassicControlPendulumEnv
+from example_envs.single_agent.classic_control.continuous_mountain_car.continuous_mountain_car import \
+    ClassicControlContinuousMountainCarEnv, CUDAClassicControlContinuousMountainCarEnv
 from warp_drive.env_wrapper import EnvWrapper
 
 
 env_configs = {
     "test1": {
-        "episode_length": 200,
+        "episode_length": 999,
         "reset_pool_size": 0,
         "seed": 32145,
+    },
+    "test2": {
+        "episode_length": 200,
+        "reset_pool_size": 0,
+        "seed": 54231,
     },
 }
 
@@ -25,8 +30,8 @@ class MyTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.testing_class = EnvironmentCPUvsGPU(
-            cpu_env_class=ClassicControlPendulumEnv,
-            cuda_env_class=CUDAClassicControlPendulumEnv,
+            cpu_env_class=ClassicControlContinuousMountainCarEnv,
+            cuda_env_class=CUDAClassicControlContinuousMountainCarEnv,
             env_configs=env_configs,
             gpu_env_backend="numba",
             num_envs=5,
@@ -37,11 +42,11 @@ class MyTestCase(unittest.TestCase):
         try:
             self.testing_class.test_env_reset_and_step()
         except AssertionError:
-            self.fail("ClassicControlPendulumEnv environment consistency tests failed")
+            self.fail("ClassicControlContinuousMountainCarEnv environment consistency tests failed")
 
     def test_reset_pool(self):
         env_wrapper = EnvWrapper(
-            env_obj=CUDAClassicControlPendulumEnv(episode_length=100, reset_pool_size=8),
+            env_obj=CUDAClassicControlContinuousMountainCarEnv(episode_length=100, reset_pool_size=3),
             num_envs=3,
             env_backend="numba",
         )
@@ -56,14 +61,15 @@ class MyTestCase(unittest.TestCase):
             env_wrapper.cuda_data_manager.get_reset_pool("state"))
         reset_pool_mean = reset_pool.mean(axis=0).squeeze()
 
-        self.assertTrue(reset_pool.std(axis=0).mean() > 1e-4)
+        # we only need to check the 0th element of state because state[1] = 0 for reset always
+        self.assertTrue(reset_pool.std(axis=0).squeeze()[0] > 1e-4)
 
         env_wrapper.cuda_data_manager.data_on_device_via_torch("_done_")[:] = torch.from_numpy(
             np.array([1, 1, 0])
         ).cuda()
 
         state_values = {0: [], 1: [], 2: []}
-        for _ in range(30000):
+        for _ in range(10000):
             env_wrapper.env_resetter.reset_when_done(env_wrapper.cuda_data_manager, mode="if_done", undo_done_after_reset=False)
             res = env_wrapper.cuda_data_manager.pull_data_from_device("state")
             state_values[0].append(res[0])
@@ -74,13 +80,12 @@ class MyTestCase(unittest.TestCase):
         state_values_env1_mean = np.stack(state_values[1]).mean(axis=0).squeeze()
         state_values_env2_mean = np.stack(state_values[2]).mean(axis=0).squeeze()
 
-        for i in range(len(reset_pool_mean)):
-            self.assertTrue(np.absolute(state_values_env0_mean[i] - reset_pool_mean[i]) < 0.2 * abs(reset_pool_mean[i]))
-            self.assertTrue(np.absolute(state_values_env1_mean[i] - reset_pool_mean[i]) < 0.2 * abs(reset_pool_mean[i]))
-            self.assertTrue(
-                np.absolute(
-                    state_values_env2_mean[i] - state_after_initial_reset[0][i]
-                            ) < 0.001 * abs(state_after_initial_reset[0][i])
+        self.assertTrue(np.absolute(state_values_env0_mean[0] - reset_pool_mean[0]) < 0.1 * abs(reset_pool_mean[0]))
+        self.assertTrue(np.absolute(state_values_env1_mean[0] - reset_pool_mean[0]) < 0.1 * abs(reset_pool_mean[0]))
+        self.assertTrue(
+            np.absolute(
+                state_values_env2_mean[0] - state_after_initial_reset[0][0]
+                        ) < 0.001 * abs(state_after_initial_reset[0][0])
             )
 
 

@@ -35,6 +35,10 @@ if __name__ == "__main__":
         f"pytest {get_project_root()}/tests/warp_drive/numba_tests",
         f"pytest {get_project_root()}/tests/example_envs/numba_tests/test_tag_gridworld.py",
         f"pytest {get_project_root()}/tests/example_envs/numba_tests/test_tag_continuous.py",
+        f"pytest {get_project_root()}/tests/example_envs/numba_tests/single_agent/classic_control/test_acrobot.py",
+        f"pytest {get_project_root()}/tests/example_envs/numba_tests/single_agent/classic_control/test_cartpole.py",
+        f"pytest {get_project_root()}/tests/example_envs/numba_tests/single_agent/classic_control/test_mountain_car.py",
+        f"pytest {get_project_root()}/tests/example_envs/numba_tests/single_agent/classic_control/test_pendulum.py",
     ]
     for cmd in cmds:
         print(f"Running Unit tests: {cmd} ")

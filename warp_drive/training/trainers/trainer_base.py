@@ -22,6 +22,7 @@ from torch import nn
 
 from warp_drive.training.utils.data_loader import create_and_push_data_placeholders
 from warp_drive.training.utils.ring_buffer import RingBufferManager
+from warp_drive.training.utils.param_scheduler import ParamScheduler
 from warp_drive.utils.common import get_project_root
 from warp_drive.utils.constants import Constants
 
@@ -144,7 +145,10 @@ class TrainerBase:
                 self.config["policy"][key], default_config["policy"]
             )
         # Sampler-related configurations (usually Optional)
-        self.sample_params = self._get_config(["sampler", "params"]) if "sampler" in self.config else {}
+        self.sample_params_schedules = {}
+        sample_configs = self._get_config(["sampler", "params"]) if "sampler" in self.config else {}
+        for param_name, param_config in sample_configs.items():
+            self.sample_params_schedules[param_name] = ParamScheduler(param_config)
 
         # Saving-related configurations
         self.config["saving"] = recursive_merge_config_dicts(
@@ -202,6 +206,9 @@ class TrainerBase:
         assert self.num_episodes > 0
         self.training_batch_size = self._get_config(["trainer", "train_batch_size"])
         self.num_envs = self._get_config(["trainer", "num_envs"])
+
+        self.neg_pos_env_ratio = self._get_config(["trainer", "neg_pos_env_ratio"]) if \
+            "neg_pos_env_ratio" in self._get_config(["trainer"]) else -1
 
         self.training_batch_size_per_env = self.training_batch_size // self.num_envs
         assert self.training_batch_size_per_env > 0
@@ -304,6 +311,7 @@ class TrainerBase:
 
         # Metrics
         self.metrics = Metrics()
+        self.sample_params_log = SamplerParamsLog()
 
         # Ring Buffer to save batch data
         self.ring_buffer = RingBufferManager()
@@ -357,7 +365,7 @@ class TrainerBase:
             start_time = time.time()
 
             # Generate a batched rollout for every CUDA environment.
-            self._generate_rollout_batch()
+            sample_params = self._generate_rollout_batch()
 
             # Train / update model parameters.
             metrics = self._update_model_params(iteration)
@@ -368,8 +376,7 @@ class TrainerBase:
             self.perf_stats.total_time += end_time - start_time
 
             # Log the training metrics
-            self._log_metrics(metrics)
-
+            self._log_metrics(metrics, sample_params)
             # Save torch model
             self.save_model_checkpoint(iteration)
 
@@ -380,6 +387,7 @@ class TrainerBase:
         # Code timing
         start_event = torch.cuda.Event(enable_timing=True)
         end_event = torch.cuda.Event(enable_timing=True)
+        sample_params = self._get_sample_params()
 
         for batch_index in range(self.training_batch_size_per_env):
 
@@ -395,7 +403,7 @@ class TrainerBase:
             # Sample actions using the computed probabilities
             # and push to the batch of actions
             start_event.record()
-            self._sample_actions(probabilities, batch_index=batch_index, **self.sample_params)
+            self._sample_actions(probabilities, batch_index=batch_index, **sample_params)
             end_event.record()
             torch.cuda.synchronize()
             self.perf_stats.action_sample_time += (
@@ -417,6 +425,15 @@ class TrainerBase:
             torch.cuda.synchronize()
             self.perf_stats.env_step_time += start_event.elapsed_time(end_event) / 1000
 
+        return sample_params
+
+    def _get_sample_params(self):
+        sample_params = {}
+        for param_name, param_schedule in self.sample_params_schedules.items():
+            sample_params[param_name] = \
+                param_schedule.get_param_value(self.current_timestep[self.policies[0]])
+        return sample_params
+
     def _sample_actions(self, probabilities, batch_index=0, **sample_params):
         """
         Sample action probabilities (and push the sampled actions to the device).
@@ -429,45 +446,47 @@ class TrainerBase:
                 self._sample_actions_helper(
                     probabilities[policy], policy_suffix=policy_suffix, **sample_params
                 )
-                # Push the actions to the batch
-                actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                    _ACTIONS + policy_suffix
-                )
-                action_batch_name = f"{_ACTIONS}_batch" + policy_suffix
-                if self.ring_buffer.has(action_batch_name):
-                    self.ring_buffer.get(action_batch_name).enqueue(actions)
-                else:
-                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                        name=action_batch_name
-                    )[batch_index] = actions
-        else:
-            assert len(probabilities) == 1
-            policy = list(probabilities.keys())[0]
-            # sample a single or a combined policy
-            self._sample_actions_helper(probabilities[policy], **sample_params)
-            actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                _ACTIONS
-            )
-            # Push the actions to the batch, if action sampler has no policy tag
-            # (1) there is only one policy, then action -> action_batch_policy
-            # (2) there are multiple policies, then action[policy_tag_to_agent_id[policy]] -> action_batch_policy
-            for policy in self.policies:
-                action_batch_name = f"{_ACTIONS}_batch_{policy}"
-                if len(self.policies) > 1:
-                    agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
-                    if self.ring_buffer.has(action_batch_name):
-                        self.ring_buffer.get(action_batch_name).enqueue(actions[:, agent_ids_for_policy])
-                    else:
-                        self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
-                            name=action_batch_name
-                        )[batch_index] = actions[:, agent_ids_for_policy]
-                else:
+                if batch_index >= 0:
+                    # Push the actions to the batch
+                    actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                        _ACTIONS + policy_suffix
+                    )
+                    action_batch_name = f"{_ACTIONS}_batch" + policy_suffix
                     if self.ring_buffer.has(action_batch_name):
                         self.ring_buffer.get(action_batch_name).enqueue(actions)
                     else:
                         self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
                             name=action_batch_name
                         )[batch_index] = actions
+        else:
+            assert len(probabilities) == 1
+            policy = list(probabilities.keys())[0]
+            # sample a single or a combined policy
+            self._sample_actions_helper(probabilities[policy], **sample_params)
+            if batch_index >= 0:
+                actions = self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                    _ACTIONS
+                )
+                # Push the actions to the batch, if action sampler has no policy tag
+                # (1) there is only one policy, then action -> action_batch_policy
+                # (2) there are multiple policies, then action[policy_tag_to_agent_id[policy]] -> action_batch_policy
+                for policy in self.policies:
+                    action_batch_name = f"{_ACTIONS}_batch_{policy}"
+                    if len(self.policies) > 1:
+                        agent_ids_for_policy = self.policy_tag_to_agent_id_map[policy]
+                        if self.ring_buffer.has(action_batch_name):
+                            self.ring_buffer.get(action_batch_name).enqueue(actions[:, agent_ids_for_policy])
+                        else:
+                            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                                name=action_batch_name
+                            )[batch_index] = actions[:, agent_ids_for_policy]
+                    else:
+                        if self.ring_buffer.has(action_batch_name):
+                            self.ring_buffer.get(action_batch_name).enqueue(actions)
+                        else:
+                            self.cuda_envs.cuda_data_manager.data_on_device_via_torch(
+                                name=action_batch_name
+                            )[batch_index] = actions
 
     def _sample_actions_helper(self, probabilities, policy_suffix="", **sample_params):
         # Sample actions with policy_suffix tag
@@ -499,9 +518,11 @@ class TrainerBase:
         """
         assert isinstance(batch_index, int)
         # Push done flags to done_flags_batch
-        done_flags = (
-            self.cuda_envs.cuda_data_manager.data_on_device_via_torch("_done_") > 0
-        )
+        # done_flags = (
+        #     self.cuda_envs.cuda_data_manager.data_on_device_via_torch("_done_") > 0
+        # )
+        done_flags = self.cuda_envs.cuda_data_manager.data_on_device_via_torch("_done_")
+
         done_batch_name = f"{_DONE_FLAGS}_batch"
         if self.ring_buffer.has(done_batch_name):
             self.ring_buffer.get(done_batch_name).enqueue(done_flags)
@@ -579,7 +600,7 @@ class TrainerBase:
             self.reward_running_sum[policy][done_env_ids] = 0
             self.step_running_sum[policy][done_env_ids] = 0
 
-    def _log_metrics(self, metrics):
+    def _log_metrics(self, metrics, sample_params=None):
         # Log the metrics if it is not empty
         if len(metrics) > 0:
             perf_stats = self.perf_stats.get_perf_stats()
@@ -594,6 +615,8 @@ class TrainerBase:
                 )
                 self.perf_stats.pretty_print(perf_stats)
                 self.metrics.pretty_print(metrics)
+                if sample_params is not None:
+                    self.sample_params_log.pretty_print(sample_params)
                 print("=" * 40, "\n")
 
             # Log metrics and performance stats
@@ -673,7 +696,7 @@ class TrainerBase:
         **sample_params
     ):
         """
-        Step through env and fetch the desired states (data arrays on the GPU)
+        Step through an env and fetch the desired states (data arrays on the GPU)
         for an entire episode. The trained models will be used for evaluation.
         """
         assert 0 <= env_id < self.num_envs
@@ -710,7 +733,7 @@ class TrainerBase:
                 ),
                 dtype=self.cuda_envs.cuda_data_manager.get_dtype(action_name)
             )
-            episode_rewards= np.zeros(
+            episode_rewards = np.zeros(
                 (
                     env.episode_length, *self.cuda_envs.cuda_data_manager.get_shape(reward_name)[1:]
                 ),
@@ -730,8 +753,8 @@ class TrainerBase:
             # Evaluate policies to compute action probabilities, we set batch_index=-1 to avoid batch writing
             probabilities = self._evaluate_policies(batch_index=-1)
 
-            # Sample actions
-            self._sample_actions(probabilities, **sample_params)
+            # Sample actions, we set batch_index=-1 to avoid batch writing
+            self._sample_actions(probabilities, batch_index=-1, **sample_params)
 
             # Step through all the environments
             self.cuda_envs.step_all_envs()
@@ -767,6 +790,60 @@ class TrainerBase:
             return episode_states, episode_actions, episode_rewards, episode_probabilities
         else:
             return episode_states
+
+    def evaluate_episodes(
+        self,
+        **sample_params,
+    ):
+        """
+        Step through all envs by one episode and fetch the rewards for evaluation.
+        """
+        episodic_reward_sum = {}
+        episodic_step_sum = {}
+        for policy in self.policies:
+            num_agents_for_policy = len(self.policy_tag_to_agent_id_map[policy])
+            episodic_reward_sum[policy] = np.zeros((self.num_envs, num_agents_for_policy), dtype=np.float32)
+            episodic_step_sum[policy] = np.zeros(self.num_envs, dtype=np.int32)
+
+        self.cuda_envs.reset_all_envs()
+
+        for _ in range(self.cuda_envs.episode_length):
+            # Evaluate policies to compute action probabilities, we set batch_index=-1 to avoid batch writing
+            probabilities = self._evaluate_policies(batch_index=-1)
+
+            # Sample actions, we set batch_index=-1 to avoid batch writing
+            self._sample_actions(probabilities, batch_index=-1, **sample_params)
+
+            # Step through all the environments
+            self.cuda_envs.step_all_envs()
+
+            undone_flags = (
+                    self.cuda_envs.cuda_data_manager.data_on_device_via_torch("_done_") == 0
+            ).cpu().numpy()
+            if not undone_flags.any():
+                break
+
+            if self.create_separate_placeholders_for_each_policy:
+                for policy in self.policies:
+                    rewards = self.cuda_envs.cuda_data_manager.pull_data_from_device(
+                        f"{_REWARDS}_{policy}"
+                    )
+                    episodic_reward_sum[policy][undone_flags] += rewards[undone_flags]
+                    episodic_step_sum[policy][undone_flags] += 1
+            else:
+                rewards = self.cuda_envs.cuda_data_manager.pull_data_from_device(
+                    _REWARDS
+                )
+                for policy in self.policies:
+                    episodic_reward_sum[policy][undone_flags] += \
+                        rewards[undone_flags][self.policy_tag_to_agent_id_map[policy]]
+                    episodic_step_sum[policy][undone_flags] += 1
+
+            # Reset all the environments that are in done state,
+            # do not undo done anymore because we just need one episode
+            self.cuda_envs.reset_only_done_envs(undo_done_after_reset=False)
+
+        return episodic_reward_sum, episodic_step_sum
 
 
 class PerfStats:
@@ -827,4 +904,20 @@ class Metrics:
             print(f"Metrics for policy '{policy}'")
             print("=" * 40)
             for k, v in metrics[policy].items():
+                print(f"{k:40}: {v:10.5f}")
+
+
+class SamplerParamsLog:
+
+    def __init__(self):
+        pass
+
+    def pretty_print(self, params):
+        assert params is not None
+        assert isinstance(params, dict)
+        if len(params) > 0:
+            print("=" * 40)
+            print(f"Parameters for sampler")
+            print("=" * 40)
+            for k, v in params.items():
                 print(f"{k:40}: {v:10.5f}")

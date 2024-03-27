@@ -21,6 +21,8 @@ from example_envs.tag_continuous.tag_continuous import TagContinuous
 from example_envs.tag_gridworld.tag_gridworld import CUDATagGridWorld, CUDATagGridWorldWithResetPool
 from example_envs.single_agent.classic_control.cartpole.cartpole import CUDAClassicControlCartPoleEnv
 from example_envs.single_agent.classic_control.mountain_car.mountain_car import CUDAClassicControlMountainCarEnv
+from example_envs.single_agent.classic_control.continuous_mountain_car.continuous_mountain_car import \
+    CUDAClassicControlContinuousMountainCarEnv
 from example_envs.single_agent.classic_control.acrobot.acrobot import CUDAClassicControlAcrobotEnv
 from example_envs.single_agent.classic_control.pendulum.pendulum import CUDAClassicControlPendulumEnv
 from warp_drive.env_wrapper import EnvWrapper
@@ -40,6 +42,7 @@ _TAG_GRIDWORLD_WITH_RESET_POOL = "tag_gridworld_with_reset_pool"
 
 _CLASSIC_CONTROL_CARTPOLE = "single_cartpole"
 _CLASSIC_CONTROL_MOUNTAIN_CAR = "single_mountain_car"
+_CLASSIC_CONTROL_CONTINUOUS_MOUNTAIN_CAR = "single_continuous_mountain_car"
 _CLASSIC_CONTROL_ACROBOT = "single_acrobot"
 _CLASSIC_CONTROL_PENDULUM = "single_pendulum"
 
@@ -108,6 +111,14 @@ def setup_trainer_and_train(
             event_messenger=event_messenger,
             process_id=device_id,
         )
+    elif run_configuration["name"] == _CLASSIC_CONTROL_CONTINUOUS_MOUNTAIN_CAR:
+        env_wrapper = EnvWrapper(
+            CUDAClassicControlContinuousMountainCarEnv(**run_configuration["env"]),
+            num_envs=num_envs,
+            env_backend="numba",
+            event_messenger=event_messenger,
+            process_id=device_id,
+        )
     elif run_configuration["name"] == _CLASSIC_CONTROL_ACROBOT:
         env_wrapper = EnvWrapper(
             CUDAClassicControlAcrobotEnv(**run_configuration["env"]),
@@ -132,6 +143,7 @@ def setup_trainer_and_train(
             f"{_TAG_GRIDWORLD_WITH_RESET_POOL}"
             f"{_CLASSIC_CONTROL_CARTPOLE}"
             f"{_CLASSIC_CONTROL_MOUNTAIN_CAR}"
+            f"{_CLASSIC_CONTROL_CONTINUOUS_MOUNTAIN_CAR}"
             f"{_CLASSIC_CONTROL_ACROBOT}"
             f"{_CLASSIC_CONTROL_PENDULUM}"
             f"]",

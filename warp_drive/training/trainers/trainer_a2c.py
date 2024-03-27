@@ -257,6 +257,8 @@ class TrainerA2C(TrainerBase):
             probabilities_batch, value_functions_batch = self.models[policy](
                 obs=processed_obs_batch
             )
+            # Update the timestep
+            self.current_timestep[policy] += self.training_batch_size
             # Loss and metrics computation
             loss, metrics = self.trainers[policy].compute_loss_and_metrics(
                 self.current_timestep[policy],
@@ -266,6 +268,7 @@ class TrainerA2C(TrainerBase):
                 probabilities_batch,
                 value_functions_batch,
                 perform_logging=logging_flag,
+                negative_positive_ratio=self.neg_pos_env_ratio
             )
             # Compute the gradient norm
             grad_norm = 0.0
@@ -274,8 +277,7 @@ class TrainerA2C(TrainerBase):
             ):
                 grad_norm += param.grad.data.norm(2).item()
 
-            # Update the timestep and learning rate based on the schedule
-            self.current_timestep[policy] += self.training_batch_size
+            # Update learning rate based on the schedule
             lr = self.lr_schedules[policy].get_param_value(
                 self.current_timestep[policy]
             )
@@ -320,6 +322,20 @@ class TrainerA2C(TrainerBase):
         torch.cuda.synchronize()
 
         self.perf_stats.training_time += start_event.elapsed_time(end_event) / 1000
+
+        # Run the test evaluator (this run removes the action randomness)
+        if logging_flag:
+            if "evaluator" in self._get_config(["trainer"]) and self._get_config(["trainer", "evaluator"]):
+                evaluator_episodic_reward_sum, evaluator_episodic_step_sum = \
+                    self.evaluate_episodes(use_argmax=True)
+                for policy in self.policies:
+                    metrics_dict[policy].update(
+                        {
+                            "Mean episodic reward (test)": evaluator_episodic_reward_sum[policy].mean().item(),
+                            "Mean episodic steps (test)": evaluator_episodic_step_sum[policy].mean().item(),
+                        }
+                    )
+
         return metrics_dict
 
     def _load_model_checkpoint_helper(self, policy, ckpt_filepath):

@@ -354,6 +354,8 @@ class TrainerDDPG(TrainerBase):
                 j_functions_batch = self.critic_models[policy](
                     obs=processed_obs_batch, action=probabilities_batch
                 )
+                # Update the timestep
+                self.current_timestep[policy] += self.training_batch_size
                 # Loss and metrics computation
                 actor_loss, critic_loss, metrics = self.trainers[policy].compute_loss_and_metrics(
                     self.current_timestep[policy],
@@ -378,8 +380,7 @@ class TrainerDDPG(TrainerBase):
                 ):
                     critic_grad_norm += param.grad.data.norm(2).item()
 
-                # Update the timestep and learning rate based on the schedule
-                self.current_timestep[policy] += self.training_batch_size
+                # Update learning rate based on the schedule
                 actor_lr = self.actor_lr_schedules[policy].get_param_value(
                     self.current_timestep[policy]
                 )
@@ -446,6 +447,19 @@ class TrainerDDPG(TrainerBase):
 
         end_event.record()
         torch.cuda.synchronize()
+
+        # Run the test evaluator (this run removes the action randomness)
+        if logging_flag:
+            if "evaluator" in self._get_config(["trainer"]) and self._get_config(["trainer", "evaluator"]):
+                evaluator_episodic_reward_sum, evaluator_episodic_step_sum = \
+                    self.evaluate_episodes(scale=0)
+                for policy in self.policies:
+                    metrics_dict[policy].update(
+                        {
+                            "Mean episodic reward (test)": evaluator_episodic_reward_sum[policy].mean().item(),
+                            "Mean episodic steps (test)": evaluator_episodic_step_sum[policy].mean().item(),
+                        }
+                    )
 
         self.perf_stats.training_time += start_event.elapsed_time(end_event) / 1000
         return metrics_dict

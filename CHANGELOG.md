@@ -1,4 +1,8 @@
 # Changelog
+# Release 2.7.1 (2024-04-19)
+- Add Continuous Mountain Car environment
+- A2C algorithm supports conditional down-sampling for bad trajectories
+
 # Release 2.7 (2024-02-17)
 - Support continuous actions
 - Add Pendulum environment that can run up to 100K concurrent replicates

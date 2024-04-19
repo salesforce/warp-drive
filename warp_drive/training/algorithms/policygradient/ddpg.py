@@ -72,8 +72,7 @@ class DDPG:
                     self.discount_factor_gamma * next_value_functions_batch_detached[last_step]
             else:
                 r = done_flags_batch[last_step][:, None] * rewards_batch[last_step] + \
-                    (1 - done_flags_batch[last_step][:, None]) * \
-                    self.discount_factor_gamma * next_value_functions_batch_detached[-1]
+                    (1 - done_flags_batch[last_step][:, None]) * next_value_functions_batch_detached[-1]
             for j in range(1, self.n_step):
                 r = (1 - done_flags_batch[last_step - j][:, None]) * self.discount_factor_gamma * r + \
                     done_flags_batch[last_step - j][:, None] * torch.zeros_like(rewards_batch[last_step - j])

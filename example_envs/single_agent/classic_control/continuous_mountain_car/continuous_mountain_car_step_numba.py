@@ -12,19 +12,20 @@ def _clip(v, min, max):
 
 
 @numba_driver.jit
-def NumbaClassicControlMountainCarEnvStep(
+def NumbaClassicControlContinuousMountainCarEnvStep(
         state_arr,
         action_arr,
         done_arr,
         reward_arr,
         observation_arr,
+        min_action,
+        max_action,
         min_position,
         max_position,
         max_speed,
         goal_position,
         goal_velocity,
-        force,
-        gravity,
+        power,
         env_timestep_arr,
         episode_length):
 
@@ -37,15 +38,15 @@ def NumbaClassicControlMountainCarEnvStep(
 
     assert 0 < env_timestep_arr[kEnvId] <= episode_length
 
-    reward_arr[kEnvId, kThisAgentId] = 0.0
-
     action = action_arr[kEnvId, kThisAgentId, 0]
 
     position = state_arr[kEnvId, kThisAgentId, 0]
     velocity = state_arr[kEnvId, kThisAgentId, 1]
+    force = _clip(action, min_action, max_action)
 
-    velocity += (action - 1) * force + math.cos(3 * position) * (-gravity)
+    velocity += force * power - 0.0025 * math.cos(3 * position)
     velocity = _clip(velocity, -max_speed, max_speed)
+
     position += velocity
     position = _clip(position, min_position, max_position)
     if position == min_position and velocity < 0:
@@ -61,10 +62,11 @@ def NumbaClassicControlMountainCarEnvStep(
         position >= goal_position and velocity >= goal_velocity
     )
 
-    # as long as not reset, we assign reward -1. This is consistent with original cartpole logic
-    reward_arr[kEnvId, kThisAgentId] = -1.0
+    rew = 0.0
+    if terminated:
+        rew = 100.0
+    rew -= math.pow(action, 2) * 0.1
+    reward_arr[kEnvId, kThisAgentId] = rew
 
-    if env_timestep_arr[kEnvId] == episode_length:
+    if env_timestep_arr[kEnvId] == episode_length or terminated:
         done_arr[kEnvId] = 1
-    elif terminated:
-        done_arr[kEnvId] = 2

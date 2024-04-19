@@ -355,7 +355,7 @@ class EnvWrapper:
     def init_reset_pool(self, seed=None):
         self.env_resetter.init_reset_pool(self.cuda_data_manager, seed)
 
-    def reset_only_done_envs(self):
+    def reset_only_done_envs(self, undo_done_after_reset=True):
         """
         This function only works for GPU example_envs.
         It will check all the running example_envs,
@@ -366,7 +366,11 @@ class EnvWrapper:
             "for pycuda or numba backends and self.reset_on_host = False"
         )
 
-        self.env_resetter.reset_when_done(self.cuda_data_manager, mode="if_done")
+        self.env_resetter.reset_when_done(
+            self.cuda_data_manager,
+            mode="if_done",
+            undo_done_after_reset=undo_done_after_reset
+        )
         return {}
 
     def custom_reset_all_envs(self, args=None, block=None, grid=None):

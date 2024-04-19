@@ -8,6 +8,7 @@
 import torch
 from torch import nn
 from torch.distributions import Categorical
+import numpy as np
 
 from warp_drive.training.utils.param_scheduler import ParamScheduler
 
@@ -45,6 +46,7 @@ class A2C:
         action_probabilities_batch=None,
         value_functions_batch=None,
         perform_logging=False,
+        negative_positive_ratio=-1,
     ):
         assert timestep is not None
         assert actions_batch is not None
@@ -52,6 +54,23 @@ class A2C:
         assert done_flags_batch is not None
         assert action_probabilities_batch is not None
         assert value_functions_batch is not None
+
+        if negative_positive_ratio > 0:
+            pos_env_ids, neg_env_ids, need_downsample = \
+                self._sample_positive_negative_env_ids(done_flags_batch, negative_positive_ratio)
+
+            if need_downsample:
+                selected_env_ids = pos_env_ids + neg_env_ids
+                actions_batch = actions_batch[:, selected_env_ids]
+                rewards_batch = rewards_batch[:, selected_env_ids]
+                done_flags_batch = done_flags_batch[:, selected_env_ids]
+                for idx in range(actions_batch.shape[-1]):
+                    action_probabilities_batch[idx] = action_probabilities_batch[idx][:, selected_env_ids]
+                value_functions_batch = value_functions_batch[:, selected_env_ids]
+
+        # we may have done = 1 or 2 depending on how it is finished
+        # after we identify the exact termination reason, we give done a binary format
+        done_flags_batch = (done_flags_batch > 0).int()
 
         # Detach value_functions_batch from the computation graph
         # for return and advantage computations.
@@ -162,6 +181,45 @@ class A2C:
                     ].item(),
                 }
                 metrics.update(std_action)
+            if negative_positive_ratio > 0:
+                metrics.update(
+                    {
+                        "Num of Positive Sampled Envs": len(pos_env_ids),
+                        "Num of Negative Sampled Envs": len(neg_env_ids),
+                    }
+                )
+
         else:
             metrics = {}
         return loss, metrics
+
+    def _sample_positive_negative_env_ids(self, done_flags_batch, negative_positive_ratio):
+        # terminate by reaching the end point (=1 is due to the episode termination)
+        positives = torch.any((done_flags_batch == 2), dim=0)
+        positive_env_ids = positives.nonzero(as_tuple=True)[0].tolist()
+        negatives = ~positives
+        negative_env_ids = negatives.nonzero(as_tuple=True)[0].tolist()
+        total_size = done_flags_batch.shape[1]
+        pos_size = len(positive_env_ids)
+        need_downsample = False
+
+        if pos_size > 0:
+            neg_size = int(pos_size * negative_positive_ratio)
+            if pos_size + neg_size < total_size:
+                # down sample the negative envs
+                selected_negative_env_ids = np.random.choice(negative_env_ids, size=neg_size, replace=False).tolist()
+                need_downsample = True
+                return positive_env_ids, selected_negative_env_ids, need_downsample
+            else:
+                # all negative envs are needed, do nothing
+                return positive_env_ids, negative_env_ids, need_downsample
+        else:
+            # no positive envs, do nothing
+            return positive_env_ids, negative_env_ids, need_downsample
+
+
+
+
+
+
+

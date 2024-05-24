@@ -1,0 +1,53 @@
+# Copyright (c) 2021, salesforce.com, inc.
+# All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+# For full license text, see the LICENSE file in the repo root
+# or https://opensource.org/licenses/BSD-3-Clause
+
+# YAML configuration for the tag gridworld environment
+name: "single_agent_one_atom_gas1"
+# Environment settings
+env:
+    "ienergy": -227.689938
+    "max_denergy": 20.0
+    "nx": 20
+    "ny": 18
+    "nz": 50
+    "z_slab_lower": 28
+    "z_slab_upper": 48
+    "initial_state": [3, 15, 43]
+    "final_state": [5, 16, 38]
+    "terminate_reward": 30.0
+    "episode_length": 500
+# Trainer settings
+trainer:
+    num_envs: 100 # number of environment replicas
+    num_episodes: 1200000 # number of episodes to run the training for. Can be arbitrarily high!
+    train_batch_size: 50000 # total batch size used for training per iteration (across all the environments)
+    env_backend: "numba" # environment backend
+# Policy network settings
+policy: # list all the policies below
+    shared:
+        to_train: True # flag indicating whether the model needs to be trained
+        algorithm: "A2C" # algorithm used to train the policy
+        vf_loss_coeff: 0.1 # loss coefficient schedule for the value function loss
+        entropy_coeff: 0.1 # loss coefficient schedule for the entropy loss
+        clip_grad_norm: True # flag indicating whether to clip the gradient norm or not
+        max_grad_norm: 3 # when clip_grad_norm is True, the clip level
+        normalize_advantage: False # flag indicating whether to normalize advantage or not
+        normalize_return: False # flag indicating whether to normalize return or not
+        gamma: 0.99 # discount factor
+        lr: 0.001 # learning rate
+        model: # policy model settings
+            type: "fully_connected" # model type
+            fc_dims: [50, 50] # dimension(s) of the fully connected layers as a list
+            init_method: "xavier" # xavier uniform initialization
+            model_ckpt_filepath: "" # filepath (used to restore a previously saved model)
+# Checkpoint saving setting
+saving:
+    metrics_log_freq: 100 # how often (in iterations) to log (and print) the metrics
+    model_params_save_freq: 5000 # how often (in iterations) to save the model parameters
+    basedir: "/tmp" # base folder used for saving
+    name: "single_agent_one_atom" # base folder used for saving
+    tag: "experiments" # experiment name
+
